@@ -195,9 +195,10 @@ class AuthBackend(object):
         else:
             raise TypeError('only openid and password supported')
 
-        #update last used time
-        assoc.last_used_timestamp = datetime.datetime.now()
-        assoc.save()
+        if assoc:
+            #update last used time
+            assoc.last_used_timestamp = datetime.datetime.now()
+            assoc.save()
         return user
 
     def get_user(self, user_id):
