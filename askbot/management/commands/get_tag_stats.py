@@ -250,6 +250,9 @@ class Command(BaseCommand):
         out += '  Subscribed to ALL Tags : %d\n' % all_count
         out += '  Ignoring specific Tags : %d\n' % ign_count
         for tag in tags:
+            if '_internal_' in tag.name:
+                continue
+
             wild_follow = 0
             wild_ignore = 0
             wild_sub = 0
