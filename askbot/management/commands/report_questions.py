@@ -2,6 +2,8 @@ from django.core.management.base import BaseCommand
 from optparse import make_option
 from askbot import models
 from django.conf import settings as django_settings
+import sys
+from datetime import datetime
 
 base_report_dir = django_settings.REPORT_BASE + "/tags"
 
@@ -23,6 +25,7 @@ class Command(BaseCommand):
     help = 'Print report about questions labeled with any of the provided tags'
 
     def handle(self, *args, **kwargs):
+      dt = datetime.today().strftime('%Y-%m-%d')
       tag_list =  models.Tag.objects.all().filter(deleted=False)
       for tag in tag_list:
         print tag
@@ -33,7 +36,7 @@ class Command(BaseCommand):
         tot_no_ans = 0
 
         questions = models.Thread.objects.filter(tags=tag).distinct()
-        summary_str = 'Report: %s - %d Items\n\n' % (tag, len(questions))
+        summary_str = '%s Report: %s - %d Items\n\n' % (dt, tag, len(questions))
 
         detail_str = ''
         data = {
@@ -45,7 +48,12 @@ class Command(BaseCommand):
                 'comments': 'Comments'
             }
         summary_str += '%(id)6s %(title)-52s %(upvotes)7s %(downvotes)9s %(answers)7s %(comments)8s\n' % data
+        proc_count = 0
         for question in questions:
+            proc_count += 1
+            if proc_count % 100 == 0:
+               print ".",
+               sys.stdout.flush()
 
             question_post = question._question_post()
             question_votes = question_post.votes.all()
@@ -78,12 +86,12 @@ class Command(BaseCommand):
             detail_str += 60*"=" + '\n'
             detail_str += '%(id)s - %(full_title)s - upvotes: %(upvotes)3d, downvotes: %(downvotes)3d\n\n' % data
             detail_str += question_post.text + '\n'
-            if True:
+            if kwargs['show_details'] == True:
                 for comment in question_post.comments.all():
                     detail_str += 'Comment by %s\n' % comment.author.username
                     detail_str += comment.text + '\n'
+
                 for answer in question.get_answers():
-                    detail_str += '------------------\n'
                     answer_votes = answer.votes.all()
 
                     downvotes = answer_votes.filter(
@@ -93,6 +101,7 @@ class Command(BaseCommand):
                                         vote=models.Vote.VOTE_UP
                                     ).count()
 
+                    detail_str += '------------------\n'
                     data = {
                         'author': answer.author,
                         'downvotes': downvotes,
