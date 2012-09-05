@@ -6,7 +6,7 @@ from django.db import models
 from askbot import const
 
 class Migration(SchemaMigration):
-    
+
     def forwards(self, orm):
         
         # Adding model country fields to the model auth_user

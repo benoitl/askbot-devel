@@ -22,7 +22,7 @@ var AutoCompleter = function(options) {
         lineSeparator: '\n',
         cellSeparator: '|',
         minChars: 2,
-        maxItemsToShow: 10,
+        maxItemsToShow: 25,
         delay: 400,
         useCache: true,
         maxCacheLength: 10,
