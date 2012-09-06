@@ -25,6 +25,7 @@ from django.template import Context
 from django.utils.translation import ugettext as _
 from celery.decorators import task
 from askbot.conf import settings as askbot_settings
+from django.conf import settings as django_settings
 from askbot import const
 from askbot import mail
 from askbot.models import Post, Thread, User, ReplyAddress
@@ -107,10 +108,14 @@ def record_post_update_celery_task(
     newly_mentioned_users = User.objects.filter(
                                 id__in=newly_mentioned_user_id_list
                             )
+    excluded = [updated_by,]
+    if hasattr(django_settings, 'ASKBOT_EMAIL_SELF'):
+       excluded = []
+
     try:
         notify_sets = post.get_notify_sets(
                                 mentioned_users=newly_mentioned_users,
-                                exclude_list=[updated_by,]
+                                exclude_list=excluded
                             )
         #todo: take into account created == True case
         #update_object is not used
