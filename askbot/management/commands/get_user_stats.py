@@ -53,8 +53,9 @@ class Command(BaseCommand):
         for user in users:
             user_string = '%-25s %4s' % (user.username, user.id)
             line = format_table_row(
-                                user_string, user.questions.count(), user.answers.count(),
-                                user.votes.count(), 
+                                user_string, user.posts.get_questions().count(), user.posts.get_answers().count(),
+                                models.Vote.objects.get_up_vote_count_from_user(user) + 
+                                models.Vote.objects.get_down_vote_count_from_user(user),
                                 user.reputation, user.gold, user.silver, user.bronze,
                                 format_string = '%-30s %6s %6s %6s %6s %6s %6s %6s'
                             )
