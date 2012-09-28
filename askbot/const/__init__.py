@@ -177,6 +177,7 @@ TYPE_ACTIVITY_CREATE_REJECT_REASON = 26
 TYPE_ACTIVITY_UPDATE_REJECT_REASON = 27
 TYPE_ACTIVITY_VALIDATION_EMAIL_SENT = 28
 TYPE_ACTIVITY_POST_SHARED = 29
+TYPE_ACTIVITY_ASK_TO_JOIN_GROUP = 30
 #TYPE_ACTIVITY_EDIT_QUESTION = 17
 #TYPE_ACTIVITY_EDIT_ANSWER = 18
 
@@ -402,6 +403,48 @@ AVATAR_STATUS_CHOICE = (
     ('g', _('Gravatar')),#only if user has real uploaded gravatar
     ('a', _('Uploaded Avatar')),#avatar uploaded locally - with django-avatar app
 )
+
+SEARCH_ORDER_BY = (
+                    ('-added_at', _('date descendant')),
+                    ('added_at', _('date ascendant')),
+                    ('-last_activity_at', _('activity descendant')),
+                    ('last_activity_at', _('activity ascendant')),
+                    ('-answer_count', _('answers descendant')),
+                    ('answer_count', _('answers ascendant')),
+                    ('-score', _('votes descendant')),
+                    ('score', _('votes ascendant')),
+                  )
+
+DEFAULT_QUESTION_WIDGET_STYLE = """
+@import url('http://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:300,400,700');
+body {
+    overflow: hidden;
+}
+
+#container {
+    width: 200px;
+    height: 350px;
+}
+ul {
+    list-style: none;
+    padding: 5px;
+    margin: 5px;
+}
+li {
+    border-bottom: #CCC 1px solid;
+    padding-bottom: 5px;
+    padding-top: 5px;
+}
+li:last-child {
+    border: none;
+}
+a {
+    text-decoration: none;
+    color: #464646;
+    font-family: 'Yanone Kaffeesatz', sans-serif;
+    font-size: 15px;
+}
+"""
 
 #an exception import * because that file has only strings
 from askbot.const.message_keys import *

@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import ungettext
 from django.utils.http import urlquote as django_urlquote
 from django.core import exceptions as django_exceptions
+from django.core import cache
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.contrib.contenttypes.models import ContentType
@@ -26,6 +27,7 @@ from askbot.utils.slug import slugify
 from askbot import const
 from askbot.models.user import Activity
 from askbot.models.user import EmailFeedSetting
+from askbot.models.user import Group
 from askbot.models.user import GroupMembership
 from askbot.models.tag import Tag, MarkedTag
 from askbot.models.tag import get_groups, tags_match_some_wildcard
@@ -40,18 +42,14 @@ from askbot.models.base import BaseQuerySetManager, DraftContent
 from askbot.utils.diff import textDiff as htmldiff
 from askbot.utils import mysql
 
-
 class PostToGroup(models.Model):
-    """the "trough" table for the
-    relation of groups to posts
-    """
     post = models.ForeignKey('Post')
-    tag = models.ForeignKey('Tag')
+    group = models.ForeignKey(Group)
 
     class Meta:
-        unique_together = ('post', 'tag')
-        db_table = 'askbot_post_groups'
+        unique_together = ('post', 'group')
         app_label = 'askbot'
+        db_table = 'askbot_post_groups'
 
 
 class PostQuerySet(models.query.QuerySet):
@@ -223,7 +221,23 @@ class PostManager(BaseQuerySetManager):
             post.last_edited_at = added_at
             post.wikified_at = added_at
 
-        post.parse_and_save(author=author, is_private = is_private)
+        #possibly modify the is_private, if one of the groups
+        #mandates explicit publishing of the posts
+        is_private = is_private or \
+            (thread and thread.requires_response_moderation(author))
+
+        parse_results = post.parse_and_save(author=author, is_private=is_private)
+
+        from askbot.models import signals
+        signals.post_updated.send(
+            post=post,
+            updated_by=author,
+            newly_mentioned_users=parse_results['newly_mentioned_users'],
+            timestamp=added_at,
+            created=True,
+            diff=parse_results['diff'],
+            sender=post.__class__
+        )
 
         post.add_revision(
             author = author,
@@ -232,7 +246,7 @@ class PostManager(BaseQuerySetManager):
             comment = const.POST_STATUS['default_version'],
             by_email = by_email
         )
-        
+
         return post
 
     #todo: instead of this, have Thread.add_answer()
@@ -323,7 +337,7 @@ class Post(models.Model):
 
     parent = models.ForeignKey('Post', blank=True, null=True, related_name='comments') # Answer or Question for Comment
     thread = models.ForeignKey('Thread', blank=True, null=True, default = None, related_name='posts')
-    groups = models.ManyToManyField('Tag', through='PostToGroup', related_name = 'group_posts')#used for group-private posts
+    groups = models.ManyToManyField(Group, through='PostToGroup', related_name = 'group_posts')#used for group-private posts
 
     author = models.ForeignKey(User, related_name='posts')
     added_at = models.DateTimeField(default=datetime.datetime.now)
@@ -472,7 +486,7 @@ class Post(models.Model):
         return data
 
     #todo: when models are merged, it would be great to remove author parameter
-    def parse_and_save(self, author = None, **kwargs):
+    def parse_and_save(self, author=None, **kwargs):
         """generic method to use with posts to be used prior to saving
         post edit or addition
         """
@@ -510,6 +524,10 @@ class Post(models.Model):
             self.add_to_groups(groups)
         elif is_private or group_id:
             self.make_private(author, group_id = group_id)
+        elif self.thread_id:#is connected to thread
+            #inherit privacy scope from thread
+            thread_groups = self.thread.groups.all()
+            self.add_to_groups(thread_groups)
         else:
             self.make_public()
 
@@ -523,25 +541,14 @@ class Post(models.Model):
 
         timestamp = self.get_time_of_last_edit()
 
-        #todo: this is handled in signal because models for posts
-        #are too spread out
-        from askbot.models import signals
-        signals.post_updated.send(
-            post = self,
-            updated_by = author,
-            newly_mentioned_users = newly_mentioned_users,
-            timestamp = timestamp,
-            created = created,
-            diff = diff,
-            sender = self.__class__
-        )
-
         try:
             from askbot.conf import settings as askbot_settings
             if askbot_settings.GOOGLE_SITEMAP_CODE != '':
                 ping_google()
         except Exception:
             logging.debug('cannot ping google - did you register with them?')
+
+        return {'diff': diff, 'newly_mentioned_users': newly_mentioned_users}
 
     def is_question(self):
         return self.post_type == 'question'
@@ -558,24 +565,35 @@ class Post(models.Model):
     def is_reject_reason(self):
         return self.post_type == 'reject_reason'
 
+    def get_moderators(self):
+        """returns query set of users who are site administrators
+        and moderators"""
+        user_filter = models.Q(is_superuser=True) | models.Q(status='m')
+        if askbot_settings.GROUPS_ENABLED:
+            user_filter = user_filter & models.Q(groups__in=self.groups.all())
+        return User.objects.filter(user_filter)
+
+    def has_group(self, group):
+        """true if post belongs to the group"""
+        return self.groups.filter(id=group.id).exists()
+
     def add_to_groups(self, groups):
         #todo: use bulk-creation
         for group in groups:
-            PostToGroup.objects.get_or_create(post=self, tag=group)
+            PostToGroup.objects.get_or_create(post=self, group=group)
         if self.is_answer() or self.is_question():
             comments = self.comments.all()
             for group in groups:
                 for comment in comments:
-                    PostToGroup.objects.get_or_create(post=comment, tag=group)
-            
+                    PostToGroup.objects.get_or_create(post=comment, group=group)
 
     def remove_from_groups(self, groups):
-        PostToGroup.objects.filter(post=self, tag__in=groups).delete()
+        PostToGroup.objects.filter(post=self, group__in=groups).delete()
         if self.is_answer() or self.is_question():
             comment_ids = self.comments.all().values_list('id', flat=True)
             PostToGroup.objects.filter(
                         post__id__in=comment_ids,
-                        tag__in=groups
+                        group__in=groups
                     ).delete()
 
 
@@ -597,15 +615,10 @@ class Post(models.Model):
         * sends email alerts to all subscribers to the post
         """
         assert(activity_type is not None)
-        if self.is_comment():
-            #it's just a comment!
-            summary = self.text
+        if diff:
+            summary = diff
         else:
-            #summary = post.get_latest_revision().summary
-            if diff:
-                summary = diff
-            else:
-                summary = self.text
+            summary = self.get_snippet()
 
         update_activity = Activity(
                         user = updated_by,
@@ -641,19 +654,26 @@ class Post(models.Model):
                     notify_sets['for_email'] = \
                         [u for u in notify_sets['for_email'] if u.is_administrator()]
 
+        if not settings.CELERY_ALWAYS_EAGER:
+            cache_key = 'instant-notification-%d-%d' % (self.thread.id, updated_by.id)
+            if cache.cache.get(cache_key):
+                return
+            cache.cache.set(cache_key, True, settings.NOTIFICATION_DELAY_TIME)
+
         from askbot.models import send_instant_notifications_about_activity_in_post
-        send_instant_notifications_about_activity_in_post(
-                                update_activity=update_activity,
-                                post=self,
-                                recipients=notify_sets['for_email'],
+        send_instant_notifications_about_activity_in_post.apply_async((
+                                update_activity,
+                                self,
+                                notify_sets['for_email']),
+                                countdown = settings.NOTIFICATION_DELAY_TIME
                             )
- 
-    def make_private(self, user, group_id = None):
+
+    def make_private(self, user, group_id=None):
         """makes post private within user's groups
         todo: this is a copy-paste in thread and post
         """
         if group_id:
-            group = Tag.group_tags.get(id=group_id)
+            group = Group.objects.get(id=group_id)
             groups = [group]
             self.add_to_groups(groups)
 
@@ -661,7 +681,15 @@ class Post(models.Model):
             if group != global_group:
                 self.remove_from_groups((global_group,))
         else:
-            groups = user.get_groups(private=True)
+            if self.thread_id and self.is_question() is False:
+                #for thread-related responses we base
+                #privacy scope on thread + add a personal group
+                personal_group = user.get_personal_group()
+                thread_groups = self.thread.get_groups_shared_with()
+                groups = set([personal_group]) | set(thread_groups)
+            else:
+                groups = user.get_groups(private=True)
+
             self.add_to_groups(groups)
             self.remove_from_groups((get_global_group(),))
 
@@ -814,21 +842,18 @@ class Post(models.Model):
             return filtered_candidates
 
     def format_for_email(
-        self, quote_level = 0, is_leaf_post = False, format = None
+        self, quote_level=0, is_leaf_post=False, format=None
     ):
         """format post for the output in email,
         if quote_level > 0, the post will be indented that number of times
         todo: move to views?
         """
-        from askbot.templatetags.extra_filters_jinja \
-            import absolutize_urls_func
         from askbot.skins.loaders import get_template
         from django.template import Context
         template = get_template('email/quoted_post.html')
         data = {
             'post': self,
             'quote_level': quote_level,
-            #'html': absolutize_urls_func(self.html),
             'is_leaf_post': is_leaf_post,
             'format': format
         }
@@ -1237,7 +1262,7 @@ class Post(models.Model):
         result['for_mentions'] = set(mentioned_users) - set(exclude_list)
         #what users are included depends on the post type
         #for example for question - all Q&A contributors
-        #are included, for comments only authors of comments and parent 
+        #are included, for comments only authors of comments and parent
         #post are included
         result['for_inbox'] = self.get_response_receivers(exclude_list=exclude_list)
 
@@ -1609,7 +1634,19 @@ class Post(models.Model):
             by_email = by_email
         )
 
-        self.parse_and_save(author=edited_by, is_private=is_private)
+        parse_results = self.parse_and_save(author=edited_by, is_private=is_private)
+
+        from askbot.models import signals
+        signals.post_updated.send(
+            post=self,
+            updated_by=edited_by,
+            newly_mentioned_users=parse_results['newly_mentioned_users'],
+            timestamp=edited_at,
+            created=False,
+            diff=parse_results['diff'],
+            sender=self.__class__
+        )
+
 
     def _answer__apply_edit(
                         self,
@@ -1927,22 +1964,22 @@ class PostRevision(models.Model):
     )
 
     post = models.ForeignKey('askbot.Post', related_name='revisions', null=True, blank=True)
-    revision   = models.PositiveIntegerField()
-    author     = models.ForeignKey('auth.User', related_name='%(class)ss')
+    revision = models.PositiveIntegerField()
+    author = models.ForeignKey('auth.User', related_name='%(class)ss')
     revised_at = models.DateTimeField()
-    summary    = models.CharField(max_length=300, blank=True)
-    text       = models.TextField()
+    summary = models.CharField(max_length=300, blank=True)
+    text = models.TextField()
 
     approved = models.BooleanField(default=False, db_index=True)
-    approved_by = models.ForeignKey(User, null = True, blank = True) 
+    approved_by = models.ForeignKey(User, null = True, blank = True)
     approved_at = models.DateTimeField(null = True, blank = True)
 
     by_email = models.BooleanField(default = False)#true, if edited by email
     email_address = models.EmailField(null = True, blank = True)
 
     # Question-specific fields
-    title      = models.CharField(max_length=300, blank=True, default='')
-    tagnames   = models.CharField(max_length=125, blank=True, default='')
+    title = models.CharField(max_length=300, blank=True, default='')
+    tagnames = models.CharField(max_length=125, blank=True, default='')
     is_anonymous = models.BooleanField(default=False)
 
     objects = PostRevisionManager()
@@ -1968,12 +2005,13 @@ class PostRevision(models.Model):
             if self.by_email and self.email_address:
                 group_name = self.email_address.split('@')[0]
                 try:
-                    group = Tag.objects.get(name = group_name, deleted = False)
+                    group = Group.objects.get(name = group_name, deleted = False)
                     return group.group.profile.moderate_email
-                except Tag.DoesNotExist:
+                except Group.DoesNotExist:
                     pass
             return True
         return False
+
 
     def place_on_moderation_queue(self):
         """If revision is the first one,
@@ -2015,7 +2053,7 @@ class PostRevision(models.Model):
                     body_text = body_text,
                     recipient_list = [self.author.email,],
                 )
-                
+
             else:
                 message = _(
                     'Your post was placed on the moderation queue '
@@ -2031,7 +2069,7 @@ class PostRevision(models.Model):
             #merging multiple edits. We don't have a solution for this yet.
             activity_type = const.TYPE_ACTIVITY_MODERATED_POST_EDIT
 
-        from askbot.models import Activity, get_admins_and_moderators
+        from askbot.models import Activity
         activity = Activity(
                         user = self.author,
                         content_object = self,
@@ -2040,7 +2078,7 @@ class PostRevision(models.Model):
                     )
         activity.save()
         #todo: make this group-sensitive
-        activity.add_recipients(get_admins_and_moderators())
+        activity.add_recipients(self.post.get_moderators())
 
     def moderate_or_publish(self):
         """either place on moderation queue or announce
@@ -2084,10 +2122,10 @@ class PostRevision(models.Model):
         # Determine the revision number, if not set
         if not self.revision:
             # TODO: Maybe use Max() aggregation? Or `revisions.count() + 1`
-            self.revision = self.parent().revisions.values_list('revision', flat=True)[0] + 1
-
+            self.revision = self.parent().revisions.values_list(
+                                                'revision', flat=True
+                                            )[0] + 1
         self.full_clean()
-
         super(PostRevision, self).save(**kwargs)
 
     def get_absolute_url(self):

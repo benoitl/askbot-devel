@@ -12,6 +12,7 @@ from django.contrib.auth.models import User
 from django_countries import countries
 from askbot.utils.forms import NextUrlField, UserNameField
 from askbot.mail import extract_first_email_address
+from askbot.models.tag import get_groups
 from recaptcha_works.fields import RecaptchaField
 from askbot.conf import settings as askbot_settings
 from askbot.conf import get_tag_display_filter_strategy_choices
@@ -273,13 +274,14 @@ class EditorField(forms.CharField):
     min_length = 10  # sentinel default value
 
     def __init__(self, *args, **kwargs):
+        editor_attrs = kwargs.pop('editor_attrs', {})
         super(EditorField, self).__init__(*args, **kwargs)
         self.required = True
         widget_attrs = {'id': 'editor'}
         if askbot_settings.EDITOR_TYPE == 'markdown':
             self.widget = forms.Textarea(attrs=widget_attrs)
         elif askbot_settings.EDITOR_TYPE == 'tinymce':
-            self.widget = TinyMCE(attrs=widget_attrs)
+            self.widget = TinyMCE(attrs=widget_attrs, mce_attrs=editor_attrs)
         self.label  = _('content')
         self.help_text = u''
         self.initial = ''
@@ -357,11 +359,16 @@ class TagNamesField(forms.CharField):
 
     def __init__(self, *args, **kwargs):
         super(TagNamesField, self).__init__(*args, **kwargs)
-        self.required = askbot_settings.TAGS_ARE_REQUIRED
+        self.required = kwargs.get('required',
+                askbot_settings.TAGS_ARE_REQUIRED)
         self.widget = forms.TextInput(
             attrs={'size': 50, 'autocomplete': 'off'}
         )
         self.max_length = 255
+        self.error_messages['max_length'] = _(
+                            'We ran out of space for recording the tags. '
+                            'Please shorten or delete some of them.'
+                        )
         self.label = _('tags')
         self.help_text = ungettext_lazy(
             'Tags are short keywords, with no spaces within. '
@@ -408,6 +415,11 @@ class TagNamesField(forms.CharField):
             cleaned_tag = clean_tag(tag)
             if cleaned_tag not in cleaned_entered_tags:
                 cleaned_entered_tags.append(clean_tag(tag))
+
+        result = u' '.join(cleaned_entered_tags)
+
+        if len(result) > 125:#magic number!, the same as max_length in db
+            raise forms.ValidationError(self.error_messages['max_length'])
 
         return u' '.join(cleaned_entered_tags)
 
@@ -459,6 +471,17 @@ class SummaryField(forms.CharField):
             'fixed spelling, grammar, improved style, this '
             'field is optional)'
         )
+
+
+class EditorForm(forms.Form):
+    """form with one field - `editor`
+    the field must be created dynamically, so it's added
+    in the __init__() function"""
+
+    def __init__(self, editor_attrs=None):
+        super(EditorForm, self).__init__()
+        editor_attrs = editor_attrs or {}
+        self.fields['editor'] = EditorField(editor_attrs=editor_attrs)
 
 
 class DumpUploadForm(forms.Form):
@@ -784,7 +807,7 @@ class PostAsSomeoneForm(forms.Form):
             'Can create new accounts.'
         ),
         required=False,
-        widget=forms.TextInput(attrs={'class': 'tipped-input'})
+        widget=forms.TextInput()
     )
     post_author_email = forms.CharField(
         initial=_('Email address:'),
@@ -895,6 +918,7 @@ ASK_BY_EMAIL_SUBJECT_HELP = _(
     '[tag1, tag2, tag3,...] question title'
 )
 
+#widgetforms
 class AskWidgetForm(forms.Form, FormWithHideableFields):
     '''Simple form with just the title to ask a question'''
 
@@ -908,11 +932,65 @@ class AskWidgetForm(forms.Form, FormWithHideableFields):
         required=False,
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, include_text=True, *args, **kwargs):
         super(AskWidgetForm, self).__init__(*args, **kwargs)
         #hide ask_anonymously field
-        if askbot_settings.ALLOW_ASK_ANONYMOUSLY is False:
+        if not askbot_settings.ALLOW_ASK_ANONYMOUSLY:
             self.hide_field('ask_anonymously')
+        self.fields['text'] = QuestionEditorField()
+        if not include_text:
+            self.hide_field('text')
+            #hack to make it validate
+            self.fields['text'].required = False
+            self.fields['text'].min_length = 0
+
+class CreateAskWidgetForm(forms.Form, FormWithHideableFields):
+    title =  forms.CharField(max_length=100)
+    include_text_field = forms.BooleanField(required=False)
+
+    inner_style = forms.CharField(
+                        widget=forms.Textarea,
+                        required=False
+                    )
+    outer_style = forms.CharField(
+                        widget=forms.Textarea,
+                        required=False
+                    )
+
+    def __init__(self, *args, **kwargs):
+        from askbot.models import Tag
+        super(CreateAskWidgetForm, self).__init__(*args, **kwargs)
+        self.fields['group'] = forms.ModelChoiceField(
+            queryset=get_groups().exclude_personal(),
+            required=False
+        )
+        self.fields['tag'] = forms.ModelChoiceField(queryset=Tag.objects.get_content_tags(),
+            required=False)
+        if not askbot_settings.GROUPS_ENABLED:
+            self.hide_field('group')
+
+class CreateQuestionWidgetForm(forms.Form, FormWithHideableFields):
+    title =  forms.CharField(max_length=100)
+    question_number =  forms.CharField(initial='7')
+    tagnames  =  forms.CharField(label=_('tags'), max_length=50)
+    search_query =  forms.CharField(max_length=50, required=False)
+    order_by = forms.ChoiceField(
+        choices=const.SEARCH_ORDER_BY,
+        initial='-added_at'
+    )
+    style = forms.CharField(
+        widget=forms.Textarea,
+        initial=const.DEFAULT_QUESTION_WIDGET_STYLE,
+        required=False
+    )
+
+    def __init__(self, *args, **kwargs):
+        super(CreateQuestionWidgetForm, self).__init__(*args, **kwargs)
+        self.fields['tagnames'] = TagNamesField()
+        self.fields['group'] = forms.ModelChoiceField(
+            queryset=get_groups().exclude(name__startswith='_internal'),
+            required=False
+        )
 
 class AskByEmailForm(forms.Form):
     """:class:`~askbot.forms.AskByEmailForm`

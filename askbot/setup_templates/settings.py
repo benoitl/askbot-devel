@@ -150,6 +150,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 
 
 INSTALLED_APPS = (
+    'longerusername',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -228,7 +229,9 @@ CSRF_COOKIE_NAME = 'askbot_csrf'
 #enter domain name here - e.g. example.com
 #CSRF_COOKIE_DOMAIN = ''
 
-STATICFILES_DIRS = ( os.path.join(ASKBOT_ROOT, 'skins'),)
+STATICFILES_DIRS = (
+    ('default/media', os.path.join(ASKBOT_ROOT, 'media')),
+)
 
 RECAPTCHA_USE_SSL = True
 
@@ -248,13 +251,15 @@ TINYMCE_DEFAULT_CONFIG = {
     'plugins': 'askbot_imageuploader,askbot_attachment',
     'theme_advanced_toolbar_location' : 'top',
     'theme_advanced_toolbar_align': 'left',
-    'theme_advanced_buttons1': 'bold,italic,underline,|,bullist,numlist,|,undo,redo,|,link,unlink,askbot_imageuploader,askbot_attachment'
+    'theme_advanced_buttons1': 'bold,italic,underline,|,bullist,numlist,|,undo,redo,|,link,unlink,askbot_imageuploader,askbot_attachment',
     'theme_advanced_buttons2': '',
     'theme_advanced_buttons3' : '',
     'theme_advanced_path': False,
     'theme_advanced_resizing': True,
     'theme_advanced_resize_horizontal': False,
     'theme_advanced_statusbar_location': 'bottom',
-    'width': '723',
     'height': '250'
 }
+
+#delayed notifications, time in seconds, 15 mins by default
+NOTIFICATION_DELAY_TIME = 60 * 15
