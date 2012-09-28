@@ -6,6 +6,7 @@ South>=0.7.1
 oauth2
 Lamson
 markdown2
+psycopg2
 html5lib==0.90
 django-keyedcache
 django-threaded-multihost

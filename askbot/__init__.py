@@ -12,6 +12,8 @@ VERSION = (0, 7, 43)
 #values - the package qualifier to use for pip
 REQUIREMENTS = {
     'akismet': 'akismet',
+    'psycopg2': 'psycopg2',
+    'importlib': 'importlib',
     'django': 'django==1.3.1',
     'jinja2': 'Jinja2',
     'coffin': 'Coffin>=0.3.3',
