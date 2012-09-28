@@ -3,10 +3,13 @@ from django import forms
 from django.http import str_to_unicode
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.http import Http404
+from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
 from askbot.conf import settings as askbot_settings
 from askbot.utils.slug import slugify
+from askbot.utils.functions import split_list
 from askbot import const
 from longerusername import MAX_USERNAME_LENGTH
 import logging
@@ -26,6 +29,35 @@ def clean_next(next, default = None):
 
 def get_next_url(request, default = None):
     return clean_next(request.REQUEST.get('next'), default)
+
+def get_db_object_or_404(params):
+    """a utility function that returns an object
+    in return to the model_name and object_id
+
+    only specific models are accessible
+    """
+    from askbot import models
+    try:
+        model_name = params['model_name']
+        assert(model_name=='Group')
+        model = models.get_model(model_name)
+        obj_id = forms.IntegerField().clean(params['object_id'])
+        return get_object_or_404(model, id=obj_id)
+    except Exception:
+        #need catch-all b/c of the nature of the function
+        raise Http404
+
+def format_errors(error_list):
+    """If there is only one error - returns a string
+    corresponding to that error, to remove the <ul> tag.
+
+    If there is > 1 error - then convert the error_list into
+    a string.
+    """
+    if len(error_list) == 1:
+        return unicode(error_list[0])
+    else:
+        return unicode(error_list)
 
 class StrippedNonEmptyCharField(forms.CharField):
     def clean(self, value):
@@ -59,6 +91,7 @@ class UserNameField(StrippedNonEmptyCharField):
         must_exist=False,
         skip_clean=False,
         label=_('Choose a screen name'),
+        widget_attrs=None,
         **kw
     ):
         self.must_exist = must_exist
@@ -80,13 +113,19 @@ class UserNameField(StrippedNonEmptyCharField):
             error_messages.update(kw['error_messages'])
             del kw['error_messages']
 
-        max_length = MAX_USERNAME_LENGTH
-        super(UserNameField,self).__init__(max_length=max_length,
+        if widget_attrs:
+            widget_attrs.update(login_form_widget_attrs)
+        else:
+            widget_attrs = login_form_widget_attrs
+
+        max_length = MAX_USERNAME_LENGTH()
+        super(UserNameField,self).__init__(
+                max_length=max_length,
                 widget=forms.TextInput(attrs=login_form_widget_attrs),
                 label=label,
                 error_messages=error_messages,
                 **kw
-                )
+            )
 
     def clean(self,username):
         """ validate username """
@@ -144,25 +183,63 @@ class UserNameField(StrippedNonEmptyCharField):
             logging.debug('error - user with this name already exists')
             raise forms.ValidationError(self.error_messages['multiple-taken'])
 
+
+def email_is_allowed(
+    email, allowed_emails='', allowed_email_domains=''
+):
+    """True, if email address is pre-approved or matches a allowed
+    domain"""
+    if allowed_emails:
+        email_list = split_list(allowed_emails)
+        allowed_emails = ' ' + ' '.join(email_list) + ' '
+        email_match_re = re.compile(r'\s%s\s' % email)
+        if email_match_re.search(allowed_emails):
+            return True
+
+    if allowed_email_domains:
+        email_domain = email.split('@')[1]
+        domain_list = split_list(allowed_email_domains)
+        domain_match_re = re.compile(r'\s%s\s' % email_domain)
+        allowed_email_domains = ' ' + ' '.join(domain_list) + ' '
+        return domain_match_re.search(allowed_email_domains)
+
+    return False
+
 class UserEmailField(forms.EmailField):
     def __init__(self,skip_clean=False,**kw):
         self.skip_clean = skip_clean
-        super(UserEmailField,self).__init__(widget=forms.TextInput(attrs=dict(login_form_widget_attrs,
-            maxlength=200)), label=mark_safe(_('Your email <i>(never shared)</i>')),
-            error_messages={'required':_('email address is required'),
-                            'invalid':_('please enter a valid email address'),
-                            'taken':_('this email is already used by someone else, please choose another'),
-                            },
+        super(UserEmailField,self).__init__(
+            widget=forms.TextInput(
+                    attrs=dict(login_form_widget_attrs, maxlength=200)
+                ),
+            label=mark_safe(_('Your email <i>(never shared)</i>')),
+            error_messages={
+                'required':_('email address is required'),
+                'invalid':_('please enter a valid email address'),
+                'taken':_('this email is already used by someone else, please choose another'),
+                'unauthorized':_('this email address is not authorized')
+            },
             **kw
-            )
+        )
 
-    def clean(self,email):
+    def clean(self, email):
         """ validate if email exist in database
         from legacy register
         return: raise error if it exist """
         email = super(UserEmailField,self).clean(email.strip())
         if self.skip_clean:
             return email
+        
+        allowed_domains = askbot_settings.ALLOWED_EMAIL_DOMAINS.strip()
+        allowed_emails = askbot_settings.ALLOWED_EMAILS.strip()
+
+        if allowed_emails or allowed_domains:
+            if not email_is_allowed(
+                    email,
+                    allowed_emails=allowed_emails,
+                    allowed_email_domains=allowed_domains
+                ):
+                raise forms.ValidationError(self.error_messages['unauthorized'])
         if askbot_settings.EMAIL_UNIQUE == True:
             try:
                 user = User.objects.get(email = email)

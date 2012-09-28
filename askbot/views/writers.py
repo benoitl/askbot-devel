@@ -31,6 +31,7 @@ from askbot import models
 from askbot.conf import settings as askbot_settings
 from askbot.skins.loaders import render_into_skin
 from askbot.utils import decorators
+from askbot.utils.forms import format_errors
 from askbot.utils.functions import diff_date
 from askbot.utils import url_utils
 from askbot.utils.file_utils import store_file
@@ -50,7 +51,7 @@ QUESTIONS_PAGE_SIZE = 10
 ANSWERS_PAGE_SIZE = 10
 
 @csrf.csrf_exempt
-def upload(request):#ajax upload file to a question or answer 
+def upload(request):#ajax upload file to a question or answer
     """view that handles file upload via Ajax
     """
 
@@ -71,6 +72,7 @@ def upload(request):#ajax upload file to a question or answer
         if file_name_prefix not in ('', 'group_logo_'):
             raise exceptions.PermissionDenied('invalid upload file name prefix')
 
+        #todo: check file type
         f = request.FILES['file-upload']#take first file
         #todo: extension checking should be replaced with mimetype checking
         #and this must be part of the form validation
@@ -121,14 +123,14 @@ def __import_se_data(dump_file):
     """non-view function that imports the SE data
     in the future may import other formats as well
 
-    In this function stdout is temporarily 
+    In this function stdout is temporarily
     redirected, so that the underlying importer management
     command could stream the output to the browser
 
     todo: maybe need to add try/except clauses to restore
     the redirects in the exceptional situations
     """
-    
+
     fake_stdout = tempfile.NamedTemporaryFile()
     real_stdout = sys.stdout
     sys.stdout = fake_stdout
@@ -226,7 +228,7 @@ def ask(request):#view used to ask a new question
                                                 author=request.user
                                             )
                 drafts.delete()
-                
+
                 user = form.get_post_user(request.user)
                 try:
                     question = user.post_question(
@@ -313,6 +315,7 @@ def retag_question(request, id):
         request.user.assert_can_retag_question(question)
         if request.method == 'POST':
             form = forms.RetagQuestionForm(question, request.POST)
+
             if form.is_valid():
                 if form.has_changed():
                     request.user.retag_question(question=question, tags=form.cleaned_data['tags'])
@@ -333,7 +336,7 @@ def retag_question(request, id):
                     return HttpResponseRedirect(question.get_absolute_url())
             elif request.is_ajax():
                 response_data = {
-                    'message': unicode(form.errors['tags']),
+                    'message': format_errors(form.errors['tags']),
                     'success': False
                 }
                 data = simplejson.dumps(response_data)
@@ -421,7 +424,7 @@ def edit_question(request, id):
                             body_text = form.cleaned_data['text'],
                             revision_comment = form.cleaned_data['summary'],
                             tags = form.cleaned_data['tags'],
-                            wiki = is_wiki, 
+                            wiki = is_wiki,
                             edit_anonymously = is_anon_edit,
                             is_private = post_privately
                         )
@@ -720,3 +723,68 @@ def delete_comment(request):
                     unicode(e),
                     mimetype = 'application/json'
                 )
+
+@decorators.admins_only
+@decorators.post_only
+def comment_to_answer(request):
+    comment_id = request.POST.get('comment_id')
+    if comment_id:
+        comment_id = int(comment_id)
+        comment = get_object_or_404(models.Post,
+                post_type='comment', id=comment_id)
+        comment.post_type = 'answer'
+        old_parent = comment.parent
+
+        comment.parent =  comment.thread._question_post()
+        comment.save()
+
+        comment.thread.update_answer_count()
+
+        comment.parent.comment_count += 1
+        comment.parent.save()
+
+        #to avoid db constraint error
+        if old_parent.comment_count >= 1:
+            old_parent.comment_count -= 1
+        else:
+            old_parent.comment_count = 0
+
+        old_parent.save()
+
+        comment.thread.invalidate_cached_data()
+
+        return HttpResponseRedirect(comment.get_absolute_url())
+    else:
+        raise Http404
+
+@decorators.admins_only
+@decorators.post_only
+def answer_to_comment(request):
+    answer_id = request.POST.get('answer_id')
+    if answer_id:
+        answer_id = int(answer_id)
+        answer = get_object_or_404(models.Post,
+                post_type = 'answer', id=answer_id)
+        if len(answer.text) <= 300:
+            answer.post_type = 'comment'
+            answer.parent =  answer.thread._question_post()
+            #can we trust this?
+            old_comment_count = answer.comment_count
+            answer.comment_count = 0
+
+            answer_comments = models.Post.objects.get_comments().filter(parent=answer)
+            answer_comments.update(parent=answer.parent)
+
+            answer.parse_and_save(author=answer.author)
+            answer.thread.update_answer_count()
+
+            answer.parent.comment_count = 1 + old_comment_count
+            answer.parent.save()
+
+            answer.thread.invalidate_cached_data()
+        else:
+            request.user.message_set.create(message = _("the selected answer cannot be a comment"))
+
+        return HttpResponseRedirect(answer.get_absolute_url())
+    else:
+        raise Http404

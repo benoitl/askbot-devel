@@ -1,18 +1,27 @@
 from askbot import startup_procedures
 startup_procedures.run()
 
+from django.contrib.auth.models import User
+#set up a possibility for the users to follow others
+try:
+    import followit
+    followit.register(User)
+except ImportError:
+    pass
+
 import collections
 import datetime
 import hashlib
 import logging
 import urllib
 import uuid
+from celery import states
+from celery.task import task
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.db.models import signals as django_signals
 from django.template import Context
 from django.utils.translation import ugettext as _
 from django.utils.translation import ungettext
-from django.contrib.auth.models import User
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
 from django.db import models
@@ -37,7 +46,8 @@ from askbot.models.tag import get_group_names
 from askbot.models.tag import get_groups
 from askbot.models.tag import format_personal_group_name
 from askbot.models.user import EmailFeedSetting, ActivityAuditStatus, Activity
-from askbot.models.user import GroupMembership, GroupProfile
+from askbot.models.user import GroupMembership
+from askbot.models.user import Group
 from askbot.models.post import Post, PostRevision
 from askbot.models.post import PostFlagReason, AnonymousAnswer
 from askbot.models.post import PostToGroup
@@ -46,6 +56,7 @@ from askbot.models.reply_by_email import ReplyAddress
 from askbot.models import signals
 from askbot.models.badges import award_badges_signal, get_badge, BadgeData
 from askbot.models.repute import Award, Repute, Vote
+from askbot.models.widgets import AskWidget, QuestionWidget
 from askbot import auth
 from askbot.utils.decorators import auto_now_timestamp
 from askbot.utils.slug import slugify
@@ -57,13 +68,6 @@ from askbot import mail
 def get_model(model_name):
     """a shortcut for getting model for an askbot app"""
     return models.get_model('askbot', model_name)
-
-def get_admins_and_moderators():
-    """returns query set of users who are site administrators
-    and moderators"""
-    return User.objects.filter(
-        models.Q(is_superuser=True) | models.Q(status='m')
-    )
 
 def get_admin():
     """returns admin with the lowest user ID
@@ -307,7 +311,7 @@ def user_get_marked_tag_names(self, reason):
         attr_name = MARKED_TAG_PROPERTY_MAP[reason]
         wildcard_tags = getattr(self, attr_name).split()
         tag_names.extend(wildcard_tags)
-        
+
     return tag_names
 
 def user_has_affinity_to_question(self, question = None, affinity_type = None):
@@ -378,7 +382,7 @@ def user_can_have_strong_url(self):
     return (self.reputation >= askbot_settings.MIN_REP_TO_HAVE_STRONG_URL)
 
 def user_can_post_by_email(self):
-    """True, if reply by email is enabled 
+    """True, if reply by email is enabled
     and user has sufficient reputatiton"""
     return askbot_settings.REPLY_BY_EMAIL and \
         self.reputation > askbot_settings.MIN_REP_TO_POST_BY_EMAIL
@@ -400,6 +404,34 @@ def user_get_or_create_fake_user(self, username, email):
         user.set_unusable_password()
         user.save()
     return user
+
+def user_notify_users(
+    self, notification_type=None, recipients=None, content_object=None
+):
+    """A utility function that creates instance
+    of :class:`Activity` and adds recipients
+    * `notification_type` - value should be one of TYPE_ACTIVITY_...
+    * `recipients` - an iterable of user objects
+    * `content_object` - any object related to the notification
+
+    todo: possibly add checks on the content_object, depending on the
+    notification_type
+    """
+    activity = Activity(
+                user=self,
+                activity_type=notification_type,
+                content_object=content_object
+            )
+    activity.save()
+    activity.add_recipients(recipients)
+
+def user_get_notifications(self, notification_types=None, **kwargs):
+    """returns query set of activity audit status objects"""
+    return ActivityAuditStatus.objects.filter(
+                        user=self,
+                        activity__activity_type__in=notification_types,
+                        **kwargs
+                    )
 
 def _assert_user_can(
                         user = None,
@@ -1180,21 +1212,21 @@ def user_post_comment(
     )
     return comment
 
-def user_post_tag_wiki(
+def user_post_object_description(
                     self,
-                    tag = None,
-                    body_text = None,
-                    timestamp = None
+                    obj=None,
+                    body_text=None,
+                    timestamp=None
                 ):
-    """Creates a tag wiki post and assigns it
-    to the given tag. Returns the newly created post"""
-    tag_wiki_post = Post.objects.create_new_tag_wiki(
-                                            author = self,
-                                            text = body_text
+    """Creates an object description post and assigns it
+    to the given object. Returns the newly created post"""
+    description_post = Post.objects.create_new_tag_wiki(
+                                            author=self,
+                                            text=body_text
                                         )
-    tag.tag_wiki = tag_wiki_post
-    tag.save()
-    return tag_wiki_post
+    obj.description = description_post
+    obj.save()
+    return description_post
 
 
 def user_post_anonymous_askbot_content(user, session_key):
@@ -1724,7 +1756,7 @@ def user_create_post_reject_reason(
         added_at = timestamp,
         text = details
     )
-    details.parse_and_save(author = self)
+    details.parse_and_save(author=self)
     details.add_revision(
         author = self,
         revised_at = timestamp,
@@ -1823,6 +1855,7 @@ def user_post_answer(
         is_private = is_private,
         by_email = by_email
     )
+    #add to the answerer's group
     answer_post.add_to_groups([self.get_personal_group()])
 
     answer_post.thread.invalidate_cached_data()
@@ -2199,11 +2232,11 @@ def get_profile_link(self):
 def user_get_groups(self, private=False):
     """returns a query set of groups to which user belongs"""
     #todo: maybe cache this query
-    return Tag.group_tags.get_for_user(self, private=private)
+    return Group.objects.get_for_user(self, private=private)
 
 def user_get_personal_group(self):
     group_name = format_personal_group_name(self)
-    return Tag.group_tags.get(name=group_name)
+    return Group.objects.get(name=group_name)
 
 def user_get_foreign_groups(self):
     """returns a query set of groups to which user does not belong"""
@@ -2218,7 +2251,7 @@ def user_get_primary_group(self):
     """
     groups = self.get_groups(private=True)
     for group in groups:
-        if group.name.startswith('_internal_'):
+        if group.is_personal():
             continue
         return group
     return None
@@ -2227,16 +2260,24 @@ def user_can_make_group_private_posts(self):
     """simplest implementation: user belongs to at least one group"""
     return self.get_groups(private=True).count() > 0
 
+def user_get_group_membership(self, group):
+    """returns a group membership object or None
+    if it is not there
+    """
+    try:
+        return GroupMembership.objects.get(user=self, group=group)
+    except GroupMembership.DoesNotExist:
+        return None
+
+
 def user_get_groups_membership_info(self, groups):
-    """returts a defaultdict with values that are
+    """returns a defaultdict with values that are
     dictionaries with the following keys and values:
-    * key: can_join, value: True if user can join group
-    * key: is_member, value: True if user is member of group
+    * key: acceptance_level, value: 'closed', 'moderated', 'open'
+    * key: membership_level, value: 'none', 'pending', 'full'
 
     ``groups`` is a group tag query set
     """
-    groups = groups.select_related('group_profile')
-
     group_ids = groups.values_list('id', flat = True)
     memberships = GroupMembership.objects.filter(
                                 user__id = self.id,
@@ -2244,17 +2285,16 @@ def user_get_groups_membership_info(self, groups):
                             )
 
     info = collections.defaultdict(
-        lambda: {'can_join': False, 'is_member': False}
+        lambda: {'acceptance_level': 'closed', 'membership_level': 'none'}
     )
     for membership in memberships:
-        info[membership.group_id]['is_member'] = True
+        membership_level = membership.get_level_display()
+        info[membership.group_id]['membership_level'] = membership_level
 
     for group in groups:
-        info[group.id]['can_join'] = group.group_profile.can_accept_user(self)
+        info[group.id]['acceptance_level'] = group.get_openness_level_for_user(self)
 
     return info
-        
-
 
 def user_get_karma_summary(self):
     """returns human readable sentence about
@@ -2398,7 +2438,7 @@ def _process_vote(user, post, timestamp=None, cancel=False, vote_type=None):
             auth.onDownVotedCanceled(vote, post, user, timestamp)
         else:
             auth.onDownVoted(vote, post, user, timestamp)
-            
+
     post.thread.invalidate_cached_data()
 
     if post.post_type == 'question':
@@ -2479,27 +2519,30 @@ def user_approve_post_revision(user, post_revision, timestamp = None):
     )
 
 @auto_now_timestamp
-def flag_post(user, post, timestamp=None, cancel=False, cancel_all = False, force = False):
+def flag_post(
+    user, post, timestamp=None, cancel=False, cancel_all=False, force=False
+):
     if cancel_all:
         # remove all flags
         if force == False:
-            user.assert_can_remove_all_flags_offensive(post = post)
+            user.assert_can_remove_all_flags_offensive(post=post)
         post_content_type = ContentType.objects.get_for_model(post)
         all_flags = Activity.objects.filter(
-                        activity_type = const.TYPE_ACTIVITY_MARK_OFFENSIVE,
-                        content_type = post_content_type, object_id=post.id
+                        activity_type=const.TYPE_ACTIVITY_MARK_OFFENSIVE,
+                        content_type=post_content_type,
+                        object_id=post.id
                     )
         for flag in all_flags:
-            auth.onUnFlaggedItem(post, flag.user, timestamp=timestamp)            
+            auth.onUnFlaggedItem(post, flag.user, timestamp=timestamp)
 
     elif cancel:#todo: can't unflag?
         if force == False:
             user.assert_can_remove_flag_offensive(post = post)
-        auth.onUnFlaggedItem(post, user, timestamp=timestamp)        
+        auth.onUnFlaggedItem(post, user, timestamp=timestamp)
 
     else:
         if force == False:
-            user.assert_can_flag_offensive(post = post)
+            user.assert_can_flag_offensive(post=post)
         auth.onFlaggedItem(post, user, timestamp=timestamp)
         award_badges_signal.send(None,
             event = 'flag_post',
@@ -2605,29 +2648,54 @@ def user_update_wildcard_tag_selections(
     return new_tags
 
 
-def user_edit_group_membership(self, user = None, group = None, action = None):
+def user_edit_group_membership(self, user=None, group=None, action=None):
     """allows one user to add another to a group
     or remove user from group.
 
     If when adding, the group does not exist, it will be created
     the delete function is not symmetric, the group will remain
     even if it becomes empty
+
+    returns instance of GroupMembership (if action is "add") or None
     """
     if action == 'add':
-        GroupMembership.objects.get_or_create(user = user, group = group)
+        #calculate new level
+        openness = group.get_openness_level_for_user(user)
+
+        #let people join these special groups, but not leave
+        if group.name == askbot_settings.GLOBAL_GROUP_NAME:
+            openness = 'open'
+        elif group.name == format_personal_group_name(user):
+            openness = 'open'
+
+        if openness == 'open':
+            level = GroupMembership.FULL
+        elif openness == 'moderated':
+            level = GroupMembership.PENDING
+        elif openness == 'closed':
+            raise django_exceptions.PermissionDenied()
+
+        membership, created = GroupMembership.objects.get_or_create(
+                        user=user, group=group, level=level
+                    )
+        return membership
+
     elif action == 'remove':
         GroupMembership.objects.get(user = user, group = group).delete()
+        return None
     else:
         raise ValueError('invalid action')
 
 def user_join_group(self, group):
-    self.edit_group_membership(group=group, user=self, action='add')
+    return self.edit_group_membership(group=group, user=self, action='add')
 
 def user_leave_group(self, group):
     self.edit_group_membership(group=group, user=self, action='remove')
 
-def user_is_group_member(self, group = None):
-    return self.group_memberships.filter(group = group).count() == 1
+def user_is_group_member(self, group=None):
+    return GroupMembership.objects.filter(
+                            user=self, group=group
+                        ).count() == 1
 
 User.add_to_class(
     'add_missing_askbot_subscriptions',
@@ -2654,8 +2722,10 @@ User.add_to_class('get_marked_tags', user_get_marked_tags)
 User.add_to_class('get_marked_tag_names', user_get_marked_tag_names)
 User.add_to_class('get_groups', user_get_groups)
 User.add_to_class('get_foreign_groups', user_get_foreign_groups)
+User.add_to_class('get_group_membership', user_get_group_membership)
 User.add_to_class('get_personal_group', user_get_personal_group)
 User.add_to_class('get_primary_group', user_get_primary_group)
+User.add_to_class('get_notifications', user_get_notifications)
 User.add_to_class('strip_email_signature', user_strip_email_signature)
 User.add_to_class('get_groups_membership_info', user_get_groups_membership_info)
 User.add_to_class('get_anonymous_name', user_get_anonymous_name)
@@ -2675,7 +2745,7 @@ User.add_to_class('edit_comment', user_edit_comment)
 User.add_to_class('create_post_reject_reason', user_create_post_reject_reason)
 User.add_to_class('edit_post_reject_reason', user_edit_post_reject_reason)
 User.add_to_class('delete_post', user_delete_post)
-User.add_to_class('post_tag_wiki', user_post_tag_wiki)
+User.add_to_class('post_object_description', user_post_object_description)
 User.add_to_class('visit_question', user_visit_question)
 User.add_to_class('upvote', upvote)
 User.add_to_class('downvote', downvote)
@@ -2739,6 +2809,7 @@ User.add_to_class(
     user_update_wildcard_tag_selections
 )
 User.add_to_class('approve_post_revision', user_approve_post_revision)
+User.add_to_class('notify_users', user_notify_users)
 
 #assertions
 User.add_to_class('assert_can_vote_for_post', user_assert_can_vote_for_post)
@@ -2854,17 +2925,17 @@ def format_instant_notification_email(
         if update_type.endswith('update'):
             user_action = _('%(user)s edited a %(post_link)s.')
         else:
-            user_action = _('%(user)s posted a %(post_link)s') 
+            user_action = _('%(user)s posted a %(post_link)s')
     elif post.is_answer():
         if update_type.endswith('update'):
             user_action = _('%(user)s edited an %(post_link)s.')
         else:
-            user_action = _('%(user)s posted an %(post_link)s.') 
+            user_action = _('%(user)s posted an %(post_link)s.')
     elif post.is_question():
         if update_type.endswith('update'):
             user_action = _('%(user)s edited a %(post_link)s.')
         else:
-            user_action = _('%(user)s posted a %(post_link)s.') 
+            user_action = _('%(user)s posted a %(post_link)s.')
     else:
         raise ValueError('unrecognized post type')
 
@@ -2873,6 +2944,7 @@ def format_instant_notification_email(
     user_action = user_action % {
         'user': '<a href="%s">%s</a>' % (user_url, from_user.username),
         'post_link': '<a href="%s">%s</a>' % (post_url, _(post.post_type))
+        #'post_link': '%s <a href="%s">>>></a>' % (_(post.post_type), post_url)
     }
 
     can_reply = to_user.can_post_by_email()
@@ -2890,9 +2962,13 @@ def format_instant_notification_email(
             reply_separator += '<p>' + \
                 const.REPLY_WITH_COMMENT_TEMPLATE % data
             reply_separator += '</p>'
+        else:
+            reply_separator = '<p>%s</p>' % reply_separator
+
+        reply_separator += user_action
     else:
         reply_separator = user_action
-                    
+
     update_data = {
         'update_author_name': from_user.username,
         'receiving_user_name': to_user.username,
@@ -2904,14 +2980,12 @@ def format_instant_notification_email(
         'post_url': post_url,
         'origin_post_title': origin_post.thread.title,
         'user_subscriptions_url': user_subscriptions_url,
-        'reply_separator': reply_separator
+        'reply_separator': reply_separator,
+        'reply_address': reply_address
     }
     subject_line = _('"%(title)s"') % {'title': origin_post.thread.title}
 
     content = template.render(Context(update_data))
-    if can_reply:
-        content += '<p style="font-size:8px;color:#aaa">' + \
-                    reply_address + '</p>'
 
     return subject_line, content
 
@@ -2921,7 +2995,7 @@ def get_reply_to_addresses(user, post):
     the first address - always a real email address,
     the second address is not ``None`` only for "question" posts.
 
-    When the user is notified of a new question - 
+    When the user is notified of a new question -
     i.e. `post` is a "quesiton", he/she
     will need to choose - whether to give a question or a comment,
     thus we return the second address - for the comment reply.
@@ -2959,16 +3033,14 @@ def get_reply_to_addresses(user, post):
     return primary_addr, secondary_addr
 
 #todo: action
+@task()
 def send_instant_notifications_about_activity_in_post(
                                                 update_activity = None,
                                                 post = None,
                                                 recipients = None,
                                             ):
-    """
-    function called when posts are updated
-    newly mentioned users are carried through to reduce
-    database hits
-    """
+    #reload object from the database
+    post = Post.objects.get(id=post.id)
     if post.is_approved() is False:
         return
 
@@ -2999,9 +3071,8 @@ def send_instant_notifications_about_activity_in_post(
     else:
         log_id = None
 
-    #send email for all recipients
-    for user in recipients:
 
+    for user in recipients:
         if user.is_blocked():
             continue
 
@@ -3014,9 +3085,9 @@ def send_instant_notifications_about_activity_in_post(
                             reply_address = reply_address,
                             alt_reply_address = alt_reply_address,
                             update_type = update_type,
-                            template = get_template('instant_notification.html')
+                            template = get_template('email/instant_notification.html')
                         )
-      
+
         headers['Reply-To'] = reply_address
         try:
             mail.send_mail(
@@ -3046,7 +3117,7 @@ def notify_author_of_published_revision(
     if revision.should_notify_author_about_publishing(was_approved):
         from askbot.tasks import notify_author_of_published_revision_celery_task
         notify_author_of_published_revision_celery_task.delay(revision)
-    
+
 
 #todo: move to utils
 def calculate_gravatar_hash(instance, **kwargs):
@@ -3258,7 +3329,7 @@ def record_flag_offensive(instance, mark_by, **kwargs):
 #    recipients = instance.get_author_list(
 #                                        exclude_list = [mark_by]
 #                                    )
-    activity.add_recipients(get_admins_and_moderators())
+    activity.add_recipients(instance.get_moderators())
 
 def remove_flag_offensive(instance, mark_by, **kwargs):
     "Remove flagging activity"
@@ -3381,8 +3452,8 @@ def add_user_to_personal_group(sender, instance, created, **kwargs):
         #in theore here we may have two users that will have
         #identical group names!!!
         group_name = format_personal_group_name(instance)
-        group = Tag.group_tags.get_or_create(
-                    group_name=group_name, user=instance
+        group = Group.objects.get_or_create(
+                    name=group_name, user=instance
                 )
         instance.edit_group_membership(
                     group=group, user=instance, action='add'
@@ -3461,7 +3532,7 @@ def update_user_avatar_type_flag(instance, **kwargs):
 def make_admin_if_first_user(instance, **kwargs):
     """first user automatically becomes an administrator
     the function is run only once in the interpreter session
-    """    
+    """
     import sys
     #have to check sys.argv to satisfy the test runner
     #which fails with the cache-based skipping
@@ -3475,6 +3546,16 @@ def make_admin_if_first_user(instance, **kwargs):
         instance.set_admin_status()
     cache.cache.set('admin-created', True)
 
+def moderate_group_joining(sender, instance=None, created=False, **kwargs):
+    if created and instance.level == GroupMembership.PENDING:
+        user = instance.user
+        group = instance.group
+        user.notify_users(
+                notification_type=const.TYPE_ACTIVITY_ASK_TO_JOIN_GROUP,
+                recipients = group.get_moderators(),
+                content_object = group
+            )
+
 
 #signal for User model save changes
 django_signals.pre_save.connect(make_admin_if_first_user, sender=User)
@@ -3487,6 +3568,7 @@ django_signals.post_save.connect(notify_award_message, sender=Award)
 django_signals.post_save.connect(record_answer_accepted, sender=Post)
 django_signals.post_save.connect(record_vote, sender=Vote)
 django_signals.post_save.connect(record_favorite_question, sender=FavoriteQuestion)
+django_signals.post_save.connect(moderate_group_joining, sender=GroupMembership)
 
 if 'avatar' in django_settings.INSTALLED_APPS:
     from avatar.models import Avatar
@@ -3510,13 +3592,6 @@ signals.post_updated.connect(record_post_update_activity)
 #to tell when the revision becomes publicly visible, not when it is saved
 signals.post_revision_published.connect(notify_author_of_published_revision)
 signals.site_visited.connect(record_user_visit)
-
-#set up a possibility for the users to follow others
-try:
-    import followit
-    followit.register(User)
-except ImportError:
-    pass
 
 __all__ = [
         'signals',
@@ -3548,14 +3623,13 @@ __all__ = [
         'ActivityAuditStatus',
         'EmailFeedSetting',
         'GroupMembership',
-        'GroupProfile',
+        'Group',
 
         'User',
 
         'ReplyAddress',
 
         'get_model',
-        'get_admins_and_moderators',
         'get_group_names',
         'get_groups'
 ]

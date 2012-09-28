@@ -11,11 +11,15 @@ from django.forms import ValidationError
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import string_concat
 from django.template import Context
+from django.utils.html import strip_tags
 from askbot import exceptions
 from askbot import const
 from askbot.conf import settings as askbot_settings
 from askbot.utils import url_utils
 from askbot.utils.file_utils import store_file
+from askbot.utils.html import absolutize_urls
+
+from bs4 import BeautifulSoup
 #todo: maybe send_mail functions belong to models
 #or the future API
 def prefix_the_subject_line(subject):
@@ -77,6 +81,19 @@ def thread_headers(post, orig_post, update):
 
     return headers
 
+def clean_html_email(email_body):
+    '''needs more clenup might not work for other email templates
+       that does not use table layout'''
+
+    remove_linejump = lambda s: s.replace('\n', '')
+
+    soup = BeautifulSoup(email_body)
+    table_tds = soup.find('body')
+    phrases = map(lambda s: s.strip(),
+                  filter(bool, table_tds.get_text().split('\n')))
+
+    return '\n\n'.join(phrases)
+
 def send_mail(
             subject_line = None,
             body_text = None,
@@ -100,9 +117,11 @@ def send_mail(
 
     if raise_on_failure is True, exceptions.EmailNotSent is raised
     """
+    body_text = absolutize_urls(body_text)
     try:
         assert(subject_line is not None)
         subject_line = prefix_the_subject_line(subject_line)
+<<<<<<< HEAD
         debug_emails = []
 
         if hasattr(django_settings, 'DEBUG_EMAIL_USERS'):
@@ -121,14 +140,14 @@ def send_mail(
             recipient_list = new_recipient_list
             logging.debug("Only Email Debug Users %s" % recipient_list)
 
-        msg = mail.EmailMessage(
-                        subject_line, 
-                        body_text, 
+        msg = mail.EmailMultiAlternatives(
+                        subject_line,
+                        clean_html_email(body_text),
                         from_email,
                         recipient_list,
                         headers = headers
                     )
-        msg.content_subtype = 'html'
+        msg.attach_alternative(body_text, "text/html")
         msg.send()
         if related_object is not None:
             assert(activity_type is not None)
@@ -145,6 +164,7 @@ def mail_moderators(
         ):
     """sends email to forum moderators and admins
     """
+    body_text = absolutize_urls(body_text)
     from django.db.models import Q
     from askbot.models import User
     recipient_list = User.objects.filter(
@@ -160,8 +180,8 @@ def mail_moderators(
 
     try:
         msg = mail.EmailMessage(
-                        subject_line, 
-                        body_text, 
+                        subject_line,
+                        body_text,
                         from_email,
                         recipient_list,
                         headers = headers or {}
@@ -255,7 +275,7 @@ def bounce_email(
     headers = {}
     if reply_to:
         headers['Reply-To'] = reply_to
-        
+
     send_mail(
         recipient_list = (email,),
         subject_line = 'Re: ' + subject,
@@ -289,10 +309,11 @@ def process_attachment(attachment):
 def extract_user_signature(text, reply_code):
     """extracts email signature as text trailing
     the reply code"""
-    if reply_code in text:
+    striped_text = strip_tags(text)
+    if reply_code in striped_text:
         #extract the signature
         tail = list()
-        for line in reversed(text.splitlines()):
+        for line in reversed(striped_text.splitlines()):
             #scan backwards from the end until the magic line
             if reply_code in line:
                 break
@@ -312,7 +333,7 @@ def process_parts(parts, reply_code = None):
     """Process parts will upload the attachments and parse out the
     body, if body is multipart. Secondly - links to attachments
     will be added to the body of the question.
-    Returns ready to post body of the message and the list 
+    Returns ready to post body of the message and the list
     of uploaded files.
     """
     body_markdown = ''
@@ -330,7 +351,7 @@ def process_parts(parts, reply_code = None):
             stored_files.append(stored_file)
             body_markdown += markdown
 
-    #if the response separator is present - 
+    #if the response separator is present -
     #split the body with it, and discard the "so and so wrote:" part
     if reply_code:
         signature = extract_user_signature(body_markdown, reply_code)
@@ -343,7 +364,8 @@ def process_parts(parts, reply_code = None):
 
 
 def process_emailed_question(
-    from_address, subject, body_text, stored_files, tags = None
+    from_address, subject, body_text, stored_files,
+    tags=None, group_id=None
 ):
     """posts question received by email or bounces the message"""
     #a bunch of imports here, to avoid potential circular import issues
@@ -393,11 +415,12 @@ def process_emailed_question(
 
 
             user.post_question(
-                title = title,
-                tags = tagnames.strip(),
-                body_text = stripped_body_text,
-                by_email = True,
-                email_address = from_address
+                title=title,
+                tags=tagnames.strip(),
+                body_text=stripped_body_text,
+                by_email=True,
+                email_address=from_address,
+                group_id=group_id
             )
         else:
             raise ValidationError()

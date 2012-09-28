@@ -424,7 +424,7 @@ def question(request, id):#refactor - long subroutine. display question body, an
             return HttpResponseRedirect(reverse('index'))
 
     elif show_answer:
-        #if the url calls to view a particular answer to 
+        #if the url calls to view a particular answer to
         #question - we must check whether the question exists
         #whether answer is actually corresponding to the current question
         #and that the visitor is allowed to see it
@@ -444,7 +444,7 @@ def question(request, id):#refactor - long subroutine. display question body, an
 
     #load answers and post id's->athor_id mapping
     #posts are pre-stuffed with the correctly ordered comments
-    updated_question_post, answers, post_to_author = thread.get_cached_post_data(
+    updated_question_post, answers, post_to_author, published_answer_ids = thread.get_cached_post_data(
                                 sort_method = answer_sort_method,
                                 user = request.user
                             )
@@ -572,6 +572,9 @@ def question(request, id):#refactor - long subroutine. display question body, an
         'active_tab': 'questions',
         'question' : question_post,
         'thread': thread,
+        'thread_is_moderated': thread.is_moderated(),
+        'user_is_thread_moderator': thread.has_moderator(request.user),
+        'published_answer_ids': published_answer_ids,
         'answer' : answer_form,
         'answers' : page_objects.object_list,
         'answer_count': thread.get_answer_count(request.user),
@@ -590,6 +593,9 @@ def question(request, id):#refactor - long subroutine. display question body, an
         'show_comment': show_comment,
         'show_comment_position': show_comment_position,
     }
+    #shared with ...
+    if askbot_settings.GROUPS_ENABLED:
+        data['sharing_info'] = thread.get_sharing_info()
 
     data.update(context.get_for_tag_editor())
 
@@ -631,20 +637,3 @@ def get_comment(request):
     comment = models.Post.objects.get(post_type='comment', id=id)
     request.user.assert_can_edit_comment(comment)
     return {'text': comment.text}
-
-def widget_questions(request):
-    """Returns the first x questions based on certain tags.
-    @returns template with those questions listed."""
-    # make sure this is a GET request with the correct parameters.
-    if request.method != 'GET':
-        raise Http404
-    threads = models.Thread.objects.all()
-    tags_input = request.GET.get('tags','').strip()
-    if len(tags_input) > 0:
-        tags = [tag.strip() for tag in tags_input.split(',')]
-        threads = threads.filter(tags__name__in=tags)
-    data = {
-        'threads': threads[:askbot_settings.QUESTIONS_WIDGET_MAX_QUESTIONS]
-    }
-    return render_into_skin('question_widget.html', data, request) 
-    
