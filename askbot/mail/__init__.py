@@ -121,7 +121,6 @@ def send_mail(
     try:
         assert(subject_line is not None)
         subject_line = prefix_the_subject_line(subject_line)
-<<<<<<< HEAD
         debug_emails = []
 
         if hasattr(django_settings, 'DEBUG_EMAIL_USERS'):
