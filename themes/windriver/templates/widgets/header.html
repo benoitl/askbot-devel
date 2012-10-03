@@ -1,0 +1,28 @@
+<!-- template header.html -->
+{% import "macros.html" as macros %}
+<div 
+    id="header"
+    class="with-logo"
+>
+    <div class="content-wrapper">
+        <a href="{% url questions %}">
+            <img 
+                src="{{'/images/mainlogo.png'|media }}"
+                class="logo"
+                alt="Windriver Support Forum"
+            />
+        </a>
+        <div id="userToolsNav">
+            {% include "widgets/user_navigation.html" %}
+            <a 
+              id="navUsers"
+              href="{% url users %}"
+              {% if active_tab == 'users' %}class="on"{% endif %}
+            >{% trans %}Contributors{% endtrans %}</a>
+            <a href="{% url "help" %}" title="{% trans %}help{% endtrans %}">{% trans %}Help{% endtrans %}</a>
+            <!--a href="{% url faq %}">{% trans %}FAQs{% endtrans %}</a-->
+        </div>
+        <div class="clean"></div>
+    </div>
+</div>
+<!-- end template header.html -->

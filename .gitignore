@@ -1,6 +1,5 @@
-*.pyc
+<<<<<<< HEAD
 *.swp
-*.log
 *~
 db
 rebuild-locales.pl
@@ -49,5 +48,7 @@ recaptcha
 /db.sq3
 *.DS_Store
 htmlcov
+*.log
 *.pot
+*.pyc
 local_settings.py
