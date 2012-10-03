@@ -49,3 +49,5 @@ recaptcha
 /db.sq3
 *.DS_Store
 htmlcov
+*.pot
+local_settings.py
