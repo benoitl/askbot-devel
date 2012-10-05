@@ -71,7 +71,7 @@ body {
   text-transform: lowercase;
 }
 #userToolsNav a:hover {
-  color: #333;
+  color: #FFFFFF;
 }
 #userToolsNav .user-info, #userToolsNav .user-micro-info {
   color: #9a9a9c;
@@ -873,6 +873,7 @@ submit {
   margin-right: 0;
   bottom: 1px;
 }
+
 #header .logo {
   margin-top: -10px;
   height: 30px;
