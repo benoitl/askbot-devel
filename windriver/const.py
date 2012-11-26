@@ -1,1 +1,0 @@
-SEARCH_LOGIN_USERNAME = 'ashapiro'
