@@ -13,6 +13,7 @@ import collections
 import datetime
 import hashlib
 import logging
+import re
 import urllib
 import uuid
 from celery import states
@@ -20,6 +21,7 @@ from celery.task import task
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.db.models import signals as django_signals
 from django.template import Context
+from django.template.loader import get_template
 from django.utils.translation import ugettext as _
 from django.utils.translation import ungettext
 from django.utils.safestring import mark_safe
@@ -41,9 +43,6 @@ from askbot.models.question import QuestionView, AnonymousQuestion
 from askbot.models.question import DraftQuestion
 from askbot.models.question import FavoriteQuestion
 from askbot.models.tag import Tag, MarkedTag
-from askbot.models.tag import get_global_group
-from askbot.models.tag import get_group_names
-from askbot.models.tag import get_groups
 from askbot.models.tag import format_personal_group_name
 from askbot.models.user import EmailFeedSetting, ActivityAuditStatus, Activity
 from askbot.models.user import GroupMembership
@@ -59,11 +58,18 @@ from askbot.models.repute import Award, Repute, Vote
 from askbot.models.widgets import AskWidget, QuestionWidget
 from askbot import auth
 from askbot.utils.decorators import auto_now_timestamp
+from askbot.utils.markup import URL_RE
 from askbot.utils.slug import slugify
+from askbot.utils.html import replace_links_with_text
 from askbot.utils.html import sanitize_html
 from askbot.utils.diff import textDiff as htmldiff
 from askbot.utils.url_utils import strip_path
 from askbot import mail
+
+from django import get_version as django_version
+
+if django_version() > '1.3.1':
+    from askbot.models.message import Message
 
 def get_model(model_name):
     """a shortcut for getting model for an askbot app"""
@@ -93,23 +99,60 @@ def get_users_by_text_query(search_query, users_query_set = None):
     """Runs text search in user names and profile.
     For postgres, search also runs against user group names.
     """
-    import askbot
-    if users_query_set is None:
-        users_query_set = User.objects.all()
-    if 'postgresql_psycopg2' in askbot.get_database_engine_name():
-        from askbot.search import postgresql
-        return postgresql.run_full_text_search(users_query_set, search_query)
+    if getattr(django_settings, 'ENABLE_HAYSTACK_SEARCH', False):
+        from askbot.search.haystack import AskbotSearchQuerySet
+        qs = AskbotSearchQuerySet().filter(content=search_query).models(User).get_django_queryset(User)
+        return qs
     else:
-        return users_query_set.filter(
-            models.Q(username__icontains=search_query) |
-            models.Q(about__icontains=search_query)
-        )
-    #if askbot.get_database_engine_name().endswith('mysql') \
-    #    and mysql.supports_full_text_search():
-    #    return User.objects.filter(
-    #        models.Q(username__search = search_query) |
-    #        models.Q(about__search = search_query)
-    #    )
+        import askbot
+        if users_query_set is None:
+            users_query_set = User.objects.all()
+        if 'postgresql_psycopg2' in askbot.get_database_engine_name():
+            from askbot.search import postgresql
+            return postgresql.run_full_text_search(users_query_set, search_query)
+        else:
+            return users_query_set.filter(
+                models.Q(username__icontains=search_query) |
+                models.Q(about__icontains=search_query)
+            )
+        #if askbot.get_database_engine_name().endswith('mysql') \
+        #    and mysql.supports_full_text_search():
+        #    return User.objects.filter(
+        #        models.Q(username__search = search_query) |
+        #        models.Q(about__search = search_query)
+        #    )
+
+class RelatedObjectSimulator(object):
+    '''Objects that simulates the "messages_set" related field
+    somehow django does not creates it automatically in django1.4.1'''
+
+    def __init__(self, user, model_class):
+        self.user = user
+        self.model_class = model_class
+
+    def create(self, **kwargs):
+        return self.model_class.objects.create(user=self.user, **kwargs)
+
+    def filter(self, *args, **kwargs):
+        return self.model_class.objects.filter(*args, **kwargs)
+
+
+#django 1.4.1 only
+@property
+def user_message_set(self):
+    return RelatedObjectSimulator(self, Message)
+
+#django 1.4.1 only
+def user_get_and_delete_messages(self):
+    messages = []
+    for message in Message.objects.filter(user=self):
+        messages.append(message)
+        message.delete()
+    return messages
+
+if django_version() > '1.3.1':
+    User.add_to_class('message_set', user_message_set)
+    User.add_to_class('get_and_delete_messages', user_get_and_delete_messages)
 
 User.add_to_class(
             'status',
@@ -481,6 +524,8 @@ def _assert_user_can(
         error_message = suspended_error_message
     elif user.is_administrator() or user.is_moderator():
         return
+    elif user.is_post_moderator(post):
+        return
     elif low_rep_error_message and user.reputation < min_rep_setting:
         raise askbot_exceptions.InsufficientReputation(low_rep_error_message)
     else:
@@ -509,6 +554,7 @@ def user_assert_can_unaccept_best_answer(self, answer = None):
             'Sorry, you cannot accept or unaccept best answers '
             'because your account is suspended'
         )
+
     if self.is_blocked():
         error_message = blocked_error_message
     elif self.is_suspended():
@@ -532,7 +578,9 @@ def user_assert_can_unaccept_best_answer(self, answer = None):
                 )
         return # success
 
-    elif self.is_administrator() or self.is_moderator():
+    elif self.reputation >= askbot_settings.MIN_REP_TO_ACCEPT_ANY_ANSWER or \
+        self.is_administrator() or self.is_moderator() or self.is_post_moderator(answer):
+
         will_be_able_at = (
             answer.added_at +
             datetime.timedelta(
@@ -624,6 +672,19 @@ def user_assert_can_upload_file(request_user):
         min_rep_setting = askbot_settings.MIN_REP_TO_UPLOAD_FILES,
         low_rep_error_message = low_rep_error_message
     )
+
+
+def user_assert_can_post_text(self, text):
+    """Raises exceptions.PermissionDenied, if user does not have
+    privilege to post given text, depending on the contents
+    """
+    if re.search(URL_RE, text):
+        min_rep = askbot_settings.MIN_REP_TO_SUGGEST_LINK
+        if self.is_authenticated() and self.reputation < min_rep:
+            message = _(
+                'Could not post, because your karma is insufficient to publish links'
+            )
+            raise django_exceptions.PermissionDenied(message)
 
 
 def user_assert_can_post_question(self):
@@ -846,7 +907,7 @@ def user_assert_can_delete_question(self, question = None):
         #if there are answers by other people,
         #then deny, unless user in admin or moderator
         answer_count = question.thread.all_answers()\
-                        .exclude(author=self).exclude(score__lte=0).count()
+                        .exclude(author=self).exclude(points__lte=0).count()
 
         if answer_count > 0:
             if self.is_administrator() or self.is_moderator():
@@ -876,7 +937,7 @@ def user_assert_can_delete_answer(self, answer = None):
                 'you can delete only your own posts'
             )
     low_rep_error_message = _(
-                'Sorry, to deleted other people\' posts, a minimum '
+                'Sorry, to delete other people\'s posts, a minimum '
                 'reputation of %(min_rep)s is required'
             ) % \
             {'min_rep': askbot_settings.MIN_REP_TO_DELETE_OTHERS_POSTS}
@@ -1720,14 +1781,15 @@ def user_edit_answer(
                 ):
     if force == False:
         self.assert_can_edit_answer(answer)
+
     answer.apply_edit(
-        edited_at = timestamp,
-        edited_by = self,
-        text = body_text,
-        comment = revision_comment,
-        wiki = wiki,
-        is_private = is_private,
-        by_email = by_email
+        edited_at=timestamp,
+        edited_by=self,
+        text=body_text,
+        comment=revision_comment,
+        wiki=wiki,
+        is_private=is_private,
+        by_email=by_email
     )
 
     answer.thread.invalidate_cached_data()
@@ -1966,6 +2028,16 @@ def user_add_missing_askbot_subscriptions(self):
 
 def user_is_moderator(self):
     return (self.status == 'm' and self.is_administrator() == False)
+
+def user_is_post_moderator(self, post):
+    """True, if user and post have common groups
+    with moderation privilege"""
+    if askbot_settings.GROUPS_ENABLED:
+        group_ids = self.get_groups().values_list('id', flat=True)
+        post_groups = PostToGroup.objects.filter(post=post, group__id__in=group_ids)
+        return post_groups.filter(group__is_vip=True).count() > 0
+    else:
+        return False
 
 def user_is_administrator_or_moderator(self):
     return (self.is_administrator() or self.is_moderator())
@@ -2213,7 +2285,7 @@ def delete_messages(self):
     self.message_set.all().delete()
 
 #todo: find where this is used and replace with get_absolute_url
-def get_profile_url(self):
+def user_get_profile_url(self):
     """Returns the URL for this User's profile."""
     return reverse(
                 'user_profile',
@@ -2242,7 +2314,7 @@ def user_get_foreign_groups(self):
     """returns a query set of groups to which user does not belong"""
     #todo: maybe cache this query
     user_group_ids = self.get_groups().values_list('id', flat = True)
-    return get_groups().exclude(id__in = user_group_ids)
+    return Group.objects.exclude(id__in = user_group_ids)
 
 def user_get_primary_group(self):
     """a temporary function - returns ether None or
@@ -2443,7 +2515,7 @@ def _process_vote(user, post, timestamp=None, cancel=False, vote_type=None):
 
     if post.post_type == 'question':
         #denormalize the question post score on the thread
-        post.thread.score = post.score
+        post.thread.points = post.points
         post.thread.save()
         post.thread.update_summary_html()
 
@@ -2459,6 +2531,25 @@ def _process_vote(user, post, timestamp=None, cancel=False, vote_type=None):
                     timestamp = timestamp
                 )
     return vote
+
+def user_fix_html_links(self, text):
+    """depending on the user's privilege, allow links
+    and hotlinked images or replace them with plain text
+    url
+    """
+    is_simple_user = not self.is_administrator_or_moderator()
+    has_low_rep = self.reputation < askbot_settings.MIN_REP_TO_INSERT_LINK
+    if is_simple_user and has_low_rep:
+        result = replace_links_with_text(text)
+        if result != text:
+            message = ungettext(
+                'At least %d karma point is required to post links',
+                'At least %d karma points is required to post links',
+                askbot_settings.MIN_REP_TO_INSERT_LINK
+            ) % askbot_settings.MIN_REP_TO_INSERT_LINK
+            self.message_set.create(message=message)
+        return result
+    return text
 
 def user_unfollow_question(self, question = None):
     self.followed_threads.remove(question.thread)
@@ -2693,9 +2784,18 @@ def user_leave_group(self, group):
     self.edit_group_membership(group=group, user=self, action='remove')
 
 def user_is_group_member(self, group=None):
-    return GroupMembership.objects.filter(
-                            user=self, group=group
-                        ).count() == 1
+    """True if user is member of group,
+    where group can be instance of Group
+    or name of group as string
+    """
+    if isinstance(group, str):
+        return GroupMembership.objects.filter(
+                user=self, group__name=group
+            ).count() == 1
+    else:
+        return GroupMembership.objects.filter(
+                                user=self, group=group
+                            ).count() == 1
 
 User.add_to_class(
     'add_missing_askbot_subscriptions',
@@ -2757,12 +2857,13 @@ User.add_to_class(
     user_get_flag_count_posted_today
 )
 User.add_to_class('get_flags_for_post', user_get_flags_for_post)
-User.add_to_class('get_profile_url', get_profile_url)
+User.add_to_class('get_profile_url', user_get_profile_url)
 User.add_to_class('get_profile_link', get_profile_link)
 User.add_to_class('get_tag_filtered_questions', user_get_tag_filtered_questions)
 User.add_to_class('get_messages', get_messages)
 User.add_to_class('delete_messages', delete_messages)
 User.add_to_class('toggle_favorite_question', toggle_favorite_question)
+User.add_to_class('fix_html_links', user_fix_html_links)
 User.add_to_class('follow_question', user_follow_question)
 User.add_to_class('unfollow_question', user_unfollow_question)
 User.add_to_class('is_following_question', user_is_following_question)
@@ -2782,6 +2883,7 @@ User.add_to_class('leave_group', user_leave_group)
 User.add_to_class('is_group_member', user_is_group_member)
 User.add_to_class('remove_admin_status', user_remove_admin_status)
 User.add_to_class('is_moderator', user_is_moderator)
+User.add_to_class('is_post_moderator', user_is_post_moderator)
 User.add_to_class('is_approved', user_is_approved)
 User.add_to_class('is_watched', user_is_watched)
 User.add_to_class('is_suspended', user_is_suspended)
@@ -2818,6 +2920,7 @@ User.add_to_class('assert_can_upload_file', user_assert_can_upload_file)
 User.add_to_class('assert_can_post_question', user_assert_can_post_question)
 User.add_to_class('assert_can_post_answer', user_assert_can_post_answer)
 User.add_to_class('assert_can_post_comment', user_assert_can_post_comment)
+User.add_to_class('assert_can_post_text', user_assert_can_post_text)
 User.add_to_class('assert_can_edit_post', user_assert_can_edit_post)
 User.add_to_class('assert_can_edit_deleted_post', user_assert_can_edit_deleted_post)
 User.add_to_class('assert_can_see_deleted_post', user_assert_can_see_deleted_post)
@@ -2864,7 +2967,6 @@ def format_instant_notification_email(
     only update_types in const.RESPONSE_ACTIVITY_TYPE_MAP_FOR_TEMPLATES
     are supported
     """
-
     site_url = askbot_settings.APP_URL
     origin_post = post.get_origin_post()
     #todo: create a better method to access "sub-urls" in user views
@@ -2939,8 +3041,9 @@ def format_instant_notification_email(
     else:
         raise ValueError('unrecognized post type')
 
-    post_url = strip_path(site_url) + post.get_absolute_url()
-    user_url = strip_path(site_url) + from_user.get_absolute_url()
+    base_url = strip_path(site_url)
+    post_url = base_url + post.get_absolute_url()
+    user_url = base_url + from_user.get_absolute_url()
     user_action = user_action % {
         'user': '<a href="%s">%s</a>' % (user_url, from_user.username),
         'post_link': '<a href="%s">%s</a>' % (post_url, _(post.post_type))
@@ -3031,80 +3134,6 @@ def get_reply_to_addresses(user, post):
                                                     **reply_args
                                                 ).as_email_address()
     return primary_addr, secondary_addr
-
-#todo: action
-@task()
-def send_instant_notifications_about_activity_in_post(
-                                                update_activity = None,
-                                                post = None,
-                                                recipients = None,
-                                            ):
-    #reload object from the database
-    post = Post.objects.get(id=post.id)
-    if post.is_approved() is False:
-        return
-
-    if recipients is None:
-        return
-
-    acceptable_types = const.RESPONSE_ACTIVITY_TYPES_FOR_INSTANT_NOTIFICATIONS
-
-    if update_activity.activity_type not in acceptable_types:
-        return
-
-    #calculate some variables used in the loop below
-    from askbot.skins.loaders import get_template
-    update_type_map = const.RESPONSE_ACTIVITY_TYPE_MAP_FOR_TEMPLATES
-    update_type = update_type_map[update_activity.activity_type]
-    origin_post = post.get_origin_post()
-    headers = mail.thread_headers(
-                            post,
-                            origin_post,
-                            update_activity.activity_type
-                        )
-
-    logger = logging.getLogger()
-    if logger.getEffectiveLevel() <= logging.DEBUG:
-        log_id = uuid.uuid1()
-        message = 'email-alert %s, logId=%s' % (post.get_absolute_url(), log_id)
-        logger.debug(message)
-    else:
-        log_id = None
-
-
-    for user in recipients:
-        if user.is_blocked():
-            continue
-
-        reply_address, alt_reply_address = get_reply_to_addresses(user, post)
-
-        subject_line, body_text = format_instant_notification_email(
-                            to_user = user,
-                            from_user = update_activity.user,
-                            post = post,
-                            reply_address = reply_address,
-                            alt_reply_address = alt_reply_address,
-                            update_type = update_type,
-                            template = get_template('email/instant_notification.html')
-                        )
-
-        headers['Reply-To'] = reply_address
-        try:
-            mail.send_mail(
-                subject_line=subject_line,
-                body_text=body_text,
-                recipient_list=[user.email],
-                related_object=origin_post,
-                activity_type=const.TYPE_ACTIVITY_EMAIL_UPDATE_SENT,
-                headers=headers,
-                raise_on_failure=True
-            )
-        except askbot_exceptions.EmailNotSent, error:
-            logger.debug(
-                '%s, error=%s, logId=%s' % (user.email, error, log_id)
-            )
-        else:
-            logger.debug('success %s, logId=%s' % (user.email, log_id))
 
 
 def notify_author_of_published_revision(
@@ -3411,9 +3440,8 @@ def send_respondable_email_validation_message(
                                 )
     data['email_code'] = reply_address.address
 
-    from askbot.skins.loaders import get_template
     template = get_template(template_name)
-    body_text = template.render(Context(data))
+    body_text = template.render(Context(data))#todo: set lang
 
     reply_to_address = 'welcome-%s@%s' % (
                             reply_address.address,
@@ -3434,9 +3462,8 @@ def add_user_to_global_group(sender, instance, created, **kwargs):
     ``instance`` is an instance of ``User`` class
     """
     if created:
-        from askbot.models.tag import get_global_group
         instance.edit_group_membership(
-            group=get_global_group(),
+            group=Group.objects.get_global_group(),
             user=instance,
             action='add'
         )
@@ -3556,7 +3583,6 @@ def moderate_group_joining(sender, instance=None, created=False, **kwargs):
                 content_object = group
             )
 
-
 #signal for User model save changes
 django_signals.pre_save.connect(make_admin_if_first_user, sender=User)
 django_signals.pre_save.connect(calculate_gravatar_hash, sender=User)
@@ -3630,6 +3656,4 @@ __all__ = [
         'ReplyAddress',
 
         'get_model',
-        'get_group_names',
-        'get_groups'
 ]

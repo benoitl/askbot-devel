@@ -3,6 +3,18 @@ Changes in Askbot
 
 Development version
 -------------------
+* Feedback sender's email is added to the Reply-To header
+  in the feedback form (Evgeny)
+
+0.7.44 (Nov 11, 2012)
+-------------------
+* Support for django 1.4 (Adolfo)
+* Added option to enable/disable rss feeds (Evgeny)
+* Added minimum reputation to insert links and hotlinked images (Evgeny)
+* Added minimum reputation to suggest links as plain text (Evgeny)
+* Added support of Haystack for search (Adolfo)
+* Added minimum reputation setting to accept any answer as correct (Evgeny)
+* Added "VIP" option to groups - if checked, all posts belong to the group and users of that group in the future will be able to moderate those posts. Moderation features for VIP group are in progress (Evgeny)
 * Added setting `NOTIFICATION_DELAY_TIME` to use with enabled celery daemon (Adolfo)
 * Added setting `ASKBOT_INTERNAL_IPS` - to allow anonymous access to 
   closed sites from dedicated IP addresses (Evgeny)

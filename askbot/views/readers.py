@@ -11,9 +11,11 @@ import logging
 import urllib
 import operator
 from django.shortcuts import get_object_or_404
+from django.shortcuts import render
 from django.http import HttpResponseRedirect, HttpResponse, Http404, HttpResponseNotAllowed
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
-from django.template import Context
+from django.template.loader import get_template
+from django.template import RequestContext
 from django.utils import simplejson
 from django.utils.html import escape
 from django.utils.translation import ugettext as _
@@ -41,7 +43,6 @@ from askbot.utils.decorators import anonymous_forbidden, ajax_only, get_only
 from askbot.search.state_manager import SearchState, DummySearchState
 from askbot.templatetags import extra_tags
 from askbot.conf import settings as askbot_settings
-from askbot.skins.loaders import render_into_skin, get_template #jinja2 template loading enviroment
 from askbot.views import context
 
 # used in index page
@@ -151,23 +152,31 @@ def questions(request, **kwargs):
         question_counter = question_counter % {'q_num': humanize.intcomma(q_count),}
 
         if q_count > page_size:
-            paginator_tpl = get_template('main_page/paginator.html', request)
-            paginator_html = paginator_tpl.render(Context({
-                'context': functions.setup_paginator(paginator_context),
-                'questions_count': q_count,
-                'page_size' : page_size,
-                'search_state': search_state,
-            }))
+            paginator_tpl = get_template('main_page/paginator.html')
+            paginator_html = paginator_tpl.render(
+                RequestContext(
+                    request, {
+                        'context': functions.setup_paginator(paginator_context),
+                        'questions_count': q_count,
+                        'page_size' : page_size,
+                        'search_state': search_state,
+                    }
+                )
+            )
         else:
             paginator_html = ''
 
-        questions_tpl = get_template('main_page/questions_loop.html', request)
-        questions_html = questions_tpl.render(Context({
-            'threads': page,
-            'search_state': search_state,
-            'reset_method_count': reset_method_count,
-            'request': request
-        }))
+        questions_tpl = get_template('main_page/questions_loop.html')
+        questions_html = questions_tpl.render(
+            RequestContext(
+                request, {
+                    'threads': page,
+                    'search_state': search_state,
+                    'reset_method_count': reset_method_count,
+                    'request': request
+                }
+            )
+        )
 
         ajax_data = {
             'query_data': {
@@ -226,7 +235,7 @@ def questions(request, **kwargs):
             'feed_url': context_feed_url,
         }
 
-        return render_into_skin('main_page.html', template_data, request)
+        return render(request, 'main_page.html', template_data)
 
 
 def tags(request):#view showing a listing of available tags - plain list
@@ -316,10 +325,9 @@ def tags(request):#view showing a listing of available tags - plain list
             'search_state': SearchState(*[None for x in range(7)])
         }
 
-    return render_into_skin('tags.html', data, request)
+    return render(request, 'tags.html', data)
 
 @csrf.csrf_protect
-#@cache_page(60 * 5)
 def question(request, id):#refactor - long subroutine. display question body, answers and comments
     """view that displays body of the question and
     all answers to it
@@ -509,7 +517,7 @@ def question(request, id):#refactor - long subroutine. display question body, an
         from askbot import tasks
         tasks.record_question_visit.delay(
             question_post = question_post,
-            user = request.user,
+            user_id = request.user.id,
             update_view_count = update_view_count
         )
 
@@ -549,7 +557,7 @@ def question(request, id):#refactor - long subroutine. display question body, an
         if drafts.count() > 0:
             initial['text'] = drafts[0].text
 
-    answer_form = AnswerForm(initial)
+    answer_form = AnswerForm(initial, user=request.user)
 
     user_can_post_comment = (
         request.user.is_authenticated() and request.user.can_post_comment()
@@ -599,7 +607,7 @@ def question(request, id):#refactor - long subroutine. display question body, an
 
     data.update(context.get_for_tag_editor())
 
-    return render_into_skin('question.html', data, request)
+    return render(request, 'question.html', data)
 
 def revisions(request, id, post_type = None):
     assert post_type in ('question', 'answer')
@@ -622,7 +630,7 @@ def revisions(request, id, post_type = None):
         'post': post,
         'revisions': revisions,
     }
-    return render_into_skin('revisions.html', data, request)
+    return render(request, 'revisions.html', data)
 
 @csrf.csrf_exempt
 @ajax_only

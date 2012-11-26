@@ -9,12 +9,12 @@ from django.test.client import Client
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django import forms
+from askbot import exceptions as askbot_exceptions
 from askbot.tests.utils import AskbotTestCase
 from askbot.tests.utils import with_settings
 from askbot import models
 from askbot import const
 from askbot.conf import settings as askbot_settings
-from askbot.models.tag import get_global_group
 import datetime
 
 class DBApiTests(AskbotTestCase):
@@ -38,6 +38,7 @@ class DBApiTests(AskbotTestCase):
                                                 user = user,
                                                 question = question,
                                             )
+        return self.answer
 
     def assert_post_is_deleted(self, post):
         self.assertTrue(post.deleted == True)
@@ -82,11 +83,38 @@ class DBApiTests(AskbotTestCase):
                     )
         return self.reload_object(q)
 
+    def test_user_cannot_post_two_answers(self):
+        question = self.post_question(user=self.user)
+        answer = self.post_answer(question=question, user=self.user)
+        self.assertRaises(
+            askbot_exceptions.AnswerAlreadyGiven,
+            self.post_answer,
+            question=question,
+            user=self.user
+        )
+
+    def test_user_can_post_answer_after_deleting_one(self):
+        question = self.post_question(user=self.user)
+        answer = self.post_answer(question=question, user=self.user)
+        self.user.delete_answer(answer=answer)
+        answer2 = self.post_answer(question=question, user=self.user)
+        answers = question.thread.get_answers(user=self.user)
+        self.assertEqual(answers.count(), 1)
+        self.assertEqual(answers[0], answer2)
+
     def test_post_anonymous_question(self):
         q = self.ask_anonymous_question()
         self.assertTrue(q.is_anonymous)
         rev = q.revisions.all()[0]
         self.assertTrue(rev.is_anonymous)
+
+    def test_post_unicode_question(self):
+        """there was a bug that caused this to raise a db error"""
+        self.user.post_question(
+            tags=u'\u043c\u043e\u0440\u0435',
+            body_text=u'\u041f\u043e\u0447\u0435\u043c\u0443 \u043c\u043e\u0440\u0435 \u0441\u0438\u043d\u0435\u0435? \u043e\u043f\u044f\u0442\u044c \u0436\u0435, \u0431\u044b\u043b\u043e \u0431\u044b \u043f\u0440\u0430\u043a\u0442\u0438\u0447\u043d\u0435\u0435 \u0435\u0441\u043b\u0438 \u0431\u044b \u043e\u043d\u043e \u0431\u044b\u043b\u043e \u043f\u0440\u043e\u0437\u0440\u0430\u0447\u043d\u043e\u0435, \u043c\u043e\u0436\u043d\u043e \u0431\u044b\u043b\u043e \u0441\u0440\u0430\u0437\u0443 \u0440\u0430\u0437\u0433\u043b\u044f\u0434\u0435\u0442\u044c \u0434\u043d\u043e.',
+            title=u'\u041f\u043e\u0447\u0435\u043c\u0443 \u043c\u043e\u0440\u0435 \u0441\u0438\u043d\u0435\u0435?'
+        )
 
     def test_post_bodyless_question(self):
         q = self.user.post_question(
@@ -157,21 +185,21 @@ class DBApiTests(AskbotTestCase):
         self.assertTrue(saved_question.thread.answer_count == 1)
 
     def test_unused_tag_is_auto_deleted(self):
-        self.user.retag_question(self.question, tags = 'one-tag')
+        self.user.retag_question(self.question, tags='one-tag')
         tag = models.Tag.objects.get(name='one-tag')
         self.assertEquals(tag.used_count, 1)
         self.assertEquals(tag.deleted, False)
-        self.user.retag_question(self.question, tags = 'two-tag')
+        self.user.retag_question(self.question, tags='two-tag')
 
         count = models.Tag.objects.filter(name='one-tag').count()
         self.assertEquals(count, 0)
-    
+
     @with_settings(MAX_TAG_LENGTH=200, MAX_TAGS_PER_POST=50)
     def test_retag_tags_too_long_raises(self):
         tags = "aoaoesuouooeueooeuoaeuoeou aostoeuoaethoeastn oasoeoa nuhoasut oaeeots aoshootuheotuoehao asaoetoeatuoasu o  aoeuethut aoaoe uou uoetu uouuou ao aouosutoeh"
         question = self.post_question(user=self.user)
         self.assertRaises(
-            exceptions.ValidationError, 
+            exceptions.ValidationError,
             self.user.retag_question,
             question=question, tags=tags
         )
@@ -407,10 +435,10 @@ class CommentTests(AskbotTestCase):
     def test_other_user_can_cancel_upvote(self):
         self.test_other_user_can_upvote_comment()
         comment = models.Post.objects.get_comments().get(id = self.comment.id)
-        self.assertEquals(comment.score, 1)
+        self.assertEquals(comment.points, 1)
         self.other_user.upvote(comment, cancel = True)
         comment = models.Post.objects.get_comments().get(id = self.comment.id)
-        self.assertEquals(comment.score, 0)
+        self.assertEquals(comment.points, 0)
 
 class GroupTests(AskbotTestCase):
     def setUp(self):
@@ -441,6 +469,17 @@ class GroupTests(AskbotTestCase):
             'question_comment': question_comment,
             'answer_comment': answer_comment
         }
+
+    def test_is_group_member(self):
+        group1 = models.Group.objects.create(
+                            name='somegroup', openness=models.Group.OPEN
+                        )
+        self.u1.join_group(group1)
+        group2 = models.Group.objects.create(name='othergroup')
+        self.assertEqual(self.u1.is_group_member(group1), True)
+        self.assertEqual(self.u1.is_group_member('somegroup'), True)
+        self.assertEqual(self.u1.is_group_member(group2), False)
+        self.assertEqual(self.u1.is_group_member('othergroup'), False)
 
     def test_posts_added_to_global_group(self):
         q = self.post_question(user=self.u1)
@@ -475,11 +514,11 @@ class GroupTests(AskbotTestCase):
 
     def test_global_group_name_setting_changes_group_name(self):
         askbot_settings.update('GLOBAL_GROUP_NAME', 'all-people')
-        group = get_global_group()
+        group = models.Group.objects.get_global_group()
         self.assertEqual(group.name, 'all-people')
 
     def test_ask_global_group_by_id_works(self):
-        group = get_global_group()
+        group = models.Group.objects.get_global_group()
         q = self.post_question(user=self.u1, group_id=group.id)
         self.assertEqual(q.groups.count(), 2)
         self.assertEqual(q.groups.filter(name=group.name).exists(), True)
@@ -507,7 +546,7 @@ class GroupTests(AskbotTestCase):
         #because answer groups always inherit thread groups
         self.edit_answer(user=self.u1, answer=answer, is_private=True)
         self.assertEqual(answer.groups.count(), 1)
-    
+
         #here we have a simple case - the comment to answer was posted
         #by the answer author!!!
         #won't work when comment was by someone else
@@ -561,7 +600,7 @@ class GroupTests(AskbotTestCase):
 
         data['thread'].make_public(recursive=True)
 
-        global_group = get_global_group()
+        global_group = models.Group.objects.get_global_group()
         groups = [global_group, private_group, self.u1.get_personal_group()]
         self.assertObjectGroupsEqual(data['thread'], groups)
         self.assertObjectGroupsEqual(data['question'], groups)
@@ -576,7 +615,7 @@ class GroupTests(AskbotTestCase):
         thread = data['thread']
         thread.add_to_groups([private_group], recursive=True)
 
-        global_group = get_global_group()
+        global_group = models.Group.objects.get_global_group()
         groups = [global_group, private_group, self.u1.get_personal_group()]
         self.assertObjectGroupsEqual(thread, groups)
         self.assertObjectGroupsEqual(data['question'], groups)

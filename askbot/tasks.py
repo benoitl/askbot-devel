@@ -24,6 +24,7 @@ import uuid
 
 from django.contrib.contenttypes.models import ContentType
 from django.template import Context
+from django.template.loader import get_template
 from django.utils.translation import ugettext as _
 from celery.decorators import task
 from askbot.conf import settings as askbot_settings
@@ -81,7 +82,6 @@ def notify_author_of_published_revision_celery_task(revision):
         }
 
         #load the template
-        from askbot.skins.loaders import get_template
         template = get_template('email/notify_author_about_approved_post.html')
         #todo: possibly add headers to organize messages in threads
         headers = {'Reply-To': append_content_address}
@@ -143,7 +143,7 @@ def record_post_update_celery_task(
 @task(ignore_result = True)
 def record_question_visit(
     question_post = None,
-    user = None,
+    user_id = None,
     update_view_count = False):
     """celery task which records question visit by a person
     updates view counter, if necessary,
@@ -156,6 +156,8 @@ def record_question_visit(
     #).select_related('thread')[0]
     if update_view_count:
         question_post.thread.increase_view_count()
+
+    user = User.objects.get(id=user_id)
 
     if user.is_anonymous():
         return
@@ -173,3 +175,75 @@ def record_question_visit(
                     actor = user,
                     context_object = question_post,
                 )
+
+@task()
+def send_instant_notifications_about_activity_in_post(
+                                                update_activity = None,
+                                                post = None,
+                                                recipients = None,
+                                            ):
+    #reload object from the database
+    post = Post.objects.get(id=post.id)
+    if post.is_approved() is False:
+        return
+
+    if recipients is None:
+        return
+
+    acceptable_types = const.RESPONSE_ACTIVITY_TYPES_FOR_INSTANT_NOTIFICATIONS
+
+    if update_activity.activity_type not in acceptable_types:
+        return
+
+    #calculate some variables used in the loop below
+    update_type_map = const.RESPONSE_ACTIVITY_TYPE_MAP_FOR_TEMPLATES
+    update_type = update_type_map[update_activity.activity_type]
+    origin_post = post.get_origin_post()
+    headers = mail.thread_headers(
+                            post,
+                            origin_post,
+                            update_activity.activity_type
+                        )
+
+    logger = logging.getLogger()
+    if logger.getEffectiveLevel() <= logging.DEBUG:
+        log_id = uuid.uuid1()
+        message = 'email-alert %s, logId=%s' % (post.get_absolute_url(), log_id)
+        logger.debug(message)
+    else:
+        log_id = None
+
+
+    for user in recipients:
+        if user.is_blocked():
+            continue
+
+        reply_address, alt_reply_address = get_reply_to_addresses(user, post)
+
+        subject_line, body_text = format_instant_notification_email(
+                            to_user = user,
+                            from_user = update_activity.user,
+                            post = post,
+                            reply_address = reply_address,
+                            alt_reply_address = alt_reply_address,
+                            update_type = update_type,
+                            template = get_template('email/instant_notification.html')
+                        )
+
+        headers['Reply-To'] = reply_address
+        try:
+            mail.send_mail(
+                subject_line=subject_line,
+                body_text=body_text,
+                recipient_list=[user.email],
+                related_object=origin_post,
+                activity_type=const.TYPE_ACTIVITY_EMAIL_UPDATE_SENT,
+                headers=headers,
+                raise_on_failure=True
+            )
+        except askbot_exceptions.EmailNotSent, error:
+            logger.debug(
+                '%s, error=%s, logId=%s' % (user.email, error, log_id)
+            )
+        else:
+            logger.debug('success %s, logId=%s' % (user.email, log_id))

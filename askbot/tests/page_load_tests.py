@@ -166,13 +166,15 @@ class PageLoadTestCase(AskbotTestCase):
         group.save()
         user = self.create_user('user')
         user.join_group(group)
-        self.post_question(user=user, title='alibaba', group_id=group.id)
+        question = self.post_question(user=user, title='alibaba', group_id=group.id)
 
+        #ask for data anonymously - should get nothing
         query_data = {'query': 'alibaba'}
         response = self.client.get(reverse('api_get_questions'), query_data)
         response_data = simplejson.loads(response.content)
         self.assertEqual(len(response_data), 0)
 
+        #log in - should get the question
         self.client.login(method='force', user_id=user.id)
         response = self.client.get(reverse('api_get_questions'), query_data)
         response_data = simplejson.loads(response.content)
@@ -192,19 +194,17 @@ class PageLoadTestCase(AskbotTestCase):
             'get_groups_list',
             status_code=status_code
         )
+        #self.try_url(
+        #        'individual_question_feed',
+        #        kwargs={'pk':'one-tag'},
+        #        status_code=status_code)
         self.try_url(
-                'feeds',
-                status_code=status_code,
-                kwargs={'url':'rss'})
+                'latest_questions_feed',
+                status_code=status_code)
         self.try_url(
-                'feeds',
-                kwargs={'url':'rss'},
+                'latest_questions_feed',
                 data={'tags':'one-tag'},
                 status_code=status_code)
-        #self.try_url(
-        #        'feeds',
-        #        kwargs={'url':'question'},
-        #        status_code=status_code)
         self.try_url(
                 'about',
                 status_code=status_code,

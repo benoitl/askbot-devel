@@ -14,6 +14,7 @@ import tempfile
 import time
 import urlparse
 from django.shortcuts import get_object_or_404
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseForbidden, Http404
@@ -29,7 +30,6 @@ from askbot import exceptions as askbot_exceptions
 from askbot import forms
 from askbot import models
 from askbot.conf import settings as askbot_settings
-from askbot.skins.loaders import render_into_skin
 from askbot.utils import decorators
 from askbot.utils.forms import format_errors
 from askbot.utils.functions import diff_date
@@ -192,7 +192,7 @@ def import_data(request):
         'dump_upload_form': form,
         'need_configuration': (not stackexchange.is_ready())
     }
-    return render_into_skin('import_data.html', data, request)
+    return render(request, 'import_data.html', data)
 
 #@login_required #actually you can post anonymously, but then must register
 @csrf.csrf_protect
@@ -211,7 +211,7 @@ def ask(request):#view used to ask a new question
     user can start posting a question anonymously but then
     must login/register in order for the question go be shown
     """
-    form = forms.AskForm(request.REQUEST)
+    form = forms.AskForm(request.REQUEST, user=request.user)
     if request.method == 'POST':
         if form.is_valid():
             timestamp = datetime.datetime.now()
@@ -264,7 +264,7 @@ def ask(request):#view used to ask a new question
                 return HttpResponseRedirect(url_utils.get_login_url())
 
     if request.method == 'GET':
-        form = forms.AskForm()
+        form = forms.AskForm(user=request.user)
 
     draft_title = ''
     draft_text = ''
@@ -302,7 +302,7 @@ def ask(request):#view used to ask a new question
         'tag_names': list()#need to keep context in sync with edit_question for tag editor
     }
     data.update(context.get_for_tag_editor())
-    return render_into_skin('ask.html', data, request)
+    return render(request, 'ask.html', data)
 
 @login_required
 @csrf.csrf_exempt
@@ -349,7 +349,7 @@ def retag_question(request, id):
             'question': question,
             'form' : form,
         }
-        return render_into_skin('question_retag.html', data, request)
+        return render(request, 'question_retag.html', data)
     except exceptions.PermissionDenied, e:
         if request.is_ajax():
             response_data = {
@@ -386,24 +386,24 @@ def edit_question(request, id):
                     rev_id = revision_form.cleaned_data['revision']
                     revision = question.revisions.get(revision = rev_id)
                     form = forms.EditQuestionForm(
-                                            question = question,
-                                            user = request.user,
-                                            revision = revision
+                                            question=question,
+                                            user=request.user,
+                                            revision=revision
                                         )
                 else:
                     form = forms.EditQuestionForm(
                                             request.POST,
-                                            question = question,
-                                            user = request.user,
-                                            revision = revision
+                                            question=question,
+                                            user=question.user,
+                                            revision=revision
                                         )
             else:#new content edit
                 # Always check modifications against the latest revision
                 form = forms.EditQuestionForm(
                                         request.POST,
-                                        question = question,
-                                        revision = revision,
-                                        user = request.user,
+                                        question=question,
+                                        revision=revision,
+                                        user=request.user,
                                     )
                 revision_form = forms.RevisionForm(question, revision)
                 if form.is_valid():
@@ -437,10 +437,10 @@ def edit_question(request, id):
                 'wiki': question.wiki
             }
             form = forms.EditQuestionForm(
-                                    question = question,
-                                    revision = revision,
-                                    user = request.user,
-                                    initial = initial
+                                    question=question,
+                                    revision=revision,
+                                    user=request.user,
+                                    initial=initial
                                 )
 
         data = {
@@ -455,7 +455,7 @@ def edit_question(request, id):
             'category_tree_data': askbot_settings.CATEGORY_TREE
         }
         data.update(context.get_for_tag_editor())
-        return render_into_skin('question_edit.html', data, request)
+        return render(request, 'question_edit.html', data)
 
     except exceptions.PermissionDenied, e:
         request.user.message_set.create(message = unicode(e))
@@ -473,7 +473,7 @@ def edit_answer(request, id):
             if request.POST['select_revision'] == 'true':
                 # user has changed revistion number
                 revision_form = forms.RevisionForm(
-                                                answer, 
+                                                answer,
                                                 revision,
                                                 request.POST
                                             )
@@ -481,32 +481,37 @@ def edit_answer(request, id):
                     # Replace with those from the selected revision
                     rev = revision_form.cleaned_data['revision']
                     revision = answer.revisions.get(revision = rev)
-                    form = forms.EditAnswerForm(answer, revision)
+                    form = forms.EditAnswerForm(
+                                    answer, revision, user=request.user
+                                )
                 else:
                     form = forms.EditAnswerForm(
                                             answer,
                                             revision,
-                                            request.POST
+                                            request.POST,
+                                            user=request.user
                                         )
             else:
-                form = forms.EditAnswerForm(answer, revision, request.POST)
+                form = forms.EditAnswerForm(
+                    answer, revision, request.POST, user=request.user
+                )
                 revision_form = forms.RevisionForm(answer, revision)
 
                 if form.is_valid():
                     if form.has_changed():
                         user = form.get_post_user(request.user)
                         user.edit_answer(
-                                answer = answer,
-                                body_text = form.cleaned_data['text'],
-                                revision_comment = form.cleaned_data['summary'],
-                                wiki = form.cleaned_data.get('wiki', answer.wiki),
-                                is_private = form.cleaned_data.get('is_private', False)
-                                #todo: add wiki field to form
-                            )
+                            answer=answer,
+                            body_text=form.cleaned_data['text'],
+                            revision_comment=form.cleaned_data['summary'],
+                            wiki=form.cleaned_data.get('wiki', answer.wiki),
+                            is_private=form.cleaned_data.get('post_privately', False)
+                            #todo: add wiki field to form
+                        )
                     return HttpResponseRedirect(answer.get_absolute_url())
         else:
             revision_form = forms.RevisionForm(answer, revision)
-            form = forms.EditAnswerForm(answer, revision)
+            form = forms.EditAnswerForm(answer, revision, user=request.user)
             if request.user.can_make_group_private_posts():
                 form.initial['post_privately'] = answer.is_private()
         data = {
@@ -517,7 +522,7 @@ def edit_answer(request, id):
             'revision_form': revision_form,
             'form': form,
         }
-        return render_into_skin('answer_edit.html', data, request)
+        return render(request, 'answer_edit.html', data)
 
     except exceptions.PermissionDenied, e:
         request.user.message_set.create(message = unicode(e))
@@ -536,7 +541,7 @@ def answer(request, id):#process a new answer
     """
     question = get_object_or_404(models.Post, post_type='question', id=id)
     if request.method == "POST":
-        form = forms.AnswerForm(request.POST)
+        form = forms.AnswerForm(request.POST, user=request.user)
         if form.is_valid():
             wiki = form.cleaned_data['wiki']
             text = form.cleaned_data['text']
@@ -618,7 +623,8 @@ def __generate_comments_json(obj, user):#non-view generates json data for the po
             'user_id': comment_owner.id,
             'is_deletable': is_deletable,
             'is_editable': is_editable,
-            'score': comment.score,
+            'points': comment.points,
+            'score': comment.points, #to support js
             'upvoted_by_user': getattr(comment, 'upvoted_by_user', False)
         }
         json_comments.append(comment_data)
@@ -685,7 +691,8 @@ def edit_comment(request):
         'user_id': comment_post.author.id,
         'is_deletable': is_deletable,
         'is_editable': is_editable,
-        'score': comment_post.score,
+        'score': comment_post.points, #to support unchanged js
+        'points': comment_post.points,
         'voted': comment_post.is_upvoted_by(request.user),
     }
 
@@ -765,7 +772,7 @@ def answer_to_comment(request):
         answer_id = int(answer_id)
         answer = get_object_or_404(models.Post,
                 post_type = 'answer', id=answer_id)
-        if len(answer.text) <= 300:
+        if len(answer.text) <= askbot_settings.MAX_COMMENT_LENGTH:
             answer.post_type = 'comment'
             answer.parent =  answer.thread._question_post()
             #can we trust this?
@@ -783,7 +790,11 @@ def answer_to_comment(request):
 
             answer.thread.invalidate_cached_data()
         else:
-            request.user.message_set.create(message = _("the selected answer cannot be a comment"))
+            message = _(
+                'Cannot convert, because text has more characters than '
+                '%(max_chars)s - maximum allowed for comments'
+            ) % askbot_settings.MAX_COMMENT_LENGTH
+            request.user.message_set.create(message=message)
 
         return HttpResponseRedirect(answer.get_absolute_url())
     else:

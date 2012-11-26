@@ -20,6 +20,8 @@ from django.http import HttpResponseRedirect
 from django.http import HttpResponseForbidden
 from django.forms import ValidationError, IntegerField, CharField
 from django.shortcuts import get_object_or_404
+from django.shortcuts import render
+from django.template.loader import get_template
 from django.views.decorators import csrf
 from django.utils import simplejson
 from django.utils.html import escape
@@ -30,14 +32,12 @@ from askbot import models
 from askbot import forms
 from askbot.conf import should_show_sort_by_relevance
 from askbot.conf import settings as askbot_settings
-from askbot.models.tag import get_global_group
 from askbot.utils import category_tree
 from askbot.utils import decorators
 from askbot.utils import url_utils
 from askbot.utils.forms import get_db_object_or_404
 from askbot import mail
-from django.template import Context
-from askbot.skins.loaders import render_into_skin, get_template
+from django.template import RequestContext
 from askbot.skins.loaders import render_into_skin_as_string
 from askbot.skins.loaders import render_text_into_skin
 from askbot import const
@@ -116,7 +116,7 @@ def manage_inbox(request):
                                     'post': post.html,
                                     'reject_reason': reject_reason.details.html
                                    }
-                            body_text = template.render(Context(data))
+                            body_text = template.render(RequestContext(request, data))
                             mail.send_mail(
                                 subject_line = _('your post was not accepted'),
                                 body_text = unicode(body_text),
@@ -169,7 +169,7 @@ def process_vote(user = None, vote_direction = None, post = None):
     if vote != None:
         user.assert_can_revoke_old_vote(vote)
         score_delta = vote.cancel()
-        response_data['count'] = post.score + score_delta
+        response_data['count'] = post.points+ score_delta
         response_data['status'] = 1 #this means "cancel"
 
     else:
@@ -192,7 +192,7 @@ def process_vote(user = None, vote_direction = None, post = None):
         else:
             vote = user.downvote(post = post)
 
-        response_data['count'] = post.score
+        response_data['count'] = post.points
         response_data['status'] = 0 #this means "not cancel", normal operation
 
     response_data['success'] = 1
@@ -472,7 +472,7 @@ def get_tags_by_wildcard(request):
     """
     wildcard = request.GET.get('wildcard', None)
     if wildcard is None:
-        raise Http404
+        return HttpResponseForbidden()
 
     matching_tags = models.Tag.objects.get_by_wildcards( [wildcard,] )
     count = matching_tags.count()
@@ -649,7 +649,7 @@ def add_tag_category(request):
 def get_groups_list(request):
     """returns names of group tags
     for the autocomplete function"""
-    global_group = get_global_group()
+    global_group = models.Group.objects.get_global_group()
     groups = models.Group.objects.exclude_personal()
     group_names = groups.exclude(
                         name=global_group.name
@@ -685,7 +685,7 @@ def subscribe_for_tags(request):
             return HttpResponseRedirect(reverse('index'))
         else:
             data = {'tags': tag_names}
-            return render_into_skin('subscribe_for_tags.html', data, request)
+            return render(request, 'subscribe_for_tags.html', data)
     else:
         all_tag_names = pure_tag_names + wildcards
         message = _('Please sign in to subscribe for: %(tags)s') \
@@ -770,7 +770,7 @@ def close(request, id):#close question
                 'question': question,
                 'form': form,
             }
-            return render_into_skin('close.html', data, request)
+            return render(request, 'close.html', data)
     except exceptions.PermissionDenied, e:
         request.user.message_set.create(message = unicode(e))
         return HttpResponseRedirect(question.get_absolute_url())
@@ -799,7 +799,7 @@ def reopen(request, id):#re-open question
                 'closed_by_profile_url': closed_by_profile_url,
                 'closed_by_username': closed_by_username,
             }
-            return render_into_skin('reopen.html', data, request)
+            return render(request, 'reopen.html', data)
 
     except exceptions.PermissionDenied, e:
         request.user.message_set.create(message = unicode(e))
@@ -842,7 +842,8 @@ def upvote_comment(request):
         )
     else:
         raise ValueError
-    return {'score': comment.score}
+    #FIXME: rename js
+    return {'score': comment.points}
 
 @csrf.csrf_exempt
 @decorators.ajax_only
@@ -985,7 +986,11 @@ def toggle_group_profile_property(request):
     #todo: this might be changed to more general "toggle object property"
     group_id = IntegerField().clean(int(request.POST['group_id']))
     property_name = CharField().clean(request.POST['property_name'])
-    assert property_name in ('moderate_email', 'moderate_answers_to_enquirers')
+    assert property_name in (
+                        'moderate_email',
+                        'moderate_answers_to_enquirers',
+                        'is_vip'
+                    )
     group = models.Group.objects.get(id = group_id)
     new_value = not getattr(group, property_name)
     setattr(group, property_name, new_value)
@@ -1341,8 +1346,10 @@ def get_editor(request):
     * scripts - an array of script tags
     * success - True
     """
+    if 'config' not in request.GET:
+        return HttpResponseForbidden()
     config = simplejson.loads(request.GET['config'])
-    form = forms.EditorForm(editor_attrs=config)
+    form = forms.EditorForm(editor_attrs=config, user=request.user)
     editor_html = render_text_into_skin(
         '{{ form.media }} {{ form.editor }}',
         {'form': form},

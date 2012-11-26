@@ -3,13 +3,13 @@ import datetime
 from operator import attrgetter
 import time
 from askbot.search.state_manager import SearchState
-from askbot.skins.loaders import get_template
 from django.contrib.auth.models import User
 from django.core import cache, urlresolvers
 from django.core.cache.backends.dummy import DummyCache
 from django.core.cache.backends.locmem import LocMemCache
 
 from django.core.exceptions import ValidationError
+from django.template.loader import get_template
 from askbot.tests.utils import AskbotTestCase
 from askbot.models import Post
 from askbot.models import PostRevision
@@ -618,7 +618,7 @@ class ThreadRenderCacheUpdateTests(AskbotTestCase):
 
     def test_question_upvote_downvote(self):
         question = self.post_question()
-        question.score = 5
+        question.points = 5
         question.vote_up_count = 7
         question.vote_down_count = 2
         question.save()
@@ -631,7 +631,7 @@ class ThreadRenderCacheUpdateTests(AskbotTestCase):
         data = simplejson.loads(response.content)
 
         self.assertEqual(1, data['success'])
-        self.assertEqual(6, data['count'])  # 6 == question.score(5) + 1
+        self.assertEqual(6, data['count'])  # 6 == question.points(5) + 1
 
         thread = Thread.objects.get(id=question.thread.id)
 
@@ -647,7 +647,7 @@ class ThreadRenderCacheUpdateTests(AskbotTestCase):
         data = simplejson.loads(response.content)
 
         self.assertEqual(1, data['success'])
-        self.assertEqual(5, data['count'])  # 6 == question.score(6) - 1
+        self.assertEqual(5, data['count'])  # 6 == question.points(6) - 1
 
         thread = Thread.objects.get(id=question.thread.id)
 

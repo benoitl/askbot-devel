@@ -30,8 +30,7 @@ from askbot.models.user import EmailFeedSetting
 from askbot.models.user import Group
 from askbot.models.user import GroupMembership
 from askbot.models.tag import Tag, MarkedTag
-from askbot.models.tag import get_groups, tags_match_some_wildcard
-from askbot.models.tag import get_global_group
+from askbot.models.tag import tags_match_some_wildcard
 from askbot.conf import settings as askbot_settings
 from askbot import exceptions
 from askbot.utils import markup
@@ -40,7 +39,7 @@ from askbot.models.base import BaseQuerySetManager, DraftContent
 
 #todo: maybe merge askbot.utils.markup and forum.utils.html
 from askbot.utils.diff import textDiff as htmldiff
-from askbot.utils import mysql
+from askbot.search import mysql
 
 class PostToGroup(models.Model):
     post = models.ForeignKey('Post')
@@ -59,6 +58,15 @@ class PostQuerySet(models.query.QuerySet):
     #todo: we may not need this query set class,
     #as all methods on this class seem to want to
     #belong to Thread manager or Query set.
+    def get_for_user(self, user):
+        if askbot_settings.GROUPS_ENABLED:
+            if user is None or user.is_anonymous():
+                groups = [Group.objects.get_global_group()]
+            else:
+                groups = user.get_groups()
+            return self.filter(groups__in = groups).distinct()
+        else:
+            return self
 
     def get_by_text_query(self, search_query):
         """returns a query set of questions,
@@ -156,24 +164,16 @@ class PostManager(BaseQuerySetManager):
     def get_query_set(self):
         return PostQuerySet(self.model)
 
-    def get_questions(self):
-        return self.filter(post_type='question')
+    def get_questions(self, user=None):
+        questions = self.filter(post_type='question')
+        return questions.get_for_user(user)
 
-    def get_answers(self, user = None):
+    def get_answers(self, user=None):
         """returns query set of answer posts,
         optionally filtered to exclude posts of groups
         to which user does not belong"""
         answers = self.filter(post_type='answer')
-
-        if askbot_settings.GROUPS_ENABLED:
-            if user is None or user.is_anonymous():
-                groups = [get_global_group()]
-            else:
-                groups = user.get_groups()
-            answers = answers.filter(groups__in = groups).distinct()
-
-        return answers
-
+        return answers.get_for_user(user)
 
     def get_comments(self):
         return self.filter(post_type='comment')
@@ -358,7 +358,7 @@ class Post(models.Model):
     locked_by = models.ForeignKey(User, null=True, blank=True, related_name='locked_posts')
     locked_at = models.DateTimeField(null=True, blank=True)
 
-    score = models.IntegerField(default=0)
+    points = models.IntegerField(default=0, db_column='score')
     vote_up_count = models.IntegerField(default=0)
     vote_down_count = models.IntegerField(default=0)
 
@@ -372,7 +372,7 @@ class Post(models.Model):
     text = models.TextField(null=True)#denormalized copy of latest revision
 
     # Denormalised data
-    summary = models.CharField(max_length=180)
+    summary = models.TextField(null=True)
 
     #note: anonymity here applies to question only, but
     #the field will still go to thread
@@ -389,6 +389,14 @@ class Post(models.Model):
         app_label = 'askbot'
         db_table = 'askbot_post'
 
+    #property to support legacy themes in case there are.
+    @property
+    def score(self):
+        return int(self.points)
+    @score.setter
+    def score(self, number):
+        if number:
+            self.points = int(number)
 
     def parse_post_text(self):
         """typically post has a field to store raw source text
@@ -408,11 +416,11 @@ class Post(models.Model):
 
         if self.post_type in ('question', 'answer', 'tag_wiki', 'reject_reason'):
             _urlize = False
-            _use_markdown = True
+            _use_markdown = (askbot_settings.EDITOR_TYPE == 'markdown')
             _escape_html = False #markdow does the escaping
         elif self.is_comment():
             _urlize = True
-            _use_markdown = True
+            _use_markdown = (askbot_settings.EDITOR_TYPE == 'markdown')
             _escape_html = True
         else:
             raise NotImplementedError
@@ -495,8 +503,8 @@ class Post(models.Model):
 
         last_revision = self.html
         data = self.parse_post_text()
+        self.html = author.fix_html_links(data['html'])
 
-        self.html = data['html']
         newly_mentioned_users = set(data['newly_mentioned_users']) - set([author])
         removed_mentions = data['removed_mentions']
 
@@ -578,6 +586,12 @@ class Post(models.Model):
         return self.groups.filter(id=group.id).exists()
 
     def add_to_groups(self, groups):
+        """associates post with groups"""
+        #this is likely to be temporary - we add
+        #vip groups to the list behind the scenes.
+        groups = list(groups)
+        vips = Group.objects.filter(is_vip=True)
+        groups.extend(vips)
         #todo: use bulk-creation
         for group in groups:
             PostToGroup.objects.get_or_create(post=self, group=group)
@@ -660,7 +674,7 @@ class Post(models.Model):
                 return
             cache.cache.set(cache_key, True, settings.NOTIFICATION_DELAY_TIME)
 
-        from askbot.models import send_instant_notifications_about_activity_in_post
+        from askbot.tasks import send_instant_notifications_about_activity_in_post
         send_instant_notifications_about_activity_in_post.apply_async((
                                 update_activity,
                                 self,
@@ -677,7 +691,7 @@ class Post(models.Model):
             groups = [group]
             self.add_to_groups(groups)
 
-            global_group = get_global_group()
+            global_group = Group.objects.get_global_group()
             if group != global_group:
                 self.remove_from_groups((global_group,))
         else:
@@ -691,7 +705,7 @@ class Post(models.Model):
                 groups = user.get_groups(private=True)
 
             self.add_to_groups(groups)
-            self.remove_from_groups((get_global_group(),))
+            self.remove_from_groups((Group.objects.get_global_group(),))
 
         if len(groups) == 0:
             message = 'Sharing did not work, because group is unknown'
@@ -699,13 +713,13 @@ class Post(models.Model):
 
     def make_public(self):
         """removes the privacy mark from users groups"""
-        groups = (get_global_group(),)
+        groups = (Group.objects.get_global_group(),)
         self.add_to_groups(groups)
 
     def is_private(self):
         """true, if post belongs to the global group"""
         if askbot_settings.GROUPS_ENABLED:
-            group = get_global_group()
+            group = Group.objects.get_global_group()
             return not self.groups.filter(id=group.id).exists()
         return False
 
@@ -848,8 +862,8 @@ class Post(models.Model):
         if quote_level > 0, the post will be indented that number of times
         todo: move to views?
         """
-        from askbot.skins.loaders import get_template
         from django.template import Context
+        from django.template.loader import get_template
         template = get_template('email/quoted_post.html')
         data = {
             'post': self,
@@ -857,7 +871,7 @@ class Post(models.Model):
             'is_leaf_post': is_leaf_post,
             'format': format
         }
-        return template.render(Context(data))
+        return template.render(Context(data))#todo: set lang
 
     def format_for_email_as_parent_thread_summary(self):
         """format for email as summary of parent posts
@@ -870,17 +884,6 @@ class Post(models.Model):
             if parent_post is None:
                 break
             quote_level += 1
-            """
-            output += '<p>'
-            output += _(
-                'In reply to %(user)s %(post)s of %(date)s'
-            ) % {
-                'user': parent_post.author.username,
-                'post': _(parent_post.post_type),
-                'date': parent_post.added_at.strftime(const.DATETIME_FORMAT)
-            }
-            output += '</p>'
-            """
             output += parent_post.format_for_email(
                 quote_level = quote_level,
                 format = 'parent_subthread'
@@ -892,10 +895,10 @@ class Post(models.Model):
         """outputs question or answer and all it's comments
         returns empty string for all other post types
         """
-        from askbot.skins.loaders import get_template
         from django.template import Context
+        from django.template.loader import get_template
         template = get_template('email/post_as_subthread.html')
-        return template.render(Context({'post': self}))
+        return template.render(Context({'post': self}))#todo: set lang
 
     def set_cached_comments(self, comments):
         """caches comments in the lifetime of the object
@@ -1711,9 +1714,10 @@ class Post(models.Model):
         ##it is important to do this before __apply_edit b/c of signals!!!
         if self.is_private() != is_private:
             if is_private:
-                self.make_private(self.author)
+                #todo: make private for author or for the editor?
+                self.thread.make_private(self.author)
             else:
-                self.make_public()
+                self.thread.make_public(recursive=False)
 
         self.__apply_edit(
             edited_at=edited_at,
@@ -2197,4 +2201,5 @@ class AnonymousAnswer(DraftContent):
             wiki=self.wiki,
             text=self.text
         )
+        self.question.thread.invalidate_cached_data()
         self.delete()

@@ -120,13 +120,9 @@ pre {
   font-family: Consolas, Monaco, Liberation Mono, Lucida Console, Monospace;
   font-size: 100%;
   margin-bottom: 10px;
-  /*overflow: auto;*/
-
   background-color: #F5F5F5;
   padding-left: 5px;
   padding-top: 5px;
-  /*width: 671px;*/
-
   padding-bottom: 20px ! ie7;
 }
 code {
@@ -138,6 +134,9 @@ blockquote {
   margin-right: 15px;
   padding: 10px 0px 1px 10px;
   background-color: #F5F5F5;
+}
+html {
+  overflow-y: scroll;
 }
 /* http://pathfindersoftware.com/2007/09/developers-note-2/ */
 * html .clearfix,
@@ -444,6 +443,7 @@ body.user-messages {
 #searchBar .searchInputCancelable {
   font-size: 26px;
   height: 39px;
+  line-height: 39px;
   font-weight: 300;
   background: #FFF;
   border: 0px;
@@ -484,6 +484,7 @@ body.user-messages {
   color: #ce8888;
   background: #fff;
   height: 42px;
+  line-height: 42px;
   border: 0px;
   border-left: #deded0 1px solid;
   text-align: center;
@@ -661,6 +662,7 @@ body.anon #searchBar .searchInputCancelable {
   padding-left: 5px;
   border: #c9c9b5 1px solid;
   height: 25px;
+  line-height: 25px;
   font-size: 14px;
 }
 .box .inputs #ab-tag-search {
@@ -1434,8 +1436,8 @@ ul#related-tags li {
 }
 #askFormBar .questionTitleInput {
   font-size: 24px;
-  line-height: 24px;
   height: 36px;
+  line-height: 36px;
   margin: 0px;
   padding: 0px 0 0 5px;
   border: #cce6ec 3px solid;
@@ -1501,6 +1503,7 @@ ul#related-tags li {
 .edit-answer-page #id_post_author_email {
   border: #cce6ec 3px solid;
   height: 25px;
+  line-height: 25px;
   padding-left: 5px;
   font-size: 14px;
   width: 186px;
@@ -1790,6 +1793,7 @@ ul#related-tags li {
   width: 100%;
 }
 .wmd-preview {
+  color: #525252;
   margin: 0;
   padding: 5px;
   background-color: #F5F5F5;
@@ -1812,8 +1816,33 @@ ul#related-tags li {
 .wmd-preview blockquote {
   background-color: #eee;
 }
-.wmd-preview IMG {
+.wmd-preview img {
   max-width: 600px;
+}
+.wmd-preview a {
+  color: #1b79bd;
+}
+.wmd-preview li {
+  margin-bottom: 7px;
+  font-size: 14px;
+}
+.defaultSkin table.mceLayout,
+.defaultSkin table.mceLayout tr.mceFirst td {
+  border: none;
+}
+.defaultSkin table.mceLayout tr.mceLast td {
+  border-bottom: none;
+}
+.mceStatusbar {
+  height: 5px;
+  background: #fff;
+}
+.defaultSkin span.mce_askbot_imageuploader {
+  background-position: -380px 0px;
+}
+.defaultSkin span.mce_askbot_attachment {
+  background-image: url(../images/attachment.png);
+  background-position: 0px 0px;
 }
 .user-page .wmd-buttons {
   width: 725px;
@@ -2053,16 +2082,24 @@ ul#related-tags li {
 }
 .question-page .post-controls .question-delete,
 .question-page .answer-controls .question-delete {
-  background: url(../images/delete.png) no-repeat center left;
+  background: url(../images/delete.png) no-repeat left 2px;
   padding-left: 11px;
 }
 .question-page .post-controls .question-flag,
 .question-page .answer-controls .question-flag {
   background: url(../images/flag.png) no-repeat center left;
 }
+.question-page .post-controls .answer-publish,
+.question-page .answer-controls .answer-publish {
+  background: url(../images/publish.png) no-repeat center left;
+}
+.question-page .post-controls .answer-unpublish,
+.question-page .answer-controls .answer-unpublish {
+  background: url(../images/unpublish.png) no-repeat 2px center;
+}
 .question-page .post-controls .question-edit,
 .question-page .answer-controls .question-edit {
-  background: url(../images/edit2.png) no-repeat center left;
+  background: url(../images/edit2.png) no-repeat 2px center;
 }
 .question-page .post-controls .question-retag,
 .question-page .answer-controls .question-retag {
@@ -2607,6 +2644,7 @@ ul#related-tags li {
 .user-profile-page select {
   border: #cce6ec 3px solid;
   height: 25px;
+  line-height: 25px;
   padding-left: 5px;
   width: 395px;
   font-size: 14px;
@@ -2886,11 +2924,10 @@ a:hover.medal {
 /* profile page */
 .tabBar-profile {
   width: 100%;
-  margin-bottom: 15px;
+  margin-bottom: 5px;
   float: left;
 }
 .user-profile-page {
-  font-size: 13px;
   color: #525252;
 }
 .user-profile-page p {
@@ -3301,7 +3338,7 @@ table.ab-subscr-form {
 }
 .errors {
   line-height: 20px;
-  color: red;
+  color: #990000;
 }
 .error,
 .openid-signin p.error {
@@ -3715,14 +3752,6 @@ p.signup_p {
 .simple-subscribe-options input {
   display: inline;
 }
-/* a workaround to set link colors correctly */
-.wmd-preview a {
-  color: #1b79bd;
-}
-.wmd-preview li {
-  margin-bottom: 7px;
-  font-size: 14px;
-}
 .search-result-summary {
   font-weight: bold;
   font-size: 18px;
@@ -4084,6 +4113,7 @@ textarea.tipped-input {
   border: none;
   font-size: 15px;
   font-color: #707070;
+  height: 16px;
   line-height: 16px;
   margin-top: 9px;
   -webkit-box-shadow: none;
@@ -4111,4 +4141,40 @@ textarea.tipped-input {
 .modal-body > textarea {
   width: 515px;
   margin-bottom: 0px;
+}
+/* modifications for small screens */
+@media screen and (max-width: 960px) {
+  /* content margins touch viewport */
+}
+@media screen and (max-width: 480px) {
+  .content-wrapper {
+    width: 100%;
+  }
+  #ContentRight {
+    display: none;
+  }
+  #ContentLeft {
+    width: 100%;
+  }
+  #secondaryHeader #scopeWrapper {
+    display: none;
+  }
+  #askButton {
+    display: block;
+    float: none;
+    margin: auto;
+    margin-top: 5px;
+  }
+  .main-page h1,
+  .main-page .counts .views,
+  .main-page .counts .votes,
+  .main-page .rss,
+  .main-page .tabBar,
+  .main-page .tags,
+  .main-page .userinfo {
+    display: none;
+  }
+  .short-summary {
+    width: 100%;
+  }
 }

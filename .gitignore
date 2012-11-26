@@ -11,6 +11,7 @@ nbproject
 settings_local.py
 settings.py
 .idea
+.coverage
 *.iml
 lint
 env

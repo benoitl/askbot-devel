@@ -87,8 +87,8 @@ SECRET_KEY = 'sdljdfjkldsflsdjkhsjkldgjlsdgfs s '
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.load_template_source',
-    'django.template.loaders.app_directories.load_template_source',
+    'django.template.loaders.filesystem.Loader',
+    'django.template.loaders.app_directories.Loader',
     #below is askbot stuff for this tuple
     #'askbot.skins.loaders.load_template_source', #changed due to bug 97
     'askbot.skins.loaders.filesystem_load_template_source',
@@ -144,7 +144,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'askbot.context.application_settings',
     #'django.core.context_processors.i18n',
     'askbot.user_messages.context_processors.user_messages',#must be before auth
-    'django.core.context_processors.auth', #this is required for admin
+    'django.contrib.auth.context_processors.auth', #this is required for admin
     'django.core.context_processors.csrf', #necessary for csrf protection
 )
 
@@ -162,6 +162,7 @@ INSTALLED_APPS = (
     'django.contrib.humanize',
     'django.contrib.sitemaps',
     #'debug_toolbar',
+    #'haystack',
     'askbot',
     'askbot.deps.django_authopenid',
     #'askbot.importers.stackexchange', #se loader
@@ -173,6 +174,7 @@ INSTALLED_APPS = (
     'djcelery',
     'djkombu',
     'followit',
+    'tinymce',
     #'avatar',#experimental use git clone git://github.com/ericflo/django-avatar.git$
 )
 
@@ -235,14 +237,22 @@ STATICFILES_DIRS = (
 
 RECAPTCHA_USE_SSL = True
 
+#HAYSTACK_SETTINGS
+ENABLE_HAYSTACK_SEARCH = False
+HAYSTACK_SITECONF = 'askbot.search.haystack'
+#more information
+#http://django-haystack.readthedocs.org/en/v1.2.7/settings.html
+HAYSTACK_SEARCH_ENGINE = 'simple'
+
 TINYMCE_COMPRESSOR = True
 TINYMCE_SPELLCHECKER = False
-TINYMCE_JS_ROOT = os.path.join(STATIC_ROOT, 'common/media/js/tinymce/')
-TINYMCE_URL = STATIC_URL + 'common/media/js/tinymce/'
+TINYMCE_JS_ROOT = os.path.join(STATIC_ROOT, 'default/media/js/tinymce/')
+
+TINYMCE_URL = STATIC_URL + 'default/media/js/tinymce/'
 TINYMCE_DEFAULT_CONFIG = {
     'plugins': 'askbot_imageuploader,askbot_attachment',
+    'convert_urls': False,
     'theme': 'advanced',
-    'content_css': STATIC_URL + 'default/media/style/tinymce/content.css',
     'force_br_newlines': True,
     'force_p_newlines': False,
     'forced_root_block': '',

@@ -1591,7 +1591,7 @@ EditCommentForm.prototype.reset = function(){
 EditCommentForm.prototype.confirmAbandon = function(){
     this.focus(true);
     this._textarea.addClass('highlight');
-    var answer = confirm(gettext('confirm abandon comment'));
+    var answer = confirm(gettext("Are you sure you don't want to post this comment?"));
     this._textarea.removeClass('highlight');
     return answer;
 };
@@ -1635,6 +1635,7 @@ EditCommentForm.prototype.getSaveHandler = function(){
             dataType: "json",
             data: post_data,
             success: function(json) {
+                //type is 'edit' or 'add'
                 if (me._type == 'add'){
                     me._comment.dispose();
                     me._comment.getContainerWidget().reRenderComments(json);
@@ -2653,6 +2654,14 @@ UserGroupProfileEditor.prototype.decorate = function(element){
     });
     var btn = element.find('#moderate-answers-to-enquirers');
     moderate_publishing_replies_toggle.decorate(btn);
+
+    var vip_toggle = new TwoStateToggle();
+    vip_toggle.setPostData({
+        group_id: this.getTagId(),
+        property_name: 'is_vip'
+    });
+    var btn = element.find('#vip-toggle');
+    vip_toggle.decorate(btn);
 
     var opennessSelector = new DropdownSelect();
     var selectorElement = element.find('#group-openness-selector');

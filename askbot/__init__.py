@@ -7,7 +7,7 @@ basic actions on behalf of the forum application
 import os
 import platform
 
-VERSION = (0, 7, 43)
+VERSION = (0, 7, 44)
 
 #keys are module names used by python imports,
 #values - the package qualifier to use for pip
@@ -15,7 +15,7 @@ REQUIREMENTS = {
     'akismet': 'akismet',
     'psycopg2': 'psycopg2',
     'importlib': 'importlib',
-    'django': 'django==1.3.1',
+    'django': 'django>=1.3.1',
     'jinja2': 'Jinja2',
     'coffin': 'Coffin>=0.3.3',
     'south': 'South>=0.7.1',

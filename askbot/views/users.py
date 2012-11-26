@@ -12,6 +12,7 @@ import functools
 import datetime
 import logging
 import operator
+import urllib
 
 from django.db.models import Count
 from django.conf import settings as django_settings
@@ -20,6 +21,7 @@ from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.contrib.contenttypes.models import ContentType
 from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404
+from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseForbidden
 from django.http import HttpResponseRedirect, Http404
 from django.utils.translation import ugettext as _
@@ -38,10 +40,7 @@ from askbot.conf import settings as askbot_settings
 from askbot import models
 from askbot import exceptions
 from askbot.models.badges import award_badges_signal
-from askbot.models.tag import get_global_group
-from askbot.models.tag import get_groups
 from askbot.models.tag import format_personal_group_name
-from askbot.skins.loaders import render_into_skin
 from askbot.search.state_manager import SearchState
 from askbot.utils import url_utils
 from askbot.utils.loading import load_module
@@ -54,7 +53,8 @@ def owner_or_moderator_required(f):
         elif request.user.is_authenticated() and request.user.can_moderate_user(profile_owner):
             pass
         else:
-            params = '?next=%s' % request.path
+            next_url = request.path + '?' + urllib.urlencode(request.REQUEST)
+            params = '?next=%s' % urllib.quote(next_url)
             return HttpResponseRedirect(url_utils.get_login_url() + params)
         return f(request, profile_owner, context)
     return wrapped_func
@@ -63,7 +63,7 @@ def show_users(request, by_group=False, group_id=None, group_slug=None):
     """Users view, including listing of users by group"""
 
     if askbot_settings.GROUPS_ENABLED and not by_group:
-        default_group = get_global_group()
+        default_group = models.Group.objects.get_global_group()
         group_slug = slugify(default_group.name)
         new_url = reverse('users_by_group',
                 kwargs={'group_id': default_group.id,
@@ -176,7 +176,7 @@ def show_users(request, by_group=False, group_id=None, group_slug=None):
     #extra context for the groups
     if askbot_settings.GROUPS_ENABLED:
         #todo: cleanup this branched code after groups are migrated to auth_group
-        user_groups = get_groups().exclude_personal()
+        user_groups = models.Group.objects.exclude_personal()
         if len(user_groups) <= 1:
             assert(user_groups[0].name == askbot_settings.GLOBAL_GROUP_NAME)
             user_groups = None
@@ -200,7 +200,7 @@ def show_users(request, by_group=False, group_id=None, group_slug=None):
         'group_openness_choices': group_openness_choices
     }
 
-    return render_into_skin('users.html', data, request)
+    return render(request, 'users.html', data)
 
 @csrf.csrf_protect
 def user_moderate(request, subject, context):
@@ -294,7 +294,7 @@ def user_moderate(request, subject, context):
         'user_status_changed': user_status_changed
     }
     context.update(data)
-    return render_into_skin('user_profile/user_moderate.html', context, request)
+    return render(request, 'user_profile/user_moderate.html', context)
 
 #non-view function
 def set_new_email(user, new_email, nomessage=False):
@@ -356,7 +356,7 @@ def edit_user(request, id):
         'support_custom_avatars': ('avatar' in django_settings.INSTALLED_APPS),
         'view_user': user,
     }
-    return render_into_skin('user_profile/user_edit.html', data, request)
+    return render(request, 'user_profile/user_edit.html', data)
 
 def user_stats(request, user, context):
     question_filter = {}
@@ -369,9 +369,15 @@ def user_stats(request, user, context):
     #
     # Questions
     #
-    questions = user.posts.get_questions().filter(**question_filter).\
-                    order_by('-score', '-thread__last_activity_at').\
-                    select_related('thread', 'thread__last_activity_by')[:100]
+    questions = user.posts.get_questions(
+                    user=request.user
+                ).filter(
+                    **question_filter
+                ).order_by(
+                    '-points', '-thread__last_activity_at'
+                ).select_related(
+                    'thread', 'thread__last_activity_by'
+                )[:100]
 
     #added this if to avoid another query if questions is less than 100
     if len(questions) < 100:
@@ -391,7 +397,7 @@ def user_stats(request, user, context):
     ).select_related(
         'thread'
     ).order_by(
-        '-score', '-added_at'
+        '-points', '-added_at'
     )[:100]
 
     top_answer_count = len(top_answers)
@@ -483,7 +489,7 @@ def user_stats(request, user, context):
 
     user_groups = models.Group.objects.get_for_user(user = user)
     user_groups = user_groups.exclude_personal()
-    global_group = get_global_group()
+    global_group = models.Group.objects.get_global_group()
     user_groups = user_groups.exclude(name=global_group.name)
 
     if request.user == user:
@@ -522,7 +528,7 @@ def user_stats(request, user, context):
     }
     context.update(data)
 
-    return render_into_skin('user_profile/user_stats.html', context, request)
+    return render(request, 'user_profile/user_stats.html', context)
 
 def user_recent(request, user, context):
 
@@ -591,7 +597,7 @@ def user_recent(request, user, context):
         elif activity.activity_type == const.TYPE_ACTIVITY_COMMENT_QUESTION:
             cm = activity.content_object
             q = cm.parent
-            assert q.is_question()
+            #assert q.is_question(): todo the activity types may be wrong
             if not q.deleted:
                 activities.append(Event(
                     time=cm.added_at,
@@ -605,7 +611,7 @@ def user_recent(request, user, context):
         elif activity.activity_type == const.TYPE_ACTIVITY_COMMENT_ANSWER:
             cm = activity.content_object
             ans = cm.parent
-            assert ans.is_answer()
+            #assert ans.is_answer()
             question = ans.thread._question_post()
             if not ans.deleted and not question.deleted:
                 activities.append(Event(
@@ -676,7 +682,7 @@ def user_recent(request, user, context):
         'activities' : activities[:const.USER_VIEW_DATA_SIZE]
     }
     context.update(data)
-    return render_into_skin('user_profile/user_recent.html', context, request)
+    return render(request, 'user_profile/user_recent.html', context)
 
 #not a view - no direct url route here, called by `user_responses`
 @csrf.csrf_protect
@@ -708,7 +714,7 @@ def show_group_join_requests(request, user, context):
         'join_requests': join_requests
     }
     context.update(data)
-    return render_into_skin('user_inbox/group_join_requests.html', context, request)
+    return render(request, 'user_inbox/group_join_requests.html', context)
 
 
 @owner_or_moderator_required
@@ -724,7 +730,7 @@ def user_responses(request, user, context):
     and "flags" - moderation items for mods only
     """
 
-    #0) temporary, till urls are fixed: update context 
+    #0) temporary, till urls are fixed: update context
     #   to contain response counts for all sub-sections
     context.update(view_context.get_for_inbox(request.user))
 
@@ -749,12 +755,12 @@ def user_responses(request, user, context):
     elif section == 'messages':
         if request.user != user:
             raise Http404
-        #here we take shortcut, because we don't care about
-        #all the extra context loaded below
+
         from group_messaging.views import SendersList, ThreadsList
         context.update(SendersList().get_context(request))
         context.update(ThreadsList().get_context(request))
         data = {
+            'inbox_threads_count': context['threads_count'],#a hackfor the inbox count
             'active_tab':'users',
             'page_class': 'user-profile-page',
             'tab_name' : 'inbox',
@@ -763,9 +769,21 @@ def user_responses(request, user, context):
             'page_title' : _('profile - messages')
         }
         context.update(data)
-        return render_into_skin(
-            'user_inbox/messages.html', context, request
-        )
+        if 'thread_id' in request.GET:
+            from group_messaging.models import Message
+            from group_messaging.views import ThreadDetails
+            try:
+                thread_id = request.GET['thread_id']
+                context.update(ThreadDetails().get_context(request, thread_id))
+                context['group_messaging_template_name'] = \
+                    'group_messaging/home_thread_details.html'
+            except Message.DoesNotExist:
+                raise Http404
+        else:
+            context['group_messaging_template_name'] = 'group_messaging/home.html'
+            #here we take shortcut, because we don't care about
+            #all the extra context loaded below
+        return render(request, 'user_inbox/messages.html', context)
     else:
         raise Http404
 
@@ -833,7 +851,7 @@ def user_responses(request, user, context):
         'responses' : filtered_response_list,
     }
     context.update(data)
-    return render_into_skin('user_inbox/responses_and_flags.html', context, request)
+    return render(request, 'user_inbox/responses_and_flags.html', context)
 
 def user_network(request, user, context):
     if 'followit' not in django_settings.INSTALLED_APPS:
@@ -844,7 +862,7 @@ def user_network(request, user, context):
         'followers': user.get_followers(),
     }
     context.update(data)
-    return render_into_skin('user_profile/user_network.html', context, request)
+    return render(request, 'user_profile/user_network.html', context)
 
 @owner_or_moderator_required
 def user_votes(request, user, context):
@@ -874,7 +892,7 @@ def user_votes(request, user, context):
         'votes' : votes[:const.USER_VIEW_DATA_SIZE]
     }
     context.update(data)
-    return render_into_skin('user_profile/user_votes.html', context, request)
+    return render(request, 'user_profile/user_votes.html', context)
 
 
 def user_reputation(request, user, context):
@@ -897,14 +915,14 @@ def user_reputation(request, user, context):
         'reps': reps
     }
     context.update(data)
-    return render_into_skin('user_profile/user_reputation.html', context, request)
+    return render(request, 'user_profile/user_reputation.html', context)
 
 
 def user_favorites(request, user, context):
     favorite_threads = user.user_favorite_questions.values_list('thread', flat=True)
     questions = models.Post.objects.filter(post_type='question', thread__in=favorite_threads)\
                     .select_related('thread', 'thread__last_activity_by')\
-                    .order_by('-score', '-thread__last_activity_at')[:const.USER_VIEW_DATA_SIZE]
+                    .order_by('-points', '-thread__last_activity_at')[:const.USER_VIEW_DATA_SIZE]
 
     data = {
         'active_tab':'users',
@@ -915,7 +933,7 @@ def user_favorites(request, user, context):
         'questions' : questions,
     }
     context.update(data)
-    return render_into_skin('user_profile/user_favorites.html', context, request)
+    return render(request, 'user_profile/user_favorites.html', context)
 
 
 @owner_or_moderator_required
@@ -966,10 +984,10 @@ def user_email_subscriptions(request, user, context):
         'action_status': action_status,
     }
     context.update(data)
-    return render_into_skin(
+    return render(
+        request,
         'user_profile/user_email_subscriptions.html',
-        context,
-        request
+        context
     )
 
 @csrf.csrf_protect
@@ -988,7 +1006,7 @@ def user_custom_tab(request, user, context):
         'tab_name': tab_settings['SLUG'],
         'page_title': page_title
     })
-    return render_into_skin('user_profile/custom_tab.html', context, request)
+    return render(request, 'user_profile/custom_tab.html', context)
 
 USER_VIEW_CALL_TABLE = {
     'stats': user_stats,
@@ -1112,4 +1130,4 @@ def groups(request, id = None, slug = None):
         'tab_name': scope,
         'page_class': 'groups-page'
     }
-    return render_into_skin('groups.html', data, request)
+    return render(request, 'groups.html', data)

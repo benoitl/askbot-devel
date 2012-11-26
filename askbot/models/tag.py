@@ -1,27 +1,12 @@
 import re
-import logging
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
+from django.conf import settings
 from askbot.models.base import BaseQuerySetManager
 from askbot import const
 from askbot.conf import settings as askbot_settings
 from askbot.utils import category_tree
-
-def get_global_group():
-    """Returns the global group,
-    if necessary, creates one
-    """
-    #todo: when groups are disconnected from tags,
-    #find comment as shown below in the test cases and
-    #revert the values
-    #todo: change groups to django groups
-    group_name = askbot_settings.GLOBAL_GROUP_NAME
-    from askbot.models import Group
-    try:
-        return Group.objects.get(name=group_name)
-    except Group.DoesNotExist:
-        return Group.objects.create(name=group_name)
 
 def delete_tags(tags):
     """deletes tags in the list"""
@@ -276,7 +261,8 @@ class TagManager(BaseQuerySetManager):
         return created_tags
 
 def clean_group_name(name):
-    """group names allow spaces,
+    """todo: move to the models/user.py
+    group names allow spaces,
     tag names do not, so we use this method
     to replace spaces with dashes"""
     return re.sub('\s+', '-', name.strip())
@@ -331,11 +317,3 @@ class MarkedTag(models.Model):
 
     class Meta:
         app_label = 'askbot'
-
-def get_groups():
-    from askbot.models import Group
-    return Group.objects.all()
-
-def get_group_names():
-    #todo: cache me
-    return get_groups().values_list('name', flat = True)

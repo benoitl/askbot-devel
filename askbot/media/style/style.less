@@ -102,18 +102,15 @@ pre {
     font-family: Consolas, Monaco, Liberation Mono, Lucida Console, Monospace;
     font-size: 100%;
     margin-bottom: 10px;
-    /*overflow: auto;*/
     background-color: #F5F5F5;
     padding-left: 5px;
     padding-top: 5px;
-    /*width: 671px;*/
     padding-bottom: 20px ! ie7;
 }
 
 code {
     font-family: Consolas, Monaco, Liberation Mono, Lucida Console, Monospace;
     font-size: 100%;
-
 }
 
 blockquote {
@@ -407,7 +404,7 @@ body.user-messages {
        display:block;
        float:left;
     }
-    
+
     #homeButton:hover{
         .sprites(-6px-45,-36px);
     }
@@ -428,6 +425,7 @@ body.user-messages {
             line-height:55px;
             margin-left:16px
         }
+
         .on{
             background:url(../images/scopearrow.png) no-repeat center bottom;
         }
@@ -469,6 +467,7 @@ body.user-messages {
     .searchInput, .searchInputCancelable{
         font-size: 26px;
         height: 39px;
+        line-height: 39px;
         font-weight:300;
         background:#FFF;
         border:0px;
@@ -515,6 +514,7 @@ body.user-messages {
         color: #ce8888;
         background:#fff;
         height: 42px;
+        line-height: 42px;
         border:0px;
         border-left:#deded0 1px solid;
         text-align: center;
@@ -531,7 +531,7 @@ body.anon {
     #searchBar {
         width: 500px;
         .searchInput {
-            width: 440px;
+            width: 435px;
         }
 
         .searchInputCancelable {
@@ -669,6 +669,7 @@ body.anon {
             padding-left:5px;
             border:#c9c9b5 1px solid;
             height:25px;
+            line-height:25px;
             font-size: 14px;
         }
         #ab-tag-search {
@@ -1433,8 +1434,8 @@ ul#related-tags li {
     }
     .questionTitleInput {
         font-size: 24px;
-        line-height: 24px;
         height: 36px;
+        line-height: 36px;
         margin: 0px;
         padding: 0px 0 0 5px;
         border:#cce6ec 3px solid;
@@ -1496,11 +1497,12 @@ ul#related-tags li {
 .edit-answer-page {
     #id_post_author_username,
     #id_post_author_email {
-        border:#cce6ec 3px solid;
-        height:25px;
-        padding-left:5px;
-        font-size:14px;
-        width:186px;
+        border: #cce6ec 3px solid;
+        height: 25px;
+        line-height: 25px;
+        padding-left: 5px;
+        font-size: 14px;
+        width: 186px;
     }
     #id_post_author_email {
         margin-left: 10px;
@@ -1674,15 +1676,16 @@ ul#related-tags li {
 }
 
 .wmd-preview {
+    color: #525252;
     margin: 0;
     padding: 5px;
     background-color: #F5F5F5;
     min-height: 20px;
     overflow: auto;
     font-size:13px;
-    font-family:@body-font;
+    font-family: @body-font;
 
-    p{
+    p {
        margin-bottom: 14px;
        line-height: 1.4;
        font-size: 14px;
@@ -1691,19 +1694,27 @@ ul#related-tags li {
     p:last-child{
         margin-bottom: 0;
     }
-}
 
-.wmd-preview pre {
-    background-color: #E7F1F8;
+    pre {
+        background-color: #E7F1F8;
+    }
 
-}
+    blockquote {
+        background-color: #eee;
+    }
 
-.wmd-preview blockquote {
-    background-color: #eee;
-}
+    img {
+        max-width: 600px;
+    }
 
-.wmd-preview IMG {
-    max-width: 600px;
+    a {
+        color: @link;
+    }
+
+    li {
+        margin-bottom:7px;
+        font-size:14px;
+    }
 }
 
 .defaultSkin table.mceLayout,
@@ -2503,6 +2514,7 @@ ul#related-tags li {
     input[type="text"],input[type="password"],select{
         border:#cce6ec 3px solid;
         height:25px;
+        line-height: 25px;
         padding-left:5px;
         width:395px;
         font-size:14px;
@@ -2564,7 +2576,7 @@ ul#related-tags li {
 #email-input-fs,#local_login_buttons,#password-fs,#openid-fs{
     margin-top:10px;
     #id_email,#id_username,#id_password{
-         font-size: 12px;
+        font-size: 12px;
         line-height: 20px;
         height: 20px;
         margin: 0px;
@@ -2695,7 +2707,6 @@ a:hover.medal {
 }
 
 .user-profile-page{
-    font-size:13px;
     color:@info-text-dark;
 
     p{
@@ -3601,17 +3612,6 @@ p.signup_p {
     }
 }
 
-/* a workaround to set link colors correctly */
-
-.wmd-preview a {
-    color:@link;
-}
-
-.wmd-preview li {
-    margin-bottom:7px;
-    font-size:14px;
-}
-
 .search-result-summary {
     font-weight: bold;
     font-size:18px;
@@ -3975,6 +3975,7 @@ textarea.tipped-input {
         border: none;
         font-size: 15px;
         font-color: @info-text;
+        height: 16px;
         line-height: 16px;
         margin-top: 9px;
         -webkit-box-shadow: none;/* undo bootstrap glow */
@@ -4002,4 +4003,44 @@ textarea.tipped-input {
 .modal-body > textarea {
     width: 515px;
     margin-bottom: 0px;
+}
+
+/* modifications for small screens */
+@media screen and (max-width: 960px) {/* content margins touch viewport */
+}
+@media screen and (max-width: 480px) {
+    .content-wrapper {
+        width: 100%;
+    }
+    #ContentRight {
+        display: none;
+    }
+    #ContentLeft {
+        width: 100%;
+    }
+    #secondaryHeader #scopeWrapper {
+        display: none;
+    }
+    #askButton {
+        display: block;
+        float: none;
+        margin: auto;
+        margin-top: 5px;
+    }
+    #homeButton {
+    }
+    .main-page {
+        h1,
+        .counts .views,
+        .counts .votes,
+        .rss,
+        .tabBar,
+        .tags,
+        .userinfo {
+            display: none;
+        }
+    }
+    .short-summary {
+        width: 100%;
+    }
 }
