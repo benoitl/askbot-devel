@@ -7,7 +7,7 @@ import logging
 from django.contrib.auth.models import User
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings as django_settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 from askbot.deps.django_authopenid.models import UserAssociation
 from askbot.deps.django_authopenid import util
 from askbot.deps.django_authopenid.ldap_auth import ldap_authenticate
@@ -145,7 +145,7 @@ class AuthBackend(object):
                 return None
 
         elif method == 'oauth':
-            if login_providers[provider_name]['type'] == 'oauth':
+            if login_providers[provider_name]['type'] in ('oauth', 'oauth2'):
                 try:
                     assoc = UserAssociation.objects.get(
                                                 openid_url = oauth_user_id,

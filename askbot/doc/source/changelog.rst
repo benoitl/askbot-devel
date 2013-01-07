@@ -3,11 +3,27 @@ Changes in Askbot
 
 Development version
 -------------------
+* added RSS auto-discovery link
+* added support for multilingual site (experimental)
+
+0.7.47 (Dec 13, 2012)
+---------------------
+* Bugfix release
+
+0.7.46 (Dec 12, 2012)
+---------------------
+* Bugfix release
+
+0.7.45 (Dec 12, 2012)
+---------------------
 * Feedback sender's email is added to the Reply-To header
   in the feedback form (Evgeny)
+* Reimplemented search as drop-down (Evgeny)
+* Basic design to work on smartphones (Evgeny)
+* Allowed use of alternative form on the user signup page (Evgeny)
 
 0.7.44 (Nov 11, 2012)
--------------------
+---------------------
 * Support for django 1.4 (Adolfo)
 * Added option to enable/disable rss feeds (Evgeny)
 * Added minimum reputation to insert links and hotlinked images (Evgeny)

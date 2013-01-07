@@ -1,7 +1,7 @@
 '''Copied from Django 1.3.1 source code, it will use this model to'''
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 class Message(models.Model):
     """
@@ -23,3 +23,6 @@ class Message(models.Model):
 
     def __unicode__(self):
         return self.message
+
+    def __str__(self):
+        return self.message.encode('utf-8')

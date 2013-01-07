@@ -25,22 +25,22 @@ from django.template.loader import get_template
 from django.views.decorators import csrf
 from django.utils import simplejson
 from django.utils.html import escape
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import string_concat
 from askbot.utils.slug import slugify
 from askbot import models
 from askbot import forms
-from askbot.conf import should_show_sort_by_relevance
+from askbot import conf
+from askbot import const
+from askbot import mail
 from askbot.conf import settings as askbot_settings
 from askbot.utils import category_tree
 from askbot.utils import decorators
 from askbot.utils import url_utils
 from askbot.utils.forms import get_db_object_or_404
-from askbot import mail
 from django.template import RequestContext
 from askbot.skins.loaders import render_into_skin_as_string
 from askbot.skins.loaders import render_text_into_skin
-from askbot import const
 
 
 @csrf.csrf_exempt
@@ -696,31 +696,35 @@ def subscribe_for_tags(request):
 
 
 @decorators.get_only
-def api_get_questions(request):
-    """json api for retrieving questions"""
-    query = request.GET.get('query', '').strip()
-    if not query:
+def title_search(request):
+    """json api for retrieving questions by title match"""
+    query = request.GET.get('query_text')
+
+    if query is None:
         return HttpResponseBadRequest('Invalid query')
+
+    query = query.strip()
 
     if askbot_settings.GROUPS_ENABLED:
         threads = models.Thread.objects.get_visible(user=request.user)
     else:
         threads = models.Thread.objects.all()
 
-    threads = models.Thread.objects.get_for_query(
-                                    search_query=query,
-                                    qs=threads
-                                )
-
-    if should_show_sort_by_relevance():
-        threads = threads.extra(order_by = ['-relevance'])
+    threads = threads.get_for_title_query(query)
     #todo: filter out deleted threads, for now there is no way
     threads = threads.distinct()[:30]
-    thread_list = [{
-        'title': escape(thread.title),
-        'url': thread.get_absolute_url(),
-        'answer_count': thread.get_answer_count(request.user)
-    } for thread in threads]
+
+    thread_list = list()
+    for thread in threads:#todo: this is a temp hack until thread model is fixed
+        try:
+            thread_list.append({
+                    'title': escape(thread.title),
+                    'url': thread.get_absolute_url(),
+                    'answer_count': thread.get_answer_count(request.user)
+                })
+        except:
+            continue
+
     json_data = simplejson.dumps(thread_list)
     return HttpResponse(json_data, mimetype = "application/json")
 
@@ -736,10 +740,12 @@ def set_tag_filter_strategy(request):
     filter_value = int(request.POST['filter_value'])
     assert(filter_type in ('display', 'email'))
     if filter_type == 'display':
-        assert(filter_value in dict(const.TAG_DISPLAY_FILTER_STRATEGY_CHOICES))
+        allowed_values_dict = dict(conf.get_tag_display_filter_strategy_choices())
+        assert(filter_value in allowed_values_dict)
         request.user.display_tag_filter_strategy = filter_value
     else:
-        assert(filter_value in dict(const.TAG_EMAIL_FILTER_STRATEGY_CHOICES))
+        allowed_values_dict = dict(conf.get_tag_email_filter_strategy_choices())
+        assert(filter_value in allowed_values_dict)
         request.user.email_tag_filter_strategy = filter_value
     request.user.save()
     return HttpResponse('', mimetype = "application/json")
@@ -816,12 +822,13 @@ def swap_question_with_answer(request):
     """
     if request.user.is_authenticated():
         if request.user.is_administrator() or request.user.is_moderator():
-            answer = models.Post.objects.get_answers(request.user).get(id = request.POST['answer_id'])
+            answer = models.Post.objects.get_answers(
+                                                request.user
+                                            ).get(
+                                                id=request.POST['answer_id']
+                                            )
             new_question = answer.swap_with_question(new_title = request.POST['new_title'])
-            return {
-                'id': new_question.id,
-                'slug': new_question.slug
-            }
+            return {'question_url': new_question.get_absolute_url() }
     raise Http404
 
 @csrf.csrf_exempt

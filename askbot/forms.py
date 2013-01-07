@@ -629,12 +629,13 @@ class ChangeUserStatusForm(forms.Form):
         super(ChangeUserStatusForm, self).__init__(*arg, **kwarg)
 
         #select user_status_choices depending on status of the moderator
-        if moderator.is_administrator():
-            user_status_choices = ADMINISTRATOR_STATUS_CHOICES
-        elif moderator.is_moderator():
-            user_status_choices = MODERATOR_STATUS_CHOICES
-            if subject.is_moderator() and subject != moderator:
-                raise ValueError('moderator cannot moderate another moderator')
+        if moderator.is_authenticated():
+            if moderator.is_administrator():
+                user_status_choices = ADMINISTRATOR_STATUS_CHOICES
+            elif moderator.is_moderator():
+                user_status_choices = MODERATOR_STATUS_CHOICES
+                if subject.is_moderator() and subject != moderator:
+                    raise ValueError('moderator cannot moderate another moderator')
         else:
             raise ValueError('moderator or admin expected from "moderator"')
 
@@ -1156,11 +1157,7 @@ class RevisionForm(forms.Form):
     """
     Lists revisions of a Question or Answer
     """
-    revision = forms.ChoiceField(
-                    widget=forms.Select(
-                        attrs={'style': 'width:520px'}
-                    )
-                )
+    revision = forms.ChoiceField(widget=forms.Select())
 
     def __init__(self, post, latest_revision, *args, **kwargs):
         super(RevisionForm, self).__init__(*args, **kwargs)
@@ -1329,7 +1326,7 @@ class EditTagWikiForm(forms.Form):
 class EditUserForm(forms.Form):
     email = forms.EmailField(
                     label=u'Email',
-                    required=True,
+                    required=False,
                     max_length=255,
                     widget=forms.TextInput(attrs={'size': 35})
                 )

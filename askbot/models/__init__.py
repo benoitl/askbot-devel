@@ -22,8 +22,8 @@ from django.core.urlresolvers import reverse, NoReverseMatch
 from django.db.models import signals as django_signals
 from django.template import Context
 from django.template.loader import get_template
-from django.utils.translation import ugettext as _
-from django.utils.translation import ungettext
+from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ungettext_lazy
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
 from django.db import models
@@ -109,7 +109,7 @@ def get_users_by_text_query(search_query, users_query_set = None):
             users_query_set = User.objects.all()
         if 'postgresql_psycopg2' in askbot.get_database_engine_name():
             from askbot.search import postgresql
-            return postgresql.run_full_text_search(users_query_set, search_query)
+            return postgresql.run_thread_search(users_query_set, search_query)
         else:
             return users_query_set.filter(
                 models.Q(username__icontains=search_query) |
@@ -130,6 +130,10 @@ class RelatedObjectSimulator(object):
         self.user = user
         self.model_class = model_class
 
+    def count(self, **kwargs):
+        kwargs['user'] = self.user
+        return self.model_class.objects.filter(**kwargs).count()
+
     def create(self, **kwargs):
         return self.model_class.objects.create(user=self.user, **kwargs)
 
@@ -137,16 +141,16 @@ class RelatedObjectSimulator(object):
         return self.model_class.objects.filter(*args, **kwargs)
 
 
-#django 1.4.1 only
+#django 1.4.1 and above
 @property
 def user_message_set(self):
     return RelatedObjectSimulator(self, Message)
 
-#django 1.4.1 only
+#django 1.4.1 and above
 def user_get_and_delete_messages(self):
     messages = []
     for message in Message.objects.filter(user=self):
-        messages.append(message)
+        messages.append(message.message)
         message.delete()
     return messages
 
@@ -209,14 +213,14 @@ User.add_to_class('show_marked_tags', models.BooleanField(default = True))
 User.add_to_class(
     'email_tag_filter_strategy',
     models.SmallIntegerField(
-        choices=const.TAG_DISPLAY_FILTER_STRATEGY_CHOICES,
+        choices=const.TAG_EMAIL_FILTER_FULL_STRATEGY_CHOICES,
         default=const.EXCLUDE_IGNORED
     )
 )
 User.add_to_class(
     'display_tag_filter_strategy',
     models.SmallIntegerField(
-        choices=const.TAG_EMAIL_FILTER_STRATEGY_CHOICES,
+        choices=const.TAG_DISPLAY_FILTER_STRATEGY_CHOICES,
         default=const.INCLUDE_ALL
     )
 )
@@ -225,7 +229,7 @@ User.add_to_class('new_response_count', models.IntegerField(default=0))
 User.add_to_class('seen_response_count', models.IntegerField(default=0))
 User.add_to_class('consecutive_days_visit_count', models.IntegerField(default = 0))
 
-GRAVATAR_TEMPLATE = "http://www.gravatar.com/avatar/%(gravatar)s?" + \
+GRAVATAR_TEMPLATE = "//www.gravatar.com/avatar/%(gravatar)s?" + \
     "s=%(size)d&amp;d=%(type)s&amp;r=PG"
 
 def user_get_gravatar_url(self, size):
@@ -731,7 +735,7 @@ def user_assert_can_edit_comment(self, comment = None):
                 if now - comment.added_at > datetime.timedelta(0, delta_seconds):
                     if comment.is_last():
                         return
-                    error_message = ungettext(
+                    error_message = ungettext_lazy(
                         'Sorry, comments (except the last one) are editable only '
                         'within %(minutes)s minute from posting',
                         'Sorry, comments (except the last one) are editable only '
@@ -913,7 +917,7 @@ def user_assert_can_delete_question(self, question = None):
             if self.is_administrator() or self.is_moderator():
                 return
             else:
-                msg = ungettext(
+                msg = ungettext_lazy(
                     'Sorry, cannot delete your question since it '
                     'has an upvoted answer posted by someone else',
                     'Sorry, cannot delete your question since it '
@@ -1106,7 +1110,7 @@ def user_assert_can_remove_flag_offensive(self, post = None):
     )
 
     min_rep_setting = askbot_settings.MIN_REP_TO_FLAG_OFFENSIVE
-    low_rep_error_message = ungettext(
+    low_rep_error_message = ungettext_lazy(
         'Sorry, to flag posts a minimum reputation of %(min_rep)d is required',
         'Sorry, to flag posts a minimum reputation of %(min_rep)d is required',
         min_rep_setting
@@ -1633,7 +1637,7 @@ def user_post_question(
     if timestamp is None:
         timestamp = datetime.datetime.now()
 
-    #todo: split this into "create thread" + "add queston", if text exists
+    #todo: split this into "create thread" + "add question", if text exists
     #or maybe just add a blank question post anyway
     thread = Thread.objects.create_new(
                                     author = self,
@@ -1880,10 +1884,10 @@ def user_post_answer(
             elif days == 1:
                 left = _('tomorrow')
             elif minutes >= 60:
-                left = ungettext('in %(hr)d hour','in %(hr)d hours',hours) % {'hr':hours}
+                left = ungettext_lazy('in %(hr)d hour','in %(hr)d hours',hours) % {'hr':hours}
             else:
-                left = ungettext('in %(min)d min','in %(min)d mins',minutes) % {'min':minutes}
-            day = ungettext('%(days)d day','%(days)d days',askbot_settings.MIN_DAYS_TO_ANSWER_OWN_QUESTION) % {'days':askbot_settings.MIN_DAYS_TO_ANSWER_OWN_QUESTION}
+                left = ungettext_lazy('in %(min)d min','in %(min)d mins',minutes) % {'min':minutes}
+            day = ungettext_lazy('%(days)d day','%(days)d days',askbot_settings.MIN_DAYS_TO_ANSWER_OWN_QUESTION) % {'days':askbot_settings.MIN_DAYS_TO_ANSWER_OWN_QUESTION}
             error_message = _(
                 'New users must wait %(days)s before answering their own question. '
                 ' You can post an answer %(left)s'
@@ -2380,21 +2384,21 @@ def user_get_badge_summary(self):
     by the user. It is assumed that user has some badges"""
     badge_bits = list()
     if self.gold:
-        bit = ungettext(
+        bit = ungettext_lazy(
                 'one gold badge',
                 '%(count)d gold badges',
                 self.gold
             ) % {'count': self.gold}
         badge_bits.append(bit)
     if self.silver:
-        bit = ungettext(
+        bit = ungettext_lazy(
                 'one silver badge',
                 '%(count)d silver badges',
                 self.silver
             ) % {'count': self.silver}
         badge_bits.append(bit)
     if self.bronze:
-        bit = ungettext(
+        bit = ungettext_lazy(
                 'one bronze badge',
                 '%(count)d bronze badges',
                 self.bronze
@@ -2542,7 +2546,7 @@ def user_fix_html_links(self, text):
     if is_simple_user and has_low_rep:
         result = replace_links_with_text(text)
         if result != text:
-            message = ungettext(
+            message = ungettext_lazy(
                 'At least %d karma point is required to post links',
                 'At least %d karma points is required to post links',
                 askbot_settings.MIN_REP_TO_INSERT_LINK

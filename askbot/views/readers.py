@@ -18,8 +18,8 @@ from django.template.loader import get_template
 from django.template import RequestContext
 from django.utils import simplejson
 from django.utils.html import escape
-from django.utils.translation import ugettext as _
-from django.utils.translation import ungettext
+from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ungettext_lazy
 from django.utils import translation
 from django.views.decorators import csrf
 from django.core.urlresolvers import reverse
@@ -148,7 +148,7 @@ def questions(request, **kwargs):
     if request.is_ajax():
         q_count = paginator.count
 
-        question_counter = ungettext('%(q_num)s question', '%(q_num)s questions', q_count)
+        question_counter = ungettext_lazy('%(q_num)s question', '%(q_num)s questions', q_count)
         question_counter = question_counter % {'q_num': humanize.intcomma(q_count),}
 
         if q_count > page_size:
@@ -228,7 +228,7 @@ def questions(request, **kwargs):
             'tag_list_type' : tag_list_type,
             'font_size' : extra_tags.get_tag_font_size(related_tags),
             'display_tag_filter_strategy_choices': conf.get_tag_display_filter_strategy_choices(),
-            'email_tag_filter_strategy_choices': const.TAG_EMAIL_FILTER_STRATEGY_CHOICES,
+            'email_tag_filter_strategy_choices': conf.get_tag_email_filter_strategy_choices(),
             'update_avatar_data': schedules.should_update_avatar_data(request),
             'query_string': search_state.query_string(),
             'search_state': search_state,
