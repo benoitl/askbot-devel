@@ -25,7 +25,7 @@ from django.template.loader import get_template
 from django.views.decorators import csrf
 from django.utils import simplejson
 from django.utils.html import escape
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 from django.utils.translation import string_concat
 from askbot.utils.slug import slugify
 from askbot import models
@@ -41,6 +41,8 @@ from askbot.utils.forms import get_db_object_or_404
 from django.template import RequestContext
 from askbot.skins.loaders import render_into_skin_as_string
 from askbot.skins.loaders import render_text_into_skin
+from askbot.models.tag import get_tags_by_names
+
 
 
 @csrf.csrf_exempt
@@ -437,13 +439,18 @@ def mark_tag(request, **kwargs):#tagging system
     reason = post_data['reason']
     assert reason in ('good', 'bad', 'subscribed')
     #separate plain tag names and wildcard tags
-
     tagnames, wildcards = forms.clean_marked_tagnames(raw_tagnames)
-    cleaned_tagnames, cleaned_wildcards = request.user.mark_tags(
-                                                            tagnames,
-                                                            wildcards,
-                                                            reason = reason,
-                                                            action = action
+
+    if request.user.is_administrator() and 'user' in post_data:
+        user = get_object_or_404(models.User, pk=post_data['user'])
+    else:
+        user = request.user
+
+    cleaned_tagnames, cleaned_wildcards = user.mark_tags(
+                                                         tagnames,
+                                                         wildcards,
+                                                         reason = reason,
+                                                         action = action
                                                         )
 
     #lastly - calculate tag usage counts
@@ -694,6 +701,106 @@ def subscribe_for_tags(request):
         request.session['subscribe_for_tags'] = (pure_tag_names, wildcards)
         return HttpResponseRedirect(url_utils.get_login_url())
 
+@decorators.admins_only
+def list_bulk_tag_subscription(request):
+    if askbot_settings.SUBSCRIBED_TAG_SELECTOR_ENABLED is False:
+        raise Http404
+    object_list = models.BulkTagSubscription.objects.all()
+    data = {'object_list': object_list}
+    return render(request, 'tags/list_bulk_tag_subscription.html', data)
+
+@decorators.admins_only
+def create_bulk_tag_subscription(request):
+    if askbot_settings.SUBSCRIBED_TAG_SELECTOR_ENABLED is False:
+        raise Http404
+
+    data = {'action': _('Create')}
+    if request.method == "POST":
+        form = forms.BulkTagSubscriptionForm(request.POST)
+        if form.is_valid():
+            tag_names = form.cleaned_data['tags'].split(' ')
+            user_list = form.cleaned_data.get('users')
+            group_list = form.cleaned_data.get('groups')
+
+            bulk_subscription = models.BulkTagSubscription.objects.create(
+                                                            tag_names=tag_names,
+                                                            tag_author=request.user,
+                                                            user_list=user_list,
+                                                            group_list=group_list
+                                                        )
+
+            return HttpResponseRedirect(reverse('list_bulk_tag_subscription'))
+        else:
+            data['form'] = form
+    else:
+        data['form'] = forms.BulkTagSubscriptionForm()
+
+    return render(request, 'tags/form_bulk_tag_subscription.html', data)
+
+@decorators.admins_only
+def edit_bulk_tag_subscription(request, pk):
+    if askbot_settings.SUBSCRIBED_TAG_SELECTOR_ENABLED is False:
+        raise Http404
+
+    bulk_subscription = get_object_or_404(models.BulkTagSubscription,
+                                          pk=pk)
+    data = {'action': _('Edit')}
+    if request.method == "POST":
+        form = forms.BulkTagSubscriptionForm(request.POST)
+        if form.is_valid():
+            bulk_subscription.tags.clear()
+            bulk_subscription.users.clear()
+            bulk_subscription.groups.clear()
+
+            if 'groups' in form.cleaned_data:
+                group_ids = [user.id for user in form.cleaned_data['groups']]
+                bulk_subscription.groups.add(*group_ids)
+
+            tags, new_tag_names = get_tags_by_names(form.cleaned_data['tags'].split(' '))
+            tag_id_list = [tag.id for tag in tags]
+
+            for new_tag_name in new_tag_names:
+                new_tag = models.Tag.objects.create(name=new_tag_name,
+                                             created_by=request.user)
+                tag_id_list.append(new_tag.id)
+
+            bulk_subscription.tags.add(*tag_id_list)
+
+            user_ids = []
+            for user in form.cleaned_data['users']:
+                user_ids.append(user)
+                user.mark_tags(bulk_subscription.tag_list(),
+                               reason='subscribed', action='add')
+
+            bulk_subscription.users.add(*user_ids)
+
+            return HttpResponseRedirect(reverse('list_bulk_tag_subscription'))
+    else:
+        form_initial = {
+                        'users': bulk_subscription.users.all(),
+                        'groups': bulk_subscription.groups.all(),
+                        'tags': ' '.join([tag.name for tag in bulk_subscription.tags.all()]),
+                       }
+        data.update({
+                    'bulk_subscription': bulk_subscription,
+                    'form': forms.BulkTagSubscriptionForm(initial=form_initial),
+                   })
+
+    return render(request, 'tags/form_bulk_tag_subscription.html', data)
+
+@decorators.admins_only
+@decorators.post_only
+def delete_bulk_tag_subscription(request):
+    if askbot_settings.SUBSCRIBED_TAG_SELECTOR_ENABLED is False:
+        raise Http404
+
+    pk = request.POST.get('pk')
+    if pk:
+        bulk_subscription = get_object_or_404(models.BulkTagSubscription, pk=pk)
+        bulk_subscription.delete()
+        return HttpResponseRedirect(reverse('list_bulk_tag_subscription'))
+    else:
+        return HttpResponseRedirect(reverse('list_bulk_tag_subscription'))
 
 @decorators.get_only
 def title_search(request):

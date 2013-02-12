@@ -1,28 +1,24 @@
-# encoding: utf-8
+# -*- coding: utf-8 -*-
 import datetime
 from south.db import db
 from south.v2 import SchemaMigration
-from django.db import models, connection
-import django
+from django.db import models
 
-DJANGO_VERSION = django.VERSION[:2]
-
-def db_table_exists(table_name):
-    return table_name in connection.introspection.table_names()
 
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        if DJANGO_VERSION > (1, 3) and not db_table_exists('auth_message'):
-            db.create_table('auth_message', (
-                ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-                ('user', self.gf('django.db.models.fields.related.ForeignKey')(related_name='_message_set', to=orm['auth.User'])),
-                ('message', self.gf('django.db.models.fields.TextField')())
-            ))
-            db.send_create_signal('askbot', ['Message'])
+        # Adding field 'Thread.language_code'
+        try:
+            db.add_column('auth_user', 'languages',
+                          self.gf('django.db.models.fields.CharField')(default='en', max_length=128),
+                          keep_default=False)
+        except:
+            pass
 
     def backwards(self, orm):
-        pass
+        # Deleting field 'Thread.junk'
+        db.delete_column('auth_user', 'languages')
 
     models = {
         'askbot.activity': {
@@ -54,7 +50,6 @@ class Migration(SchemaMigration):
             'ip_addr': ('django.db.models.fields.IPAddressField', [], {'max_length': '15'}),
             'question': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'anonymous_answers'", 'to': "orm['askbot.Post']"}),
             'session_key': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
-            'summary': ('django.db.models.fields.CharField', [], {'max_length': '180'}),
             'text': ('django.db.models.fields.TextField', [], {}),
             'wiki': ('django.db.models.fields.BooleanField', [], {'default': 'False'})
         },
@@ -66,7 +61,6 @@ class Migration(SchemaMigration):
             'ip_addr': ('django.db.models.fields.IPAddressField', [], {'max_length': '15'}),
             'is_anonymous': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'session_key': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
-            'summary': ('django.db.models.fields.CharField', [], {'max_length': '180'}),
             'tagnames': ('django.db.models.fields.CharField', [], {'max_length': '125'}),
             'text': ('django.db.models.fields.TextField', [], {}),
             'title': ('django.db.models.fields.CharField', [], {'max_length': '300'}),
@@ -97,7 +91,15 @@ class Migration(SchemaMigration):
             'awarded_count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
             'awarded_to': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'badges'", 'symmetrical': 'False', 'through': "orm['askbot.Award']", 'to': "orm['auth.User']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '50', 'db_index': 'True'})
+            'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '50'})
+        },
+        'askbot.bulktagsubscription': {
+            'Meta': {'ordering': "['-date_added']", 'object_name': 'BulkTagSubscription'},
+            'date_added': ('django.db.models.fields.DateField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'groups': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['askbot.Group']", 'symmetrical': 'False'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'tags': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['askbot.Tag']", 'symmetrical': 'False'}),
+            'users': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.User']", 'symmetrical': 'False'})
         },
         'askbot.draftanswer': {
             'Meta': {'object_name': 'DraftAnswer'},
@@ -289,6 +291,8 @@ class Migration(SchemaMigration):
             'followed_by': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'followed_threads'", 'symmetrical': 'False', 'to': "orm['auth.User']"}),
             'groups': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'group_threads'", 'symmetrical': 'False', 'through': "orm['askbot.ThreadToGroup']", 'to': "orm['askbot.Group']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'junk': ('django.db.models.fields.CharField', [], {'default': "'en'", 'max_length': '128'}),
+            'language_code': ('django.db.models.fields.CharField', [], {'default': "'en'", 'max_length': '16'}),
             'last_activity_at': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'last_activity_by': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'unused_last_active_in_threads'", 'to': "orm['auth.User']"}),
             'points': ('django.db.models.fields.IntegerField', [], {'default': '0', 'db_column': "'score'"}),
@@ -338,7 +342,7 @@ class Migration(SchemaMigration):
             'bronze': ('django.db.models.fields.SmallIntegerField', [], {'default': '0'}),
             'consecutive_days_visit_count': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
             'country': ('django_countries.fields.CountryField', [], {'max_length': '2', 'blank': 'True'}),
-            'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 1, 14, 9, 30, 19, 481370)'}),
             'date_of_birth': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
             'display_tag_filter_strategy': ('django.db.models.fields.SmallIntegerField', [], {'default': '0'}),
             'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
@@ -357,7 +361,8 @@ class Migration(SchemaMigration):
             'is_fake': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'languages': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
+            'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2013, 1, 14, 9, 30, 19, 481008)'}),
             'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
             'last_seen': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'location': ('django.db.models.fields.CharField', [], {'max_length': '100', 'blank': 'True'}),

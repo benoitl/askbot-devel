@@ -18,15 +18,15 @@ from django.template.loader import get_template
 from django.template import RequestContext
 from django.utils import simplejson
 from django.utils.html import escape
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ungettext_lazy
+from django.utils.translation import ugettext as _
+from django.utils.translation import ungettext
 from django.utils import translation
 from django.views.decorators import csrf
 from django.core.urlresolvers import reverse
 from django.core import exceptions as django_exceptions
 from django.contrib.humanize.templatetags import humanize
 from django.http import QueryDict
-from django.conf import settings
+from django.conf import settings as django_settings
 
 import askbot
 from askbot import exceptions
@@ -141,14 +141,17 @@ def questions(request, **kwargs):
         # We have tags in session - pass it to the
         # QueryDict but as a list - we want tags+
         rss_query_dict.setlist("tags", search_state.tags)
-    context_feed_url = '/%sfeeds/rss/?%s' % (settings.ASKBOT_URL, rss_query_dict.urlencode()) # Format the url with the QueryDict
+    context_feed_url = '/%sfeeds/rss/?%s' % (
+                            django_settings.ASKBOT_URL,
+                            rss_query_dict.urlencode()
+                        ) # Format the url with the QueryDict
 
     reset_method_count = len(filter(None, [search_state.query, search_state.tags, meta_data.get('author_name', None)]))
 
     if request.is_ajax():
         q_count = paginator.count
 
-        question_counter = ungettext_lazy('%(q_num)s question', '%(q_num)s questions', q_count)
+        question_counter = ungettext('%(q_num)s question', '%(q_num)s questions', q_count)
         question_counter = question_counter % {'q_num': humanize.intcomma(q_count),}
 
         if q_count > page_size:
@@ -447,6 +450,10 @@ def question(request, id):#refactor - long subroutine. display question body, an
             return HttpResponseRedirect(reverse('question', kwargs = {'id': id}))
 
     thread = question_post.thread
+
+    if getattr(django_settings, 'ASKBOT_MULTILINGUAL', False):
+        if thread.language_code != translation.get_language():
+            return HttpResponseRedirect(thread.get_absolute_url())
 
     logging.debug('answer_sort_method=' + unicode(answer_sort_method))
 

@@ -16,7 +16,7 @@ admin.autodiscover()
 #update_media_revision()#needs to be run once, so put it here
 
 if getattr(settings, "ASKBOT_TRANSLATE_URL", False):
-    from django.utils.translation import ugettext_lazy as _
+    from django.utils.translation import ugettext as _
 else:
     _ = lambda s:s
 
@@ -216,6 +216,27 @@ urlpatterns = patterns('',
         name='tags'
     ),
     url(
+        r'^%s$' % _('tags/subscriptions/'),
+        views.commands.list_bulk_tag_subscription,
+        name='list_bulk_tag_subscription'
+    ),
+    url(#post only
+        r'^%s$' % _('tags/subscriptions/delete/'),
+        views.commands.delete_bulk_tag_subscription,
+        name='delete_bulk_tag_subscription'
+    ),
+    url(
+        r'^%s$' % _('tags/subscriptions/create/'),
+        views.commands.create_bulk_tag_subscription,
+        name='create_bulk_tag_subscription'
+    ),
+    url(
+        r'^%s(?P<pk>\d+)/$' % _('tags/subscriptions/edit/'),
+        views.commands.edit_bulk_tag_subscription,
+        name='edit_bulk_tag_subscription'
+    ),
+
+    url(
         r'^%s$' % _('suggested-tags/'),
         views.meta.list_suggested_tags,
         name = 'list_suggested_tags'
@@ -365,6 +386,14 @@ urlpatterns = patterns('',
         views.users.user,
         kwargs = {'tab_name': 'email_subscriptions'},
         name = 'user_subscriptions'
+    ),
+    url(
+        r'^%s(?P<id>\d+)/(?P<slug>.+)/%s$' % (
+            _('users/'),
+            _('select_languages/'),
+        ),
+        views.users.user_select_languages,
+        name = 'user_select_languages'
     ),
     url(
         r'^%s(?P<id>\d+)/(?P<slug>.+)/$' % _('users/'),

@@ -20,7 +20,9 @@ from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseForbidden, Http404
 from django.utils import simplejson
 from django.utils.html import strip_tags, escape
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import get_language
+from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy
 from django.core.urlresolvers import reverse
 from django.core import exceptions
 from django.conf import settings
@@ -196,7 +198,7 @@ def import_data(request):
 
 #@login_required #actually you can post anonymously, but then must register
 @csrf.csrf_protect
-@decorators.check_authorization_to_post(_(
+@decorators.check_authorization_to_post(ugettext_lazy(
     "<span class=\"strong big\">You are welcome to start submitting your question "
     "anonymously</span>. When you submit the post, you will be redirected to the "
     "login/signup page. Your question will be saved in the current session and "
@@ -222,6 +224,7 @@ def ask(request):#view used to ask a new question
             ask_anonymously = form.cleaned_data['ask_anonymously']
             post_privately = form.cleaned_data['post_privately']
             group_id = form.cleaned_data.get('group_id', None)
+            language = form.cleaned_data.get('language', None)
 
             if request.user.is_authenticated():
                 drafts = models.DraftQuestion.objects.filter(
@@ -232,14 +235,15 @@ def ask(request):#view used to ask a new question
                 user = form.get_post_user(request.user)
                 try:
                     question = user.post_question(
-                        title = title,
-                        body_text = text,
-                        tags = tagnames,
-                        wiki = wiki,
-                        is_anonymous = ask_anonymously,
-                        is_private = post_privately,
-                        timestamp = timestamp,
-                        group_id = group_id
+                        title=title,
+                        body_text=text,
+                        tags=tagnames,
+                        wiki=wiki,
+                        is_anonymous=ask_anonymously,
+                        is_private=post_privately,
+                        timestamp=timestamp,
+                        group_id=group_id,
+                        language=language
                     )
                     return HttpResponseRedirect(question.get_absolute_url())
                 except exceptions.PermissionDenied, e:
@@ -276,12 +280,13 @@ def ask(request):#view used to ask a new question
             draft_tagnames = draft.tagnames
 
     form.initial = {
-        'title': request.REQUEST.get('title', draft_title),
-        'text': request.REQUEST.get('text', draft_text),
-        'tags': request.REQUEST.get('tags', draft_tagnames),
-        'wiki': request.REQUEST.get('wiki', False),
         'ask_anonymously': request.REQUEST.get('ask_anonymousy', False),
-        'post_privately': request.REQUEST.get('post_privately', False)
+        'tags': request.REQUEST.get('tags', draft_tagnames),
+        'text': request.REQUEST.get('text', draft_text),
+        'title': request.REQUEST.get('title', draft_title),
+        'post_privately': request.REQUEST.get('post_privately', False),
+        'language': get_language(),
+        'wiki': request.REQUEST.get('wiki', False),
     }
     if 'group_id' in request.REQUEST:
         try:
@@ -406,9 +411,11 @@ def edit_question(request, id):
                 revision_form = forms.RevisionForm(question, revision)
                 if form.is_valid():
                     if form.has_changed():
-
                         if form.cleaned_data['reveal_identity']:
                             question.thread.remove_author_anonymity()
+
+                        if 'language' in form.cleaned_data:
+                            question.thread.language_code = form.cleaned_data['language']
 
                         is_anon_edit = form.cleaned_data['stay_anonymous']
                         is_wiki = form.cleaned_data.get('wiki', question.wiki)
@@ -417,9 +424,9 @@ def edit_question(request, id):
                         user = form.get_post_user(request.user)
 
                         user.edit_question(
-                            question = question,
-                            title = form.cleaned_data['title'],
-                            body_text = form.cleaned_data['text'],
+                            question=question,
+                            title=form.cleaned_data['title'],
+                            body_text=form.cleaned_data['text'],
                             revision_comment = form.cleaned_data['summary'],
                             tags = form.cleaned_data['tags'],
                             wiki = is_wiki,
@@ -431,6 +438,7 @@ def edit_question(request, id):
             #request type was "GET"
             revision_form = forms.RevisionForm(question, revision)
             initial = {
+                'language': question.thread.language_code,
                 'post_privately': question.is_private(),
                 'wiki': question.wiki
             }
@@ -527,7 +535,7 @@ def edit_answer(request, id):
         return HttpResponseRedirect(answer.get_absolute_url())
 
 #todo: rename this function to post_new_answer
-@decorators.check_authorization_to_post(_('Please log in to answer questions'))
+@decorators.check_authorization_to_post(ugettext_lazy('Please log in to answer questions'))
 @decorators.check_spam('text')
 def answer(request, id):#process a new answer
     """view that posts new answer
@@ -790,7 +798,7 @@ def answer_to_comment(request):
             message = _(
                 'Cannot convert, because text has more characters than '
                 '%(max_chars)s - maximum allowed for comments'
-            ) % askbot_settings.MAX_COMMENT_LENGTH
+            ) % {'max_chars': askbot_settings.MAX_COMMENT_LENGTH}
             request.user.message_set.create(message=message)
 
         return HttpResponseRedirect(answer.get_absolute_url())

@@ -1,28 +1,58 @@
-# encoding: utf-8
+# -*- coding: utf-8 -*-
 import datetime
 from south.db import db
 from south.v2 import SchemaMigration
-from django.db import models, connection
-import django
+from django.db import models
 
-DJANGO_VERSION = django.VERSION[:2]
-
-def db_table_exists(table_name):
-    return table_name in connection.introspection.table_names()
 
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        if DJANGO_VERSION > (1, 3) and not db_table_exists('auth_message'):
-            db.create_table('auth_message', (
-                ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-                ('user', self.gf('django.db.models.fields.related.ForeignKey')(related_name='_message_set', to=orm['auth.User'])),
-                ('message', self.gf('django.db.models.fields.TextField')())
-            ))
-            db.send_create_signal('askbot', ['Message'])
+        # Adding model 'BulkTagSubscription'
+        db.create_table('askbot_bulktagsubscription', (
+            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('date_added', self.gf('django.db.models.fields.DateField')(auto_now_add=True, blank=True)),
+        ))
+        db.send_create_signal('askbot', ['BulkTagSubscription'])
+
+        # Adding M2M table for field tags on 'BulkTagSubscription'
+        db.create_table('askbot_bulktagsubscription_tags', (
+            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
+            ('bulktagsubscription', models.ForeignKey(orm['askbot.bulktagsubscription'], null=False)),
+            ('tag', models.ForeignKey(orm['askbot.tag'], null=False))
+        ))
+        db.create_unique('askbot_bulktagsubscription_tags', ['bulktagsubscription_id', 'tag_id'])
+
+        # Adding M2M table for field users on 'BulkTagSubscription'
+        db.create_table('askbot_bulktagsubscription_users', (
+            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
+            ('bulktagsubscription', models.ForeignKey(orm['askbot.bulktagsubscription'], null=False)),
+            ('user', models.ForeignKey(orm['auth.user'], null=False))
+        ))
+        db.create_unique('askbot_bulktagsubscription_users', ['bulktagsubscription_id', 'user_id'])
+
+        # Adding M2M table for field groups on 'BulkTagSubscription'
+        db.create_table('askbot_bulktagsubscription_groups', (
+            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
+            ('bulktagsubscription', models.ForeignKey(orm['askbot.bulktagsubscription'], null=False)),
+            ('group', models.ForeignKey(orm['askbot.group'], null=False))
+        ))
+        db.create_unique('askbot_bulktagsubscription_groups', ['bulktagsubscription_id', 'group_id'])
+
 
     def backwards(self, orm):
-        pass
+        # Deleting model 'BulkTagSubscription'
+        db.delete_table('askbot_bulktagsubscription')
+
+        # Removing M2M table for field tags on 'BulkTagSubscription'
+        db.delete_table('askbot_bulktagsubscription_tags')
+
+        # Removing M2M table for field users on 'BulkTagSubscription'
+        db.delete_table('askbot_bulktagsubscription_users')
+
+        # Removing M2M table for field groups on 'BulkTagSubscription'
+        db.delete_table('askbot_bulktagsubscription_groups')
+
 
     models = {
         'askbot.activity': {
@@ -54,7 +84,6 @@ class Migration(SchemaMigration):
             'ip_addr': ('django.db.models.fields.IPAddressField', [], {'max_length': '15'}),
             'question': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'anonymous_answers'", 'to': "orm['askbot.Post']"}),
             'session_key': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
-            'summary': ('django.db.models.fields.CharField', [], {'max_length': '180'}),
             'text': ('django.db.models.fields.TextField', [], {}),
             'wiki': ('django.db.models.fields.BooleanField', [], {'default': 'False'})
         },
@@ -66,7 +95,6 @@ class Migration(SchemaMigration):
             'ip_addr': ('django.db.models.fields.IPAddressField', [], {'max_length': '15'}),
             'is_anonymous': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'session_key': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
-            'summary': ('django.db.models.fields.CharField', [], {'max_length': '180'}),
             'tagnames': ('django.db.models.fields.CharField', [], {'max_length': '125'}),
             'text': ('django.db.models.fields.TextField', [], {}),
             'title': ('django.db.models.fields.CharField', [], {'max_length': '300'}),
@@ -97,7 +125,15 @@ class Migration(SchemaMigration):
             'awarded_count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
             'awarded_to': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'badges'", 'symmetrical': 'False', 'through': "orm['askbot.Award']", 'to': "orm['auth.User']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '50', 'db_index': 'True'})
+            'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '50'})
+        },
+        'askbot.bulktagsubscription': {
+            'Meta': {'object_name': 'BulkTagSubscription'},
+            'date_added': ('django.db.models.fields.DateField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'groups': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['askbot.Group']", 'symmetrical': 'False'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'tags': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['askbot.Tag']", 'symmetrical': 'False'}),
+            'users': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.User']", 'symmetrical': 'False'})
         },
         'askbot.draftanswer': {
             'Meta': {'object_name': 'DraftAnswer'},

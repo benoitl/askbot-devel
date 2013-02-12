@@ -22,8 +22,8 @@ from django.core.urlresolvers import reverse, NoReverseMatch
 from django.db.models import signals as django_signals
 from django.template import Context
 from django.template.loader import get_template
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ungettext_lazy
+from django.utils.translation import ugettext as _
+from django.utils.translation import ungettext
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
 from django.db import models
@@ -47,6 +47,7 @@ from askbot.models.tag import format_personal_group_name
 from askbot.models.user import EmailFeedSetting, ActivityAuditStatus, Activity
 from askbot.models.user import GroupMembership
 from askbot.models.user import Group
+from askbot.models.user import BulkTagSubscription
 from askbot.models.post import Post, PostRevision
 from askbot.models.post import PostFlagReason, AnonymousAnswer
 from askbot.models.post import PostToGroup
@@ -66,9 +67,12 @@ from askbot.utils.diff import textDiff as htmldiff
 from askbot.utils.url_utils import strip_path
 from askbot import mail
 
-from django import get_version as django_version
+from django import VERSION
 
-if django_version() > '1.3.1':
+#stores the 1.X version not the security release numbers
+DJANGO_VERSION = VERSION[:2]
+
+if DJANGO_VERSION > (1, 3):
     from askbot.models.message import Message
 
 def get_model(model_name):
@@ -130,6 +134,9 @@ class RelatedObjectSimulator(object):
         self.user = user
         self.model_class = model_class
 
+    def all(self):
+        return self.model_class.objects.all()
+
     def count(self, **kwargs):
         kwargs['user'] = self.user
         return self.model_class.objects.filter(**kwargs).count()
@@ -154,7 +161,7 @@ def user_get_and_delete_messages(self):
         message.delete()
     return messages
 
-if django_version() > '1.3.1':
+if DJANGO_VERSION > (1, 3):
     User.add_to_class('message_set', user_message_set)
     User.add_to_class('get_and_delete_messages', user_get_and_delete_messages)
 
@@ -228,6 +235,11 @@ User.add_to_class(
 User.add_to_class('new_response_count', models.IntegerField(default=0))
 User.add_to_class('seen_response_count', models.IntegerField(default=0))
 User.add_to_class('consecutive_days_visit_count', models.IntegerField(default = 0))
+#list of languages for which user should receive email alerts
+User.add_to_class(
+    'languages',
+    models.CharField(max_length=128, default=django_settings.LANGUAGE_CODE)
+)
 
 GRAVATAR_TEMPLATE = "//www.gravatar.com/avatar/%(gravatar)s?" + \
     "s=%(size)d&amp;d=%(type)s&amp;r=PG"
@@ -600,10 +612,11 @@ def user_assert_can_unaccept_best_answer(self, answer = None):
             return
 
     else:
+        question_owner = answer.thread._question_post().get_owner()
         error_message = _(
             'Sorry, only moderators or original author of the question '
             ' - %(username)s - can accept or unaccept the best answer'
-            ) % {'username': answer.get_owner().username}
+        ) % {'username': question_owner.username}
 
     raise django_exceptions.PermissionDenied(error_message)
 
@@ -735,7 +748,7 @@ def user_assert_can_edit_comment(self, comment = None):
                 if now - comment.added_at > datetime.timedelta(0, delta_seconds):
                     if comment.is_last():
                         return
-                    error_message = ungettext_lazy(
+                    error_message = ungettext(
                         'Sorry, comments (except the last one) are editable only '
                         'within %(minutes)s minute from posting',
                         'Sorry, comments (except the last one) are editable only '
@@ -917,7 +930,7 @@ def user_assert_can_delete_question(self, question = None):
             if self.is_administrator() or self.is_moderator():
                 return
             else:
-                msg = ungettext_lazy(
+                msg = ungettext(
                     'Sorry, cannot delete your question since it '
                     'has an upvoted answer posted by someone else',
                     'Sorry, cannot delete your question since it '
@@ -1110,7 +1123,7 @@ def user_assert_can_remove_flag_offensive(self, post = None):
     )
 
     min_rep_setting = askbot_settings.MIN_REP_TO_FLAG_OFFENSIVE
-    low_rep_error_message = ungettext_lazy(
+    low_rep_error_message = ungettext(
         'Sorry, to flag posts a minimum reputation of %(min_rep)d is required',
         'Sorry, to flag posts a minimum reputation of %(min_rep)d is required',
         min_rep_setting
@@ -1620,7 +1633,8 @@ def user_post_question(
                     group_id = None,
                     timestamp = None,
                     by_email = False,
-                    email_address = None
+                    email_address = None,
+                    language = None
                 ):
     """makes an assertion whether user can post the question
     then posts it and returns the question object"""
@@ -1640,17 +1654,18 @@ def user_post_question(
     #todo: split this into "create thread" + "add question", if text exists
     #or maybe just add a blank question post anyway
     thread = Thread.objects.create_new(
-                                    author = self,
-                                    title = title,
-                                    text = body_text,
-                                    tagnames = tags,
-                                    added_at = timestamp,
-                                    wiki = wiki,
-                                    is_anonymous = is_anonymous,
-                                    is_private = is_private,
-                                    group_id = group_id,
-                                    by_email = by_email,
-                                    email_address = email_address
+                                    author=self,
+                                    title=title,
+                                    text=body_text,
+                                    tagnames=tags,
+                                    added_at=timestamp,
+                                    wiki=wiki,
+                                    is_anonymous=is_anonymous,
+                                    is_private=is_private,
+                                    group_id=group_id,
+                                    by_email=by_email,
+                                    email_address=email_address,
+                                    language=language
                                 )
     question = thread._question_post()
     if question.author != self:
@@ -1884,10 +1899,10 @@ def user_post_answer(
             elif days == 1:
                 left = _('tomorrow')
             elif minutes >= 60:
-                left = ungettext_lazy('in %(hr)d hour','in %(hr)d hours',hours) % {'hr':hours}
+                left = ungettext('in %(hr)d hour','in %(hr)d hours',hours) % {'hr':hours}
             else:
-                left = ungettext_lazy('in %(min)d min','in %(min)d mins',minutes) % {'min':minutes}
-            day = ungettext_lazy('%(days)d day','%(days)d days',askbot_settings.MIN_DAYS_TO_ANSWER_OWN_QUESTION) % {'days':askbot_settings.MIN_DAYS_TO_ANSWER_OWN_QUESTION}
+                left = ungettext('in %(min)d min','in %(min)d mins',minutes) % {'min':minutes}
+            day = ungettext('%(days)d day','%(days)d days',askbot_settings.MIN_DAYS_TO_ANSWER_OWN_QUESTION) % {'days':askbot_settings.MIN_DAYS_TO_ANSWER_OWN_QUESTION}
             error_message = _(
                 'New users must wait %(days)s before answering their own question. '
                 ' You can post an answer %(left)s'
@@ -2384,21 +2399,21 @@ def user_get_badge_summary(self):
     by the user. It is assumed that user has some badges"""
     badge_bits = list()
     if self.gold:
-        bit = ungettext_lazy(
+        bit = ungettext(
                 'one gold badge',
                 '%(count)d gold badges',
                 self.gold
             ) % {'count': self.gold}
         badge_bits.append(bit)
     if self.silver:
-        bit = ungettext_lazy(
+        bit = ungettext(
                 'one silver badge',
                 '%(count)d silver badges',
                 self.silver
             ) % {'count': self.silver}
         badge_bits.append(bit)
     if self.bronze:
-        bit = ungettext_lazy(
+        bit = ungettext(
                 'one bronze badge',
                 '%(count)d bronze badges',
                 self.bronze
@@ -2546,7 +2561,7 @@ def user_fix_html_links(self, text):
     if is_simple_user and has_low_rep:
         result = replace_links_with_text(text)
         if result != text:
-            message = ungettext_lazy(
+            message = ungettext(
                 'At least %d karma point is required to post links',
                 'At least %d karma points is required to post links',
                 askbot_settings.MIN_REP_TO_INSERT_LINK
@@ -3541,6 +3556,20 @@ def add_missing_subscriptions(sender, instance, created, **kwargs):
     if created:
         instance.add_missing_askbot_subscriptions()
 
+def add_missing_tag_subscriptions(sender, instance, created, **kwargs):
+    '''``sender` is instance of `User``. When the user is created
+    it add the tag subscriptions to the user via BulkTagSubscription
+    and MarkedTags.
+    '''
+    if created:
+        if askbot_settings.SUBSCRIBED_TAG_SELECTOR_ENABLED and \
+                askbot_settings.GROUPS_ENABLED:
+            user_groups = instance.get_groups()
+            for subscription in BulkTagSubscription.objects.filter(groups__in = user_groups):
+                tag_list = subscription.tag_list()
+                instance.mark_tags(tagnames = tag_list,
+                                reason='subscribed', action='add')
+
 def post_anonymous_askbot_content(
                                 sender,
                                 request,
@@ -3593,6 +3622,7 @@ django_signals.pre_save.connect(calculate_gravatar_hash, sender=User)
 django_signals.post_save.connect(add_missing_subscriptions, sender=User)
 django_signals.post_save.connect(add_user_to_global_group, sender=User)
 django_signals.post_save.connect(add_user_to_personal_group, sender=User)
+django_signals.post_save.connect(add_missing_tag_subscriptions, sender=User)
 django_signals.post_save.connect(record_award_event, sender=Award)
 django_signals.post_save.connect(notify_award_message, sender=Award)
 django_signals.post_save.connect(record_answer_accepted, sender=Post)

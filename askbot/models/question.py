@@ -10,8 +10,8 @@ from django.core import exceptions as django_exceptions
 from django.core.urlresolvers import reverse
 from django.template.loader import get_template
 from django.utils.hashcompat import md5_constructor
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ungettext_lazy
+from django.utils.translation import ugettext as _
+from django.utils.translation import ungettext
 from django.utils.translation import string_concat
 from django.utils.translation import get_language
 
@@ -22,7 +22,7 @@ from askbot.mail import messages
 from askbot.models.tag import Tag
 from askbot.models.tag import get_tags_by_names
 from askbot.models.tag import filter_accepted_tags, filter_suggested_tags
-from askbot.models.tag import delete_tags, separate_unused_tags
+from askbot.models.tag import separate_unused_tags
 from askbot.models.base import DraftContent, BaseQuerySetManager
 from askbot.models.post import Post, PostRevision
 from askbot.models.post import PostToGroup
@@ -113,15 +113,18 @@ class ThreadManager(BaseQuerySetManager):
                 added_at,
                 wiki,
                 text,
-                tagnames = None,
-                is_anonymous = False,
-                is_private = False,
-                group_id = None,
-                by_email = False,
-                email_address = None
+                tagnames=None,
+                is_anonymous=False,
+                is_private=False,
+                group_id=None,
+                by_email=False,
+                email_address=None,
+                language=None,
             ):
         """creates new thread"""
         # TODO: Some of this code will go to Post.objects.create_new
+
+        language = language or get_language()
 
         thread = super(
             ThreadManager,
@@ -131,7 +134,7 @@ class ThreadManager(BaseQuerySetManager):
             tagnames=tagnames,
             last_activity_at=added_at,
             last_activity_by=author,
-            language_code=get_language()
+            language_code=language
         )
 
         #todo: code below looks like ``Post.objects.create_new()``
@@ -740,7 +743,7 @@ class Thread(models.Model):
 
         output = question.format_for_email_as_subthread()
         if answers:
-            answer_heading = ungettext_lazy(
+            answer_heading = ungettext(
                                     '%(count)d answer:',
                                     '%(count)d answers:',
                                     len(answers)
@@ -1164,8 +1167,6 @@ class Thread(models.Model):
         """
         Updates Tag associations for a thread to match the given
         tagname string.
-        When tags are removed and their use count hits 0 - the tag is
-        automatically deleted.
         When an added tag does not exist - it is created
         If tag moderation is on - new tags are placed on the queue
 
@@ -1217,10 +1218,6 @@ class Thread(models.Model):
         else:
             added_tags = Tag.objects.none()
 
-        #this is odd: in sqlite you have to delete after creating new tags
-        #somehow sqlite does not continue the id sequence, like postgrjs&mysql do
-        delete_tags(unused_tags)#tags with used_count == 0 are deleted
-
         #Save denormalized tag names on thread. Preserve order from user input.
         accepted_added_tags = filter_accepted_tags(added_tags)
         added_tagnames = set([tag.name for tag in accepted_added_tags])
@@ -1255,7 +1252,7 @@ class Thread(models.Model):
         self.update_summary_html() # regenerate question/thread summary html
         ####################################################################
         #if there are any modified tags, update their use counts
-        modified_tags = set(modified_tags) - set(unused_tags)
+        modified_tags = set(modified_tags)
         if modified_tags:
             Tag.objects.update_use_counts(modified_tags)
             signals.tags_updated.send(None,
@@ -1381,7 +1378,7 @@ class Thread(models.Model):
         #because we do not include any visitor-related info in the cache key
         #ideally cache should be shareable between users, so straight up
         #using the user id for cache is wrong, we could use group
-        #memberships, but in that case we'd need to be more careful with 
+        #memberships, but in that case we'd need to be more careful with
         #cache invalidation
         context = {
             'thread': self,
