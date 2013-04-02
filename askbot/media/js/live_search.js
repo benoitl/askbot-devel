@@ -267,6 +267,7 @@ TagWarningBox.prototype.showWarning = function(){
  */
 var InputToolTip = function() {
     WrappedElement.call(this);
+    this._promptText = gettext('search or ask your question');
 };
 inherits(InputToolTip, WrappedElement);
 
@@ -284,6 +285,10 @@ InputToolTip.prototype.dim = function() {
     this._element.addClass('dimmed');
 };
 
+InputToolTip.prototype.setPromptText = function(text) {
+    this._promptText = text;
+};
+
 InputToolTip.prototype.setClickHandler = function(handler) {
     this._clickHandler = handler;
 };
@@ -291,10 +296,13 @@ InputToolTip.prototype.setClickHandler = function(handler) {
 InputToolTip.prototype.createDom = function() {
     var element = this.makeElement('div');
     this._element = element;
-
-    element.html(gettext('search or ask your question'));
     element.addClass('input-tool-tip');
+    element.html(this._promptText);
+    this.decorate(element);
+};
 
+InputToolTip.prototype.decorate = function(element) {
+    this._element = element;
     var handler = this._clickHandler;
     var me = this;
     element.click(function() { 
@@ -581,7 +589,7 @@ FullTextSearch.prototype.reset = function() {
 FullTextSearch.prototype.refreshXButton = function() {
     if(this.getSearchQuery().length > 0){
         if (this._query.hasClass('searchInput')){
-            $('#searchBar').attr('class', 'cancelable');
+            $('#searchBar').addClass('cancelable');
             this._xButton.show();
         }
     } else {
@@ -640,7 +648,7 @@ FullTextSearch.prototype.renderSearchTags = function(tags, query_string){
             tag.setDeletable(true);
             tag.setDeleteHandler(
                 function(){
-                    this.removeSearchTag(tag_name, query_string);
+                    me.removeSearchTag(tag_name, query_string);
                 }
             );
             search_tags.append(tag.getElement());
@@ -753,6 +761,7 @@ FullTextSearch.prototype.makeKeyDownHandler = function() {
     var toolTip = this._toolTip;
     var xButton = this._xButton;
     var dropMenu = this._dropMenu;
+    var formSubmitHandler = this.makeFormSubmitHandler();
     return function(e) {//don't like the keyup delay to
         var keyCode = getKeyCode(e);
 
@@ -761,6 +770,9 @@ FullTextSearch.prototype.makeKeyDownHandler = function() {
                 me.reset();
                 return false;
             }
+        } else if (keyCode === 13) {
+            formSubmitHandler(e);
+            return false;
         }
 
         var query = me.getSearchQuery();
@@ -811,7 +823,9 @@ FullTextSearch.prototype.decorate = function(element) {
     toolTip.setClickHandler(function() {
         element.focus();
     });
-    this._element.after(toolTip.getElement());
+
+    element.after(toolTip.getElement());
+
     //below is called after getElement, b/c element must be defined
     if (this._prevText !== '') {
         toolTip.hide();//hide if search query is not empty
@@ -872,4 +886,145 @@ FullTextSearch.prototype.decorate = function(element) {
     this.activateTagSearchInput();
 
     $("form#searchForm").submit(me.makeFormSubmitHandler());
+};
+
+/**
+ * @constructor
+ */
+var TagSearch = function() {
+    WrappedElement.call(this);
+    this._isRunning = false;
+};
+inherits(TagSearch, WrappedElement);
+
+TagSearch.prototype.getQuery = function() {
+    return $.trim(this._element.val());
+};
+
+TagSearch.prototype.setQuery = function(val) {
+    this._element.val(val);
+};
+
+TagSearch.prototype.getSort = function() {
+    //todo: read it off the page
+    var link = $('.tabBar a.on');
+    if (link.length === 1) {
+        var sort = link.attr('id').replace('sort_', '');
+        if (sort === 'name' || sort === 'used') {
+            return sort;
+        }
+    }
+    return 'name';
+};
+
+TagSearch.prototype.getIsRunning = function() {
+    return this._isRunning;
+};
+
+TagSearch.prototype.setIsRunning = function(val) {
+    this._isRunning = val;
+};
+
+TagSearch.prototype.renderResult = function(html) {
+    this._contentBox.html(html);
+};
+
+TagSearch.prototype.runSearch = function() {
+    var query = this.getQuery();
+    var data = {
+        'query': query,
+        'sort': this.getSort(),
+        'page': '1'
+    };
+    var me = this;
+    $.ajax({
+        dataType: 'json',
+        data: data,
+        cache: false,
+        url: askbot['urls']['tags'],
+        success: function(data) {
+            if (data['success']) {
+                me.renderResult(data['html']);
+                me.setIsRunning(false);
+                //rerun if query changed meanwhile
+                if (query !== me.getQuery()) {
+                    me.runSearch();
+                }
+            }
+        },
+        error: function() { me.setIsRunning(false); }
+    });
+    me.setIsRunning(true);
+};
+
+TagSearch.prototype.getToolTip = function() {
+    return this._toolTip;
+};
+
+TagSearch.prototype.makeKeyUpHandler = function() {
+    var me = this;
+    return function(evt) {
+        var keyCode = getKeyCode(evt);
+        if (me.getIsRunning() === false) {
+            me.runSearch();
+        }
+    };
+};
+
+TagSearch.prototype.makeKeyDownHandler = function() {
+    var me = this;
+    var xButton = this._xButton;
+    return function(evt) {
+        var query = me.getQuery();
+        var keyCode = getKeyCode(evt);
+        var toolTip = me.getToolTip();
+        if (keyCode === 27) {//escape
+            me.setQuery('');
+            toolTip.show();
+            xButton.hide();
+            return;
+        }
+        if (keyCode === 8 || keyCode === 48) {//del or backspace
+            if (query.length === 1) {
+                toolTip.show();
+                xButton.hide();
+            }
+        } else {
+            toolTip.hide();
+            xButton.show();
+        }
+    };
+};
+
+TagSearch.prototype.reset = function() {
+    if (this.getIsRunning() === false) {
+        this.setQuery('');
+        this._toolTip.show();
+        this._xButton.hide();
+        this.runSearch();
+        this._element.focus();
+    }
+};
+
+TagSearch.prototype.decorate = function(element) {
+    this._element = element;
+    this._contentBox = $('#ContentLeft');
+    this._xButton = $('input[name=reset_query]');
+    element.keyup(this.makeKeyUpHandler());
+    element.keydown(this.makeKeyDownHandler());
+
+    var me = this;
+    this._xButton.click(function(){ me.reset() });
+
+    var toolTip = new InputToolTip();
+    toolTip.setPromptText(askbot['data']['tagSearchPromptText']);
+    toolTip.setClickHandler(function() {
+        element.focus();
+    });
+    element.after(toolTip.getElement());
+    //below is called after getElement, b/c element must be defined
+    if (this.getQuery() !== '') {
+        toolTip.hide();//hide if search query is not empty
+    }
+    this._toolTip = toolTip;
 };

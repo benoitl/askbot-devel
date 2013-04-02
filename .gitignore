@@ -10,11 +10,13 @@ run
 nbproject
 settings_local.py
 settings.py
+tinymce
 .idea
 .coverage
 *.iml
 lint
 env
+/custom_settings
 /static
 django
 lamson

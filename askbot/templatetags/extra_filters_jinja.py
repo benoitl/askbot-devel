@@ -39,8 +39,18 @@ def add_tz_offset(datetime_object):
     return str(datetime_object) + ' ' + TIMEZONE_STR
 
 @register.filter
+def as_js_bool(some_object):
+    if bool(some_object):
+        return 'true'
+    return 'false'
+
+@register.filter
 def is_current_language(lang):
     return lang == django_get_language()
+
+@register.filter
+def to_int(value):
+    return int(value)
 
 @register.filter
 def safe_urlquote(text, quote_plus = False):

@@ -99,11 +99,12 @@ def notify_author_of_published_revision_celery_task(revision):
 def record_post_update_celery_task(
         post_id,
         post_content_type_id,
-        newly_mentioned_user_id_list = None,
-        updated_by_id = None,
-        timestamp = None,
-        created = False,
-        diff = None,
+        newly_mentioned_user_id_list=None,
+        updated_by_id=None,
+        suppress_email=False,
+        timestamp=None,
+        created=False,
+        diff=None,
     ):
     #reconstitute objects from the database
     updated_by = User.objects.get(id=updated_by_id)
@@ -129,6 +130,7 @@ def record_post_update_celery_task(
             updated_by=updated_by,
             notify_sets=notify_sets,
             activity_type=activity_type,
+            suppress_email=suppress_email,
             timestamp=timestamp,
             diff=diff
         )
@@ -157,10 +159,11 @@ def record_question_visit(
     if update_view_count:
         question_post.thread.increase_view_count()
 
-    user = User.objects.get(id=user_id)
-
-    if user.is_anonymous():
+    #we do not track visits per anon user
+    if user_id is None:
         return
+
+    user = User.objects.get(id=user_id)
 
     #2) question view count per user and clear response displays
     #user = User.objects.get(id = user_id)

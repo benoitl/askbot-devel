@@ -113,7 +113,7 @@ def get_users_by_text_query(search_query, users_query_set = None):
             users_query_set = User.objects.all()
         if 'postgresql_psycopg2' in askbot.get_database_engine_name():
             from askbot.search import postgresql
-            return postgresql.run_thread_search(users_query_set, search_query)
+            return postgresql.run_user_search(users_query_set, search_query)
         else:
             return users_query_set.filter(
                 models.Q(username__icontains=search_query) |
@@ -514,6 +514,8 @@ def _assert_user_can(
     if assertion fails, method raises exception.PermissionDenied
     with appropriate text as a payload
     """
+    if general_error_message is None:
+        general_error_message = _('Sorry, this operation is not allowed')
     if blocked_error_message and user.is_blocked():
         error_message = blocked_error_message
     elif post and owner_can and user == post.get_owner():
@@ -1368,6 +1370,17 @@ def user_mark_tags(
     if tagnames is None:
         tagnames = list()
 
+    #figure out which tags don't yet exist
+    existing_tagnames = Tag.objects.filter(
+                            name__in=tagnames
+                        ).values_list(
+                            'name', flat=True
+                        )
+    non_existing_tagnames = set(tagnames) - set(existing_tagnames)
+    #create those tags, and if tags are moderated make them suggested
+    if (len(non_existing_tagnames) > 0):
+        Tag.objects.create_in_bulk(tag_names=tagnames, user=self)
+
     #below we update normal tag selections
     marked_ts = MarkedTag.objects.filter(
                                     user = self,
@@ -1533,6 +1546,9 @@ def user_delete_question(
     question.deleted_at = timestamp
     question.save()
 
+    question.thread.deleted = True
+    question.thread.save()
+
     for tag in list(question.thread.tags.all()):
         if tag.used_count == 1:
             tag.deleted = True
@@ -1678,9 +1694,10 @@ def user_post_question(
 def user_edit_comment(
                     self,
                     comment_post=None,
-                    body_text = None,
-                    timestamp = None,
-                    by_email = False
+                    body_text=None,
+                    timestamp=None,
+                    by_email=False,
+                    suppress_email=False
                 ):
     """apply edit to a comment, the method does not
     change the comments timestamp and no signals are sent
@@ -1689,20 +1706,22 @@ def user_edit_comment(
     """
     self.assert_can_edit_comment(comment_post)
     comment_post.apply_edit(
-                        text = body_text,
-                        edited_at = timestamp,
-                        edited_by = self,
-                        by_email = by_email
+                        text=body_text,
+                        edited_at=timestamp,
+                        edited_by=self,
+                        by_email=by_email,
+                        suppress_email=suppress_email
                     )
     comment_post.thread.invalidate_cached_data()
 
 def user_edit_post(self,
-                post = None,
-                body_text = None,
-                revision_comment = None,
-                timestamp = None,
-                by_email = False,
-                is_private = False
+                post=None,
+                body_text=None,
+                revision_comment=None,
+                timestamp=None,
+                by_email=False,
+                is_private=False,
+                suppress_email=False,
             ):
     """a simple method that edits post body
     todo: unify it in the style of just a generic post
@@ -1711,36 +1730,39 @@ def user_edit_post(self,
     """
     if post.post_type == 'comment':
         self.edit_comment(
-                comment_post = post,
-                body_text = body_text,
-                by_email = by_email
+                comment_post=post,
+                body_text=body_text,
+                by_email=by_email,
+                suppress_email=suppress_email
             )
     elif post.post_type == 'answer':
         self.edit_answer(
-            answer = post,
-            body_text = body_text,
-            timestamp = timestamp,
-            revision_comment = revision_comment,
-            by_email = by_email
+            answer=post,
+            body_text=body_text,
+            timestamp=timestamp,
+            revision_comment=revision_comment,
+            by_email=by_email,
+            suppress_email=suppress_email
         )
     elif post.post_type == 'question':
         self.edit_question(
-            question = post,
-            body_text = body_text,
-            timestamp = timestamp,
-            revision_comment = revision_comment,
-            by_email = by_email,
-            is_private = is_private
+            question=post,
+            body_text=body_text,
+            timestamp=timestamp,
+            revision_comment=revision_comment,
+            by_email=by_email,
+            is_private=is_private,
+            suppress_email=suppress_email,
         )
     elif post.post_type == 'tag_wiki':
         post.apply_edit(
-            edited_at = timestamp,
-            edited_by = self,
-            text = body_text,
+            edited_at=timestamp,
+            edited_by=self,
+            text=body_text,
             #todo: summary name clash in question and question revision
-            comment = revision_comment,
-            wiki = True,
-            by_email = False
+            comment=revision_comment,
+            wiki=True,
+            by_email=False
         )
     else:
         raise NotImplementedError()
@@ -1748,17 +1770,18 @@ def user_edit_post(self,
 @auto_now_timestamp
 def user_edit_question(
                 self,
-                question = None,
-                title = None,
-                body_text = None,
-                revision_comment = None,
-                tags = None,
-                wiki = False,
-                edit_anonymously = False,
-                is_private = False,
-                timestamp = None,
-                force = False,#if True - bypass the assert
-                by_email = False
+                question=None,
+                title=None,
+                body_text=None,
+                revision_comment=None,
+                tags=None,
+                wiki=False,
+                edit_anonymously=False,
+                is_private=False,
+                timestamp=None,
+                force=False,#if True - bypass the assert
+                by_email=False,
+                suppress_email=False
             ):
     if force == False:
         self.assert_can_edit_question(question)
@@ -1774,7 +1797,8 @@ def user_edit_question(
         wiki = wiki,
         edit_anonymously = edit_anonymously,
         is_private = is_private,
-        by_email = by_email
+        by_email = by_email,
+        suppress_email=suppress_email
     )
 
     question.thread.invalidate_cached_data()
@@ -1789,14 +1813,15 @@ def user_edit_question(
 @auto_now_timestamp
 def user_edit_answer(
                     self,
-                    answer = None,
-                    body_text = None,
-                    revision_comment = None,
-                    wiki = False,
-                    is_private = False,
-                    timestamp = None,
-                    force = False,#if True - bypass the assert
-                    by_email = False
+                    answer=None,
+                    body_text=None,
+                    revision_comment=None,
+                    wiki=False,
+                    is_private=False,
+                    timestamp=None,
+                    force=False,#if True - bypass the assert
+                    by_email=False,
+                    suppress_email=False,
                 ):
     if force == False:
         self.assert_can_edit_answer(answer)
@@ -1808,7 +1833,8 @@ def user_edit_answer(
         comment=revision_comment,
         wiki=wiki,
         is_private=is_private,
-        by_email=by_email
+        by_email=by_email,
+        suppress_email=suppress_email
     )
 
     answer.thread.invalidate_cached_data()
@@ -1842,7 +1868,7 @@ def user_create_post_reject_reason(
         author = self,
         revised_at = timestamp,
         text = details,
-        comment = const.POST_STATUS['default_version']
+        comment = unicode(const.POST_STATUS['default_version'])
     )
 
     reason.details = details
@@ -3178,11 +3204,12 @@ def calculate_gravatar_hash(instance, **kwargs):
 
 def record_post_update_activity(
         post,
-        newly_mentioned_users = None,
-        updated_by = None,
-        timestamp = None,
-        created = False,
-        diff = None,
+        newly_mentioned_users=None,
+        updated_by=None,
+        suppress_email=False,
+        timestamp=None,
+        created=False,
+        diff=None,
         **kwargs
     ):
     """called upon signal askbot.models.signals.post_updated
@@ -3204,13 +3231,14 @@ def record_post_update_activity(
     from askbot import tasks
 
     tasks.record_post_update_celery_task.delay(
-        post_id = post.id,
-        post_content_type_id = ContentType.objects.get_for_model(post).id,
-        newly_mentioned_user_id_list = [u.id for u in newly_mentioned_users],
-        updated_by_id = updated_by.id,
-        timestamp = timestamp,
-        created = created,
-        diff = diff,
+        post_id=post.id,
+        post_content_type_id=ContentType.objects.get_for_model(post).id,
+        newly_mentioned_user_id_list=[u.id for u in newly_mentioned_users],
+        updated_by_id=updated_by.id,
+        suppress_email=suppress_email,
+        timestamp=timestamp,
+        created=created,
+        diff=diff,
     )
 
 

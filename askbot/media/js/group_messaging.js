@@ -610,6 +610,7 @@ SendersList.prototype.decorate = function(element) {
  */
 var MessageCenter = function() {
     Widget.call(this);
+    this._loadingStatus = false;//true when loading in is process
 };
 inherits(MessageCenter, Widget);
 
@@ -649,7 +650,14 @@ MessageCenter.prototype.setThreadsList = function(list) {
     this._secondCol.prepend(list.getElement());
 };
 
+MessageCenter.prototype.setLoadingStatus = function(loadingStatus) {
+    this._loadingStatus = loadingStatus;
+};
+
 MessageCenter.prototype.hitThreadsList = function(url, senderId, requestMethod) {
+    if (this._loadingStatus === true) {
+        return;
+    };
     var threadsList = this._threadsList;
     var me = this;
     $.ajax({
@@ -666,9 +674,14 @@ MessageCenter.prototype.hitThreadsList = function(url, senderId, requestMethod) 
                 threads.decorate($(data['html']));
                 me.setThreadsList(threads);
                 me.setState('show-list');
+                me.setLoadingStatus(false);
+            },
+        error: function() {
+                me.setLoadingStatus(false);
             }
         }
     });
+    this.setLoadingStatus(true);
 };
 
 MessageCenter.prototype.deleteOrRestoreThread = function(threadId, senderId) {

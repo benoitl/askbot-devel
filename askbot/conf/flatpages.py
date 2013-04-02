@@ -42,7 +42,7 @@ settings.register(
     LongStringValue(
         FLATPAGES,
         'QUESTION_INSTRUCTIONS',
-        description=_('Instrutions on how to ask questions'),
+        description=_('Instructions on how to ask questions'),
         help_text=\
         _(
             'HTML is allowed. Save, then <a href="http://validator.w3.org/">'

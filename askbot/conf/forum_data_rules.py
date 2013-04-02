@@ -15,7 +15,7 @@ FORUM_DATA_RULES = livesettings.ConfigurationGroup(
 
 EDITOR_CHOICES = (
     ('markdown', 'markdown'),
-    ('tinymce', 'WISYWIG (tinymce)')
+    ('tinymce', 'WYSIWYG (tinymce)')
 )
 
 settings.register(
@@ -27,6 +27,21 @@ settings.register(
         description = _('Editor for the posts')
     )
 )
+
+settings.register(
+    livesettings.BooleanValue(
+        FORUM_DATA_RULES,
+        'ASK_BUTTON_ENABLED',
+        default=True,
+        description=_('Enable big Ask button'),
+        help_text=_(
+            'Disabling this button will reduce number of new questions. '
+            'If this button is disabled, the ask button in the search menu '
+            'will still be available.'
+        )
+    )
+)
+
 
 settings.register(
     livesettings.BooleanValue(
@@ -354,7 +369,7 @@ settings.register(
     )
 )
 
-#todo: looks like there is a bug in askbot.deps.livesettings 
+#todo: looks like there is a bug in askbot.deps.livesettings
 #that does not allow Integer values with defaults and choices
 settings.register(
     livesettings.StringValue(

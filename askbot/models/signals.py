@@ -25,6 +25,16 @@ user_registered = django.dispatch.Signal(providing_args=['user',])
 #todo: move this to authentication app
 user_logged_in = django.dispatch.Signal(providing_args=['session'])
 
+new_answer_posted = django.dispatch.Signal(
+    providing_args=['answer', 'user', 'form_data']
+)
+answer_edited = django.dispatch.Signal(
+    providing_args=['answer', 'user', 'form_data']
+)
+answer_before_editing = django.dispatch.Signal(
+    providing_args=['answer', 'user', 'form']
+)
+
 post_updated = django.dispatch.Signal(
                                 providing_args=[
                                             'post',

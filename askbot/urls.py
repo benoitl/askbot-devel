@@ -39,7 +39,7 @@ urlpatterns = patterns('',
         name='sitemap'
     ),
     #no translation for this url!!
-    url(r'import-data/$', views.writers.import_data, name='import_data'),
+    url(r'^import-data/$', views.writers.import_data, name='import_data'),
     url(r'^%s$' % _('about/'), views.meta.about, name='about'),
     url(r'^%s$' % _('faq/'), views.meta.faq, name='faq'),
     url(r'^%s$' % _('privacy/'), views.meta.privacy, name='privacy'),
@@ -195,15 +195,22 @@ urlpatterns = patterns('',
         views.readers.get_comment,
         name='get_comment'
     ),
-    url(#post only
+    url(
         r'^comment/convert/$',
         views.writers.comment_to_answer,
         name='comment_to_answer'
     ),
+    url(
+        r'^answer/repost-as-comment-under-question/$',
+        views.writers.repost_answer_as_comment,
+        kwargs={'destination': 'comment_under_question'},
+        name='repost_answer_as_comment_under_question'
+    ),
     url(#post only
-        r'^answer/convert/$',
-        views.writers.answer_to_comment,
-        name='answer_to_comment'
+        '^answer/repost-as-comment-under-previous-answer/$',
+        views.writers.repost_answer_as_comment,
+        kwargs={'destination': 'comment_under_previous_answer'},
+        name='repost_answer_as_comment_under_previous_answer'
     ),
     url(#post only
         r'^answer/publish/$',

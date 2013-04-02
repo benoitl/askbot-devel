@@ -1,11 +1,13 @@
 """functions, preparing parts of context for
 the templates in the various views"""
+from django.conf import settings as django_settings
 from django.utils import simplejson
 from django.utils.translation import ugettext as _
 from askbot.conf import settings as askbot_settings
 from askbot import const
 from askbot.const import message_keys as msg
 from askbot.models import GroupMembership
+from askbot.utils.loading import load_module
 
 def get_for_tag_editor():
     #data for the tag editor
@@ -50,3 +52,9 @@ def get_for_inbox(user):
         'group_join_requests_count': group_join_requests_count
     }
 
+def get_extra(context_module_setting, request, data):
+    extra_context = getattr(django_settings, context_module_setting, None)
+    if extra_context:
+        extra_context_getter = load_module(extra_context)
+        return extra_context_getter(request, data)
+    return {}

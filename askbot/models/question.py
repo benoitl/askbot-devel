@@ -49,15 +49,18 @@ class ThreadQuerySet(models.query.QuerySet):
         todo: implement full text search on relevant fields
         """
         db_engine_name = askbot.get_database_engine_name()
+        filter_parameters = {'deleted': False}
         if 'postgresql_psycopg2' in db_engine_name:
             from askbot.search import postgresql
             return postgresql.run_title_search(
                                     self, search_query
+                                ).filter(
+                                    **filter_parameters
                                 ).order_by('-relevance')
         elif 'mysql' in db_engine_name and mysql.supports_full_text_search():
-            filter_parameters = {'title__search': search_query}
+            filter_parameters['title__search'] = search_query
         else:
-            filter_parameters = {'title__icontains': search_query}
+            filter_parameters['title__icontains'] = search_query
 
         if getattr(django_settings, 'ASKBOT_MULTILINGUAL', False):
             filter_parameters['language_code'] = get_language()
@@ -166,7 +169,7 @@ class ThreadManager(BaseQuerySetManager):
             author=author,
             is_anonymous=is_anonymous,
             text=text,
-            comment=const.POST_STATUS['default_version'],
+            comment=unicode(const.POST_STATUS['default_version']),
             revised_at=added_at,
             by_email=by_email,
             email_address=email_address
@@ -333,12 +336,24 @@ class ThreadManager(BaseQuerySetManager):
             else:
                 raise Exception('UNANSWERED_QUESTION_MEANING setting is wrong')
 
-        elif search_state.scope == 'favorite':
-            favorite_filter = models.Q(favorited_by=request_user)
+        elif search_state.scope == 'followed':
+            followed_filter = models.Q(favorited_by=request_user)
             if 'followit' in django_settings.INSTALLED_APPS:
                 followed_users = request_user.get_followed_users()
-                favorite_filter |= models.Q(posts__post_type__in=('question', 'answer'), posts__author__in=followed_users)
-            qs = qs.filter(favorite_filter)
+                followed_filter |= models.Q(posts__post_type__in=('question', 'answer'), posts__author__in=followed_users)
+
+            #a special case: "personalized" main page only ==
+            #if followed is the only available scope
+            #if total number (regardless of users selections) 
+            #followed questions is < than a pagefull - we should mix in a list of
+            #random questions
+            if askbot_settings.ALL_SCOPE_ENABLED == askbot_settings.UNANSWERED_SCOPE_ENABLED == False:
+                followed_question_count = qs.filter(followed_filter).distinct().count()
+                if followed_question_count < 30:
+                    #here we mix in anything
+                    followed_filter |= models.Q(deleted=False)
+
+            qs = qs.filter(followed_filter)
 
         #user contributed questions & answers
         if search_state.author:
@@ -550,6 +565,7 @@ class Thread(models.Model):
                                             null=True,
                                             blank=True
                                         )
+    deleted = models.BooleanField(default=False, db_index=True)
 
     #denormalized data: the core approval of the posts is made
     #in the revisions. In the revisions there is more data about
@@ -599,6 +615,13 @@ class Thread(models.Model):
             return self.answer_count
         else:
             return self.get_answers(user).count()
+
+    def get_oldest_answer_id(self, user=None):
+        """give oldest visible answer id for the user"""
+        answers = self.get_answers(user=user).order_by('added_at')
+        if len(answers) > 0:
+            return answers[0].id
+        return None
 
     def get_sharing_info(self, visitor=None):
         """returns a dictionary with abbreviated thread sharing info:
@@ -1275,10 +1298,10 @@ class Thread(models.Model):
         tag_names.append(tag_name)
 
         self.retag(
-            retagged_by = user,
-            retagged_at = timestamp,
-            tagnames = ' '.join(tag_names),
-            silent = silent
+            retagged_by=user,
+            retagged_at=timestamp,
+            tagnames=' '.join(tag_names),
+            silent=silent
         )
 
     def retag(self, retagged_by=None, retagged_at=None, tagnames=None, silent=False):
@@ -1308,13 +1331,13 @@ class Thread(models.Model):
         # Create a new revision
         latest_revision = thread_question.get_latest_revision()
         PostRevision.objects.create(
-            post = thread_question,
-            title      = latest_revision.title,
-            author     = retagged_by,
-            revised_at = retagged_at,
-            tagnames   = tagnames,
-            summary    = const.POST_STATUS['retagged'],
-            text       = latest_revision.text
+            post=thread_question,
+            title=latest_revision.title,
+            author=retagged_by,
+            revised_at=retagged_at,
+            tagnames=tagnames,
+            summary=unicode(const.POST_STATUS['retagged']),
+            text=latest_revision.text
         )
 
     def has_favorite_by_user(self, user):
@@ -1387,6 +1410,8 @@ class Thread(models.Model):
             'search_state': DummySearchState(),
             'visitor': visitor
         }
+        from askbot.views.context import get_extra as get_extra_context
+        context.update(get_extra_context('ASKBOT_QUESTION_SUMMARY_EXTRA_CONTEXT', None, context))
         html = get_template('widgets/question_summary.html').render(context)
         # INFO: Timeout is set to 30 days:
         # * timeout=0/None is not a reliable cross-backend way to set infinite timeout

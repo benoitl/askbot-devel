@@ -935,7 +935,6 @@ input[type="file"] {
   line-height: 18px \9;
 }
 select {
-  width: 220px;
   background-color: #ffffff;
 }
 select[multiple],
@@ -968,6 +967,7 @@ textarea {
   -o-transition: border linear 0.2s, box-shadow linear 0.2s;
   transition: border linear 0.2s, box-shadow linear 0.2s;
 }
+/*
 input:focus,
 textarea:focus {
   border-color: rgba(82, 168, 236, 0.8);
@@ -975,10 +975,9 @@ textarea:focus {
   -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
   outline: 0;
-  outline: thin dotted \9;
-  /* IE6-9 */
-
+  outline: thin dotted \9; ***** for IE6-9 *
 }
+*/
 input[type="file"]:focus,
 input[type="radio"]:focus,
 input[type="checkbox"]:focus,

@@ -65,7 +65,9 @@ def run_full_text_search(query_set, query_text, text_search_vector_name):
 
     language_code = get_language()
 
-    if getattr(django_settings, 'ASKBOT_MULTILINGUAL', True):
+    #the table name is a hack, because user does not have the language code
+    is_multilingual = getattr(django_settings, 'ASKBOT_MULTILINGUAL', True)
+    if is_multilingual and table_name == 'askbot_thread':
         where_clause += " AND " + table_name + \
                         '.' + "language_code='" + language_code + "'"
 
@@ -84,6 +86,8 @@ def run_full_text_search(query_set, query_text, text_search_vector_name):
 def run_thread_search(query_set, query):
     """runs search for full thread content"""
     return run_full_text_search(query_set, query, 'text_search_vector');
+
+run_user_search = run_thread_search #an alias
 
 def run_title_search(query_set, query):
     """runs search for title and tags"""

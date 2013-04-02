@@ -1233,9 +1233,9 @@ def moderate_suggested_tag(request):
             return
 
         if thread_id:
-            threads = models.Thread.objects.filter(id = thread_id)
+            threads = models.Thread.objects.filter(id=thread_id)
         else:
-            threads = tag.threads.all()
+            threads = tag.threads.none()
 
         if form.cleaned_data['action'] == 'accept':
             #todo: here we lose ability to come back

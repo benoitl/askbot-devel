@@ -15,7 +15,8 @@ REQUIREMENTS = {
     'akismet': 'akismet',
     'psycopg2': 'psycopg2',
     'importlib': 'importlib',
-    'django': 'django>=1.3.1',
+    'django': 'django>=1.3.1,<1.5',
+    'compressor': 'django-compressor==1.2',
     'jinja2': 'Jinja2',
     'coffin': 'Coffin>=0.3.3',
     'south': 'South>=0.7.1',
@@ -28,21 +29,21 @@ REQUIREMENTS = {
     'sanction': 'sanction',
     'unidecode': 'unidecode',
     'django_countries': 'django-countries==1.0.5',
-    'djcelery': 'django-celery==2.2.7',
-    'djkombu': 'django-kombu==0.9.2',
+    'djcelery': 'django-celery==3.0.11',
+    'djkombu': 'django-kombu==0.9.4',
     'followit': 'django-followit',
     'recaptcha_works': 'django-recaptcha-works',
     'openid': 'python-openid',
     'pystache': 'pystache==0.3.1',
     'pytz': 'pytz',
-    'tinymce': 'django-tinymce',
+    'tinymce': 'django-tinymce==1.5.1b2',
     'longerusername': 'longerusername',
     'bs4': 'beautifulsoup4'
 }
 
 if platform.system() != 'Windows':
     REQUIREMENTS['lamson'] = 'Lamson'
-    
+
 #necessary for interoperability of django and coffin
 try:
     from askbot import patches

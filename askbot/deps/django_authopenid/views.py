@@ -99,7 +99,7 @@ def create_authenticated_user_account(
     user = User.objects.create_user(username, email)
     user_registered.send(None, user=user)
 
-    logging.debug('creating new openid user association for %s')
+    logging.debug('creating new openid user association for %s', username)
 
     if password:
         user.set_password(password)

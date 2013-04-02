@@ -1,4 +1,3 @@
-//var $, scriptUrl, askbotSkin
 /**
  * attention - this function needs to be retired
  * as it cannot accurately give url to the media file
@@ -63,6 +62,18 @@ var joinAsPhrase = function(values) {
         var prev = values.pop();
         return values.join(', ') + prev + gettext('and') + last;
     }
+};
+
+/**
+ * @return {boolean}
+ */
+var inArray = function(item, itemsList) {
+    for (var i = 0; i < itemsList.length; i++) {
+        if (item === itemsList[i]) {
+            return true;
+        }
+    }
+    return false;
 };
 
 var showMessage = function(element, msg, where) {
@@ -2443,6 +2454,9 @@ AutoCompleter.prototype.activate = function() {
 
 AutoCompleter.prototype.activateNow = function() {
     var value = this.getValue();
+    if (value.length === 0) {
+        this.finish();
+    }
     if (value !== this.lastProcessedValue_ && value !== this.lastSelectedValue_) {
         if (value.length >= this.options.minChars) {
             this.active_ = true;
@@ -2792,7 +2806,7 @@ AutoCompleter.prototype.selectItem = function($li) {
  * @param {string} symbol - a single char string
  */
 AutoCompleter.prototype.isContentChar = function(symbol){
-    if (symbol.match(this.options['stopCharRegex'])){
+    if (this.options['stopCharRegex'] && symbol.match(this.options['stopCharRegex'])){
         return false;
     } else if (symbol === this.options['multipleSeparator']){
         return false;
@@ -3071,22 +3085,24 @@ AutoCompleter.prototype.setCaret = function(pos) {
     } else if (days == 1) {
         return gettext('yesterday')
     } else if (minutes >= 60) {
+        var wholeHours = Math.floor(hours);
         return interpolate(
                     ngettext(
                         '%s hour ago',
                         '%s hours ago',
-                        hours
+                        wholeHours
                     ),
-                    [Math.floor(hours),]
+                    [wholeHours,]
                 )
     } else if (seconds > 90){
+        var wholeMinutes = Math.floor(minutes);
         return interpolate(
                     ngettext(
                         '%s min ago',
                         '%s mins ago',
-                        minutes
+                        wholeMinutes
                     ),
-                    [Math.floor(minutes),]
+                    [wholeMinutes,]
                 )
     } else {
         return gettext('just now')

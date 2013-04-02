@@ -30,7 +30,7 @@ urlpatterns += patterns('',
     (r'^tinymce/', include('tinymce.urls')),
     (r'^robots.txt$', include('robots.urls')),
     url( # TODO: replace with django.conf.urls.static ?
-        r'^%s(?P<path>.*)$' % settings.MEDIA_URL[1:], 
+        r'^%s(?P<path>.*)$' % settings.MEDIA_URL[1:],
         'django.views.static.serve',
         {'document_root': settings.MEDIA_ROOT.replace('\\','/')},
     ),

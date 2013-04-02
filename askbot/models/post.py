@@ -581,6 +581,11 @@ class Post(models.Model):
     def is_reject_reason(self):
         return self.post_type == 'reject_reason'
 
+    def get_last_edited_date(self):
+        """returns date of last edit or date of creation
+        if there were no edits"""
+        return self.last_edited_at or self.added_at
+
     def get_moderators(self):
         """returns query set of users who are site administrators
         and moderators"""
@@ -589,10 +594,27 @@ class Post(models.Model):
             user_filter = user_filter & models.Q(groups__in=self.groups.all())
         return User.objects.filter(user_filter)
 
-    def get_last_edited_date(self):
-        """returns date of last edit or date of creation
-        if there were no edits"""
-        return self.last_edited_at or self.added_at
+    def get_previous_answer(self, user=None):
+        """returns a previous answer to a given answer;
+        only works on the "answer" post types"""
+        assert(self.post_type == 'answer')
+        all_answers = self.thread.get_answers(user=user)
+
+        matching_answers = all_answers.filter(
+                        added_at__lt=self.added_at,
+                    ).order_by('-added_at')
+
+        if len(matching_answers) == 0:
+            return None
+
+        answer = matching_answers[0]
+
+        if answer.id == self.id:
+            return None
+        if answer.added_at > self.added_at:
+            return None
+
+        return answer
 
     def has_group(self, group):
         """true if post belongs to the group"""
@@ -629,6 +651,7 @@ class Post(models.Model):
                                 updated_by=None,
                                 notify_sets=None,
                                 activity_type=None,
+                                suppress_email=False,
                                 timestamp=None,
                                 diff=None
                             ):
@@ -672,7 +695,7 @@ class Post(models.Model):
             user.update_response_counts()
 
         #shortcircuit if the email alerts are disabled
-        if askbot_settings.ENABLE_EMAIL_ALERTS == False:
+        if suppress_email == True or askbot_settings.ENABLE_EMAIL_ALERTS == False:
             return
         #todo: fix this temporary spam protection plug
         if askbot_settings.MIN_REP_TO_TRIGGER_EMAIL:
@@ -1659,7 +1682,8 @@ class Post(models.Model):
                     wiki=False,
                     edit_anonymously=False,
                     is_private=False,
-                    by_email=False
+                    by_email=False,
+                    suppress_email=False
                 ):
         if text is None:
             text = self.get_latest_revision().text
@@ -1694,6 +1718,7 @@ class Post(models.Model):
             post=self,
             updated_by=edited_by,
             newly_mentioned_users=parse_results['newly_mentioned_users'],
+            suppress_email=suppress_email,
             timestamp=edited_at,
             created=False,
             diff=parse_results['diff'],
@@ -1703,13 +1728,14 @@ class Post(models.Model):
 
     def _answer__apply_edit(
                         self,
-                        edited_at = None,
-                        edited_by = None,
-                        text = None,
-                        comment = None,
-                        wiki = False,
-                        is_private = False,
-                        by_email = False
+                        edited_at=None,
+                        edited_by=None,
+                        text=None,
+                        comment=None,
+                        wiki=False,
+                        is_private=False,
+                        by_email=False,
+                        suppress_email=False,
                     ):
 
         ##it is important to do this before __apply_edit b/c of signals!!!
@@ -1726,7 +1752,8 @@ class Post(models.Model):
             comment=comment,
             wiki=wiki,
             by_email=by_email,
-            is_private=is_private
+            is_private=is_private,
+            suppress_email=suppress_email
         )
 
         if edited_at is None:
@@ -1735,8 +1762,8 @@ class Post(models.Model):
 
     def _question__apply_edit(self, edited_at=None, edited_by=None, title=None,\
                               text=None, comment=None, tags=None, wiki=False,\
-                              edit_anonymously = False, is_private = False,
-                              by_email = False
+                              edit_anonymously=False, is_private=False,\
+                              by_email=False, suppress_email=False
                             ):
 
         #todo: the thread editing should happen outside of this
@@ -1777,7 +1804,8 @@ class Post(models.Model):
             wiki=wiki,
             edit_anonymously=edit_anonymously,
             is_private=is_private,
-            by_email=by_email
+            by_email=by_email,
+            suppress_email=suppress_email
         )
 
         self.thread.set_last_activity(last_activity_at=edited_at, last_activity_by=edited_by)
@@ -1809,7 +1837,7 @@ class Post(models.Model):
         rev_no = self.revisions.all().count() + 1
         if comment in (None, ''):
             if rev_no == 1:
-                comment = const.POST_STATUS['default_version']
+                comment = unicode(const.POST_STATUS['default_version'])
             else:
                 comment = 'No.%s Revision' % rev_no
         return PostRevision.objects.create(
@@ -1837,7 +1865,7 @@ class Post(models.Model):
         rev_no = self.revisions.all().count() + 1
         if comment in (None, ''):
             if rev_no == 1:
-                comment = const.POST_STATUS['default_version']
+                comment = unicode(const.POST_STATUS['default_version'])
             else:
                 comment = 'No.%s Revision' % rev_no
 
@@ -1951,7 +1979,7 @@ class Post(models.Model):
             else:
                 attr = None
             if attr is not None:
-                return u'%s %s' % (self.thread.title, attr)
+                return u'%s %s' % (self.thread.title, unicode(attr))
             else:
                 return self.thread.title
         raise NotImplementedError

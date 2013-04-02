@@ -28,27 +28,39 @@
                     </td>
                     <td colspan="2">
                         <table>{# inner table for the list of questions #}
-                        {% for thread in tag.threads.all() %}
-                            <tr class="thread-info" data-thread-id="{{ thread.id }}">
+                        {% if tag.threads.count() == 0 %}
+                            <tr class="thread-info" data-thread-id="0">
                                 <td class="per-thread-controls">
-                                    <button class="btn accept">{% trans %}Accept{% endtrans %}</button>
-                                    <button class="btn reject">{% trans %}Reject{% endtrans %}</button>
+                                    <button class="accept">{% trans %}Accept{% endtrans %}</button>
+                                    <button class="reject">{% trans %}Reject{% endtrans %}</button>
                                 </td>
                                 <td class="thread-links-col">
-                                    <a title="{{ thread._question_post().summary|escape }}"
-                                        href="{{ thread.get_absolute_url() }}"
-                                    >{{ thread.title|escape }}</a>
+                                    <span>{% trans %}There are no questions with this tag yet{% endtrans %}</span>
                                 </td>
                             </tr>
-                        {% endfor %}
+                        {% else %}
+                            {% for thread in tag.threads.all() %}
+                                <tr class="thread-info" data-thread-id="{{ thread.id }}">
+                                    <td class="per-thread-controls">
+                                        <button class="accept">{% trans %}Accept{% endtrans %}</button>
+                                        <button class="reject">{% trans %}Reject{% endtrans %}</button>
+                                    </td>
+                                    <td class="thread-links-col">
+                                        <a title="{{ thread._question_post().summary|escape }}"
+                                            href="{{ thread.get_absolute_url() }}"
+                                        >{{ thread.title|escape }}</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
                         </table>
                     </td>
                 </tr>
                 <tr class="per-tag-controls" data-tag-id="{{ tag.id }}">
                     <td colspan="4">
                         {% if tag.threads.count() > 1 %}
-                            <button class="btn accept">{% trans name=tag.name %}Apply tag "{{ name }}" to all above questions{% endtrans %}</button>
-                            <button class="btn reject">{% trans %}Reject tag{% endtrans %}</button>
+                            <button class="accept">{% trans name=tag.name %}Apply tag "{{ name }}" to all above questions{% endtrans %}</button>
+                            <button class="reject">{% trans %}Reject tag{% endtrans %}</button>
                         {% endif %}
                     </td>
                 </tr>

@@ -738,7 +738,7 @@ class FeedbackTests(utils.AskbotTestCase):
         }
         response = client.post(reverse('feedback'), data)
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.template.name, 'feedback.html')
+        self.assertEquals(response.templates[0].name, 'feedback.html')
 
     def test_mail_moderators(self):
         """tests askbot.mail_moderators()

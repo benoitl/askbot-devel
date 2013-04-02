@@ -1,17 +1,18 @@
-{%if settings.GROUPS_ENABLED%}
-<link href="{{'/bootstrap/css/bootstrap.css'|media}}" rel="stylesheet" type="text/css" />
-{% endif %}
-{% if settings.ASKBOT_CSS_DEVEL == False %}
-
-<link href="{{"/style/style.css"|media }}" rel="stylesheet" type="text/css" />
+{% if settings.ASKBOT_CSS_DEVEL %}
+    <link href="{{"/style/style.less"|media }}" rel="stylesheet/less" type="text/css" />
+    {{ skin.get_extra_css_link() }}
+    <script type="text/javascript" src="{{"/js/less.min.js"|media}}"></script>
+    <link href="{{'/bootstrap/css/bootstrap.css'|media}}" rel="stylesheet" type="text/css" />
 {% else %}
-<link href="{{"/style/style.less"|media }}" rel="stylesheet/less" type="text/css" />
-<script type="text/javascript" src="{{"/js/less.min.js"|media}}"></script>
+    {% compress css %}
+        <link href="{{"/style/style.css"|media }}" rel="stylesheet" type="text/css" />
+        {{ skin.get_extra_css_link() }}
+        <link href="{{'/bootstrap/css/bootstrap.css'|media}}" rel="stylesheet" type="text/css" />
+    {% endcompress %}
 {% endif %}
-<link href="{{'/bootstrap/css/bootstrap.css'|media}}" rel="stylesheet" type="text/css" />
-{{ skin.get_extra_css_link() }}
 {% if settings.USE_CUSTOM_CSS %}
-    <link 
+    {# can't compress yet because this comes from live settings #}
+    <link
         href="{% url "custom_css" %}?v={{settings.MEDIA_RESOURCE_REVISION}}"
         rel="stylesheet"
         type="text/css"

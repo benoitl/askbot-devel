@@ -177,7 +177,7 @@ class TagManager(BaseQuerySetManager):
         """temporary function that filters out the group tags"""
         return self.all()
 
-    def create(self, name = None, created_by = None, **kwargs):
+    def create(self, name=None, created_by=None, **kwargs):
         """Creates a new tag"""
         if created_by.can_create_tags() or is_preapproved_tag_name(name):
             status = Tag.STATUS_ACCEPTED

@@ -171,12 +171,12 @@ poor design of the data or methods on data objects #}
 
 {%- macro tag_cloud(tags = None, font_sizes = None, search_state = None) -%}
     {% for tag in tags %}
-    <span class="tag-size-{{ font_sizes[tag.name] }}">
+    <span class="tag-size-{{ font_sizes[tag.name]|escape }}">
         <a 
             class="link-typeA"
             title="Number of entries: {{ tag.used_count }}"
             href="{{ search_state.add_tag(tag.name).full_url() }}"
-        >{{ tag.name }}</a>
+        >{{ tag.name|escape }}</a>
     </span>
     {% endfor %}
 {%- endmacro -%}
@@ -258,7 +258,7 @@ poor design of the data or methods on data objects #}
 -%}
     {% if acceptance_level in ('open', 'moderated') %}
         <button 
-            class="group-join-btn follow-toggle {% if membership_level != 'none' %}on on-state{% endif %}"
+            class="group-join-btn button follow-toggle {% if membership_level != 'none' %}on on-state{% endif %}"
             data-group-id="{{group_id}}"
             {% if acceptance_level == 'open' %}
                 data-off-prompt-text="{% trans %}Leave this group{% endtrans %}"
@@ -564,7 +564,7 @@ answer {% if answer.accepted() %}accepted-answer{% endif %} {% if answer.author_
 {%- macro follow_toggle(follow, name, alias, id) -%}
     {# follow - boolean; name - object type name; alias - e.g. users name; id - object id #}
     <div 
-        class="follow-toggle follow-user-toggle" 
+        class="button follow-toggle follow-user-toggle" 
         id="follow-{{ name|escape }}-{{ id }}"
     >
         {% if follow %}
@@ -658,8 +658,8 @@ answer {% if answer.accepted() %}accepted-answer{% endif %} {% if answer.author_
 {%- macro user_website_link(user, max_display_length=25) -%}
     {% if user.website and (not user.is_blocked()) %}
         <a 
-            href="{{user.website}}"
-            title="{% trans username=user.username|escape, url=user.website %}{{username}}'s website is {{url}}{% endtrans %}"
+            href="{{user.website|escape}}"
+            title="{% trans username=user.username|escape, url=user.website|escape %}{{username}}'s website is {{url}}{% endtrans %}"
             {% if user.can_have_strong_url() == False %}
             rel="nofollow"
             {% endif %}

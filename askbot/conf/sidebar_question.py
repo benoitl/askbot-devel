@@ -29,6 +29,21 @@ settings.register(
 settings.register(
     values.LongStringValue(
         SIDEBAR_QUESTION,
+        'QUESTION_PAGE_ANSWER_BANNER',
+        description = _('Answers banner'),
+        default = '',
+        help_text = _(
+            'This banner will show above the second answer. '
+            'When using this option, please '
+            'use the HTML validation service to make sure that '
+            'your input is valid and works well in all browsers.'
+        )
+    )
+)
+
+settings.register(
+    values.LongStringValue(
+        SIDEBAR_QUESTION,
         'SIDEBAR_QUESTION_HEADER',
         description = _('Custom sidebar header'),
         default = '',

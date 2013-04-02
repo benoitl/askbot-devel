@@ -3,6 +3,7 @@ functions that happen on behalf of users
 
 e.g. ``some_user.do_something(...)``
 """
+from bs4 import BeautifulSoup
 from django.core import exceptions
 from django.core.urlresolvers import reverse
 from django.test.client import Client
@@ -667,3 +668,35 @@ class GroupTests(AskbotTestCase):
         self.assertEqual(acts[0].recipients.count(), 1)
         recipient = acts[0].recipients.all()[0]
         self.assertEqual(recipient, mod)
+
+class LinkPostingTests(AskbotTestCase):
+
+    def assert_no_link(self, html):
+        soup = BeautifulSoup(html)
+        links = soup.findAll('a')
+        self.assertEqual(len(links), 0)
+
+    def assert_has_link(self, html, url):
+        soup = BeautifulSoup(html)
+        links = soup.findAll('a')
+        self.assertTrue(len(links) > 0)
+        self.assertEqual(links[0]['href'], url)
+
+    @with_settings(
+        EDITOR_TYPE='markdown',
+        MIN_REP_TO_SUGGEST_LINK=5,
+        MIN_REP_TO_INSERT_LINK=30
+    )
+    def test_admin_can_help_low_rep_user_insert_link(self):
+        #create a low rep user
+        low = self.create_user('low', reputation=10)
+        #create an admin
+        admin = self.create_user('admin', status='d')
+        #low re user posts a question with a link
+        text = 'hello, please read http://wikipedia.org'
+        question = self.post_question(user=low, body_text=text)
+        self.assert_no_link(question.html)
+        self.edit_question(user=admin, question=question, body_text=text + ' ok')
+        self.assert_has_link(question.html, 'http://wikipedia.org')
+
+    

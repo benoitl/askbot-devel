@@ -13,11 +13,8 @@
         noscript.style.backgroundColor = 'transparent';
     </script>
 </div>
+{# this section cannot be compressed because lots of data is runtime #}
 <script type="text/javascript">
-    var i18nLang = '{{ language_code }}';
-    var scriptUrl = '/{{settings.ASKBOT_URL}}'
-    var askbotSkin = '{{settings.ASKBOT_DEFAULT_SKIN}}';
-    var enableMathJax = {% if settings.ENABLE_MATHJAX %}true{% else %}false{% endif %};
     askbot['urls']['mark_read_message'] = '{% url "read_message" %}';
     askbot['urls']['get_tags_by_wildcard'] = '{% url "get_tags_by_wildcard" %}';
     askbot['urls']['get_tag_list'] = '{% url "get_tag_list" %}';
@@ -28,24 +25,29 @@
     askbot['urls']['titleSearch'] = '{% url "title_search" %}';
     askbot['urls']['ask'] = '{% url "ask" %}';
 	askbot['urls']['questions'] = '{% url "questions" %}';
+    askbot['settings']['groupsEnabled'] = {{ settings.GROUPS_ENABLED|as_js_bool }};
     askbot['settings']['static_url'] = '{{ settings.STATIC_URL }}';
     askbot['settings']['minSearchWordLength'] = {{ settings.MIN_SEARCH_WORD_LENGTH }};
+    askbot['settings']['mathjaxEnabled'] = {{ settings.ENABLE_MATHJAX|as_js_bool }};
     askbot['settings']['sharingSuffixText'] = '{{ settings.SHARING_SUFFIX_TEXT|escape }}';
-</script>
-<script 
-    type="text/javascript"
-    {% if settings.DEBUG %}
-        src="{{"/js/jquery-1.7.2.min.js"|media}}"
+    askbot['data']['haveFlashNotifications'] = {{ user_messages|as_js_bool }};
+    askbot['data']['activeTab'] = '{{ active_tab }}';
+    {% if search_state %}
+        askbot['data']['searchUrl'] = '{{ search_state.query_string()|escapejs }}';
     {% else %}
-        src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"
+        askbot['data']['searchUrl'] = '';
     {% endif %}
-></script>
+</script>
+{# everything below until the custom js and google analytics is compressable #}
+{% compress js %}
+<script type="text/javascript" src="{{"/js/jquery-1.7.2.min.js"|media}}"></script>
 <script type="text/javascript" src='{{"/bootstrap/js/bootstrap.js"|media}}'></script>
 <!-- History.js --> 
 <script type='text/javascript' src="{{"/js/jquery.history.js"|media }}"></script>
 <script type='text/javascript' src="{{"/js/utils.js"|media }}"></script>
 <script type="text/javascript" src="{{'/js/live_search.js'|media}}"></script>
 {% if settings.ENABLE_MATHJAX %}
+    {# we don't want to load mathjax just in case, only if it is really enabled #}
     <script type='text/javascript' src="{{settings.MATHJAX_BASE_URL}}/MathJax.js">
         MathJax.Hub.Config({
             extensions: ["tex2jax.js"],
@@ -58,59 +60,59 @@
     /*<![CDATA[*/
     $(document).ready(function(){
         // focus input on the search bar endcomment
-        {% if active_tab in ('users', 'questions', 'tags', 'badges') %}
+        var activeTab = askbot['data']['activeTab'];
+        if (inArray(activeTab, ['users', 'questions', 'tags', 'badges'])) {
             var searchInput = $('#keywords');
-        {% elif active_tab == 'ask' %}
+        } else if (activeTab === 'ask') {
             var searchInput = $('#id_title');
-        {% else %}
+        } else {
             var searchInput = undefined;
             animateHashes();
-        {% endif %}
+        }
 
         if (searchInput) {
             searchInput.focus();
             putCursorAtEnd(searchInput);
         }
         
-        {% if active_tab in ('questions', 'badges', 'ask') %}
-        if (searchInput) {
+        if (inArray(activeTab, ['questions', 'badges', 'ask']) && searchInput.length) {
             var search = new FullTextSearch();
             askbot['controllers'] = askbot['controllers'] || {};
             askbot['controllers']['fullTextSearch'] = search;
-            {% if search_state %}
-                search.setSearchUrl('{{ search_state.query_string()|escapejs }}');
-            {% else %}
-                search.setSearchUrl('');
-            {% endif %}
-            {% if active_tab == 'ask' %}
+            search.setSearchUrl(askbot['data']['searchUrl']);
+            if (activeTab === 'ask') {
                 search.setAskButtonEnabled(false);
-            {% endif %}
+            }
+            search.decorate(searchInput);
+        } else if (activeTab === 'tags') {
+            var search = new TagSearch();
             search.decorate(searchInput);
         }
-        {% endif %}
 
         if (askbot['data']['userIsAdminOrMod']) {
             $('body').addClass('admin');
         }
-        {%if settings.GROUPS_ENABLED %}
-        askbot['urls']['add_group'] = "{% url add_group %}";
-        var group_dropdown = new GroupDropdown({{group_list}});
-        $('.dropdown').append(group_dropdown.getElement());
-        {%if request.user.is_superuser%}
-        group_dropdown.enableAddGroups();
-        {%endif%}
-        {% endif %}
+        if (askbot['settings']['groupsEnabled']) {
+            askbot['urls']['add_group'] = "{% url add_group %}";
+            var group_dropdown = new GroupDropdown({{ group_list }});
+            $('.dropdown').append(group_dropdown.getElement());
+            if (askbot['data']['userIsAdmin']) {
+                group_dropdown.enableAddGroups();
+            }
+        }
     });
-{% if user_messages %}
-    $('#validate_email_alert').click(function(){notify.close(true)})
-    notify.show();
-{% endif %}
+    if (askbot['data']['haveFlashNotifications']) {
+        $('#validate_email_alert').click(function(){notify.close(true)})
+        notify.show();
+    }
     $('abbr.timeago').timeago();
     /*]]>*/
 </script>
+{% endcompress %}
+{# stuff below should not be compressed #}
 {% if settings.USE_CUSTOM_JS %}
 <script 
-    src="{% url "custom_js"%}?v={{ settings.MEDIA_RESOURCE_REVISION }}"
+    src="{% url "custom_js" %}?v={{ settings.MEDIA_RESOURCE_REVISION }}"
     type="text/javascript"
 ></script>
 {% endif %}

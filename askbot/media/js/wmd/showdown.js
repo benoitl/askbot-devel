@@ -155,7 +155,7 @@ var makeHtmlBase = function(text) {
 }
 
 this.makeHtml = function(text){
-    if (enableMathJax === false){
+    if (askbot['settings']['mathjaxEnabled'] === false){
         return makeHtmlBase(text);
     } 
     else {

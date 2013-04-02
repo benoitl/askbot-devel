@@ -112,7 +112,7 @@ DEFAULT_POST_SORT_METHOD = 'activity-desc'
 POST_SCOPE_LIST = (
     ('all', _('all')),
     ('unanswered', _('unanswered')),
-    ('favorite', _('favorite')),
+    ('followed', _('followed')),
 )
 DEFAULT_POST_SCOPE = 'all'
 

@@ -500,6 +500,14 @@ def get_enabled_major_login_providers():
         'icon_media_path': '/jquery-openid/images/aol.gif',
         'openid_endpoint': 'http://openid.aol.com/%(username)s'
     }
+    data['launchpad'] = {
+        'name': 'launchpad',
+        'display_name': 'LaunchPad',
+        'type': 'openid-direct',
+        'icon_media_path': '/jquery-openid/images/launchpad.gif',
+        'tooltip_text': _('Sign in with LaunchPad'),
+        'openid_endpoint': 'https://login.launchpad.net/'
+    }
     data['openid'] = {
         'name': 'openid',
         'display_name': 'OpenID',

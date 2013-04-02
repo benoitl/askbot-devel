@@ -8,6 +8,7 @@ import askbot.conf.karma_and_badges_visibility
 import askbot.conf.email
 import askbot.conf.forum_data_rules
 import askbot.conf.moderation
+import askbot.conf.question_lists
 import askbot.conf.flatpages
 import askbot.conf.site_settings
 import askbot.conf.license

@@ -3,11 +3,18 @@ Changes in Askbot
 
 Development version
 -------------------
+* Added instant search to the tags page
+* Added a placeholder template for the custom javascript on the question page
+* Allowed to disable the big "ask" button.
+* Some support for the media compression (Tyler Mandry)
+* Allowed to enable and disable question scopes on the main page
 * Added full text support for some languages with Postgresql:
   Danish, Dutch, English, Finnish, French, German, Hungarian,
   Italian, Japanese (requires package textsearch_ja), Norwegian,
   Portugese, Romanian, Russian, Spanish, Swedish, Turkish.
-  
+* repost answer as a comment under the previous (older) answer
+* minor edit option for question and answer, to suppress email alerts
+* allowed tags to be created upon marking them as interesting/ignored/subscribed
 
 0.7.48 (Jan 28, 2013)
 ---------------------

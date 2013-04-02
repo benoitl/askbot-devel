@@ -116,6 +116,14 @@ MIDDLEWARE_CLASSES = (
     'askbot.middleware.spaceless.SpacelessMiddleware',
 )
 
+JINJA2_EXTENSIONS = (
+    'compressor.contrib.jinja2ext.CompressorExtension',
+)
+
+COMPRESS_PRECOMPILERS = (
+    ('text/less', 'lessc {infile} {outfile}'),
+)
+
 
 ROOT_URLCONF = os.path.basename(os.path.dirname(__file__)) + '.urls'
 
@@ -161,6 +169,7 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.humanize',
     'django.contrib.sitemaps',
+    'django.contrib.messages',
     #'debug_toolbar',
     #'haystack',
     'askbot',
@@ -176,6 +185,8 @@ INSTALLED_APPS = (
     'followit',
     'tinymce',
     #'avatar',#experimental use git clone git://github.com/ericflo/django-avatar.git$
+
+    'compressor',
 )
 
 
@@ -234,6 +245,11 @@ CSRF_COOKIE_NAME = 'askbot_csrf'
 STATICFILES_DIRS = (
     ('default/media', os.path.join(ASKBOT_ROOT, 'media')),
 )
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'compressor.finders.CompressorFinder',
+)
 
 RECAPTCHA_USE_SSL = True
 
@@ -248,7 +264,7 @@ TINYMCE_COMPRESSOR = True
 TINYMCE_SPELLCHECKER = False
 TINYMCE_JS_ROOT = os.path.join(STATIC_ROOT, 'default/media/js/tinymce/')
 
-TINYMCE_URL = STATIC_URL + 'default/media/js/tinymce/'
+#TINYMCE_JS_URL = STATIC_URL + 'default/media/js/tinymce/tiny_mce.js'
 TINYMCE_DEFAULT_CONFIG = {
     'plugins': 'askbot_imageuploader,askbot_attachment',
     'convert_urls': False,
@@ -268,8 +284,16 @@ TINYMCE_DEFAULT_CONFIG = {
     'theme_advanced_resizing': True,
     'theme_advanced_resize_horizontal': False,
     'theme_advanced_statusbar_location': 'bottom',
+    'width': '730',
     'height': '250'
 }
 
 #delayed notifications, time in seconds, 15 mins by default
 NOTIFICATION_DELAY_TIME = 60 * 15
+
+GROUP_MESSAGING = {
+    'BASE_URL_GETTER_FUNCTION': 'askbot.models.user_get_profile_url',
+    'BASE_URL_PARAMS': {'section': 'messages', 'sort': 'inbox'}
+}
+
+ASKBOT_MULTILINGUAL = False

@@ -5,6 +5,7 @@ from django.template import TemplateDoesNotExist
 from django.http import HttpResponse
 from django.utils import translation
 from django.conf import settings as django_settings
+from django.core.exceptions import ImproperlyConfigured
 from coffin.common import CoffinEnvironment
 from jinja2 import loaders as jinja_loaders
 from jinja2.exceptions import TemplateNotFound
@@ -59,9 +60,20 @@ class SkinEnvironment(CoffinEnvironment):
         or empty string - depending on the existence of file
         SKIN_PATH/media/style/extra.css
         """
-        url = utils.get_media_url('style/extra.css', ignore_missing = True)
+        url = None
+
+        if django_settings.ASKBOT_CSS_DEVEL is True:
+            url = utils.get_media_url('style/extra.less', ignore_missing=True)
+            rel = "stylesheet/less"
+
+        #second try - if there is no extra.less in devel mode - try css
+        if url is None:
+            url = utils.get_media_url('style/extra.css', ignore_missing=True)
+            rel = "stylesheet"
+
         if url is not None:
-            return '<link href="%s" rel="stylesheet" type="text/css" />' % url
+            return '<link href="%s" rel="%s" type="text/less" />' % (url, rel)
+
         return ''
 
 def load_skins():
@@ -81,7 +93,12 @@ SKINS = load_skins()
 def get_skin(request = None):
     """retreives the skin environment
     for a given request (request var is not used at this time)"""
-    return SKINS[askbot_settings.ASKBOT_DEFAULT_SKIN]
+    skin_name = askbot_settings.ASKBOT_DEFAULT_SKIN
+    try:
+        return SKINS[skin_name]
+    except KeyError:
+        msg_fmt = 'skin "%s" not found, check value of "ASKBOT_EXTRA_SKINS_DIR"'
+        raise ImproperlyConfigured(msg_fmt % skin_name)
 
 def get_askbot_template(template, request = None):
     """

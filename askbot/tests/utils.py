@@ -96,11 +96,12 @@ class AskbotTestCase(TestCase):
 
     def create_user(
                 self,
-                username = 'user',
-                email = None,
-                notification_schedule = None,
-                date_joined = None,
-                status = 'a'
+                username='user',
+                email=None,
+                notification_schedule=None,
+                date_joined=None,
+                reputation=1,
+                status='a'
             ):
         """creates user with username, etc and
         makes the result accessible as
@@ -116,11 +117,12 @@ class AskbotTestCase(TestCase):
             email = username + '@example.com'
 
         user_object = create_user(
-                    username = username,
-                    email = email,
-                    notification_schedule = notification_schedule,
-                    date_joined = date_joined,
-                    status = status
+                    username=username,
+                    email=email,
+                    notification_schedule=notification_schedule,
+                    date_joined=date_joined,
+                    status=status,
+                    reputation=reputation
                 )
 
         setattr(self, username, user_object)

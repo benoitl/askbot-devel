@@ -726,6 +726,7 @@ def show_group_join_requests(request, user, context):
                     ).order_by('-active_at')
     data = {
         'active_tab':'users',
+        'inbox_section': 'group-join-requests',
         'page_class': 'user-profile-page',
         'tab_name' : 'join_requests',
         'tab_description' : _('group joining requests'),

@@ -46,6 +46,7 @@ def application_settings(request):
                                         'ASKBOT_USE_LOCAL_FONTS',
                                         False
                                     )
+    my_settings['CSRF_COOKIE_NAME'] = settings.CSRF_COOKIE_NAME
     my_settings['DEBUG'] = settings.DEBUG
     my_settings['USING_RUNSERVER'] = 'runserver' in sys.argv
     my_settings['ASKBOT_VERSION'] = askbot.get_version()

@@ -256,7 +256,7 @@ class PageLoadTestCase(AskbotTestCase):
             template='main_page.html',
         )
         self.try_url(
-            url_name=reverse('questions') + SearchState.get_empty().change_scope('favorite').query_string(),
+            url_name=reverse('questions') + SearchState.get_empty().change_scope('followed').query_string(),
             plain_url_passed=True,
 
             status_code=status_code,
@@ -724,7 +724,9 @@ class CommandViewTests(AskbotTestCase):
 
     def test_load_object_description_fails(self):
         response = self.client.get(reverse('load_object_description'))
-        self.assertEqual(response.status_code, 404)#bad request
+        soup = BeautifulSoup(response.content)
+        title = soup.find_all('h1')[0].contents[0]
+        self.assertEqual(title, 'Page not found')
 
     def test_set_tag_filter_strategy(self):
         user = self.create_user('someuser')

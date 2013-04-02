@@ -9,6 +9,7 @@ from django.utils.encoding import smart_str
 
 import askbot
 import askbot.conf
+from askbot.conf import settings as askbot_settings
 from askbot import const
 from askbot.utils.functions import strip_plus
 
@@ -90,8 +91,11 @@ class SearchState(object):
     def __init__(self, scope, sort, query, tags, author, page, user_logged_in):
         # INFO: zip(*[('a', 1), ('b', 2)])[0] == ('a', 'b')
 
-        if (scope not in zip(*const.POST_SCOPE_LIST)[0]) or (scope == 'favorite' and not user_logged_in):
-            self.scope = const.DEFAULT_POST_SCOPE
+        if (scope not in zip(*const.POST_SCOPE_LIST)[0]) or (scope == 'followed' and not user_logged_in):
+            if user_logged_in:
+                self.scope = askbot_settings.DEFAULT_SCOPE_AUTHENTICATED
+            else:
+                self.scope = askbot_settings.DEFAULT_SCOPE_ANONYMOUS
         else:
             self.scope = scope
 
