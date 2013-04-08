@@ -3131,7 +3131,8 @@ def format_instant_notification_email(
         'reply_separator': reply_separator,
         'reply_address': reply_address
     }
-    subject_line = _('"%(title)s"') % {'title': origin_post.thread.title}
+    sub_tag = origin_post.thread.get_tag_names()[0]
+    subject_line = _('"[%(tag)s] %(title)s"') % {'title': origin_post.thread.title, 'tag':sub_tag}
 
     content = template.render(Context(update_data))
 
