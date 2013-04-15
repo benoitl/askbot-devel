@@ -85,7 +85,8 @@ def upload(request):#ajax upload file to a question or answer
         #todo: extension checking should be replaced with mimetype checking
         #and this must be part of the form validation
         file_extension = os.path.splitext(f.name)[1].lower()
-        if not file_extension in settings.ASKBOT_ALLOWED_UPLOAD_FILE_TYPES:
+        if False:
+          if not file_extension in settings.ASKBOT_ALLOWED_UPLOAD_FILE_TYPES:
             file_types = "', '".join(settings.ASKBOT_ALLOWED_UPLOAD_FILE_TYPES)
             msg = _("allowed file types are '%(file_types)s'") % \
                     {'file_types': file_types}
