@@ -10,6 +10,7 @@ from askbot.models.question import Thread
 from django.template import Context
 
 DEBUG_THIS_COMMAND = False
+TRACK_USER_EMAIL = True
 
 class Command(NoArgsCommand):
     """management command that sends reminders
@@ -80,6 +81,9 @@ class Command(NoArgsCommand):
             template = get_template('email/unanswered_question_reminder.html')
             body_text = template.render(Context(data))#todo: set lang
 
+
+            if TRACK_USER_EMAIL:
+                print "%s:%s" % (user.email, subject_line)
 
             if DEBUG_THIS_COMMAND:
                 print "User: %s<br>\nSubject:%s<br>\nText: %s<br>\n" % \

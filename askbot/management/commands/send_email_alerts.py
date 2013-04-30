@@ -90,7 +90,7 @@ class Command(NoArgsCommand):
         according to their subscriptions and recorded question
         views
         """
-
+ 
         user_feeds = EmailFeedSetting.objects.filter(
                                                 subscriber=user
                                             ).exclude(
@@ -274,7 +274,8 @@ class Command(NoArgsCommand):
         except EmailFeedSetting.DoesNotExist:
             pass
 
-        if user.email_tag_filter_strategy == const.INCLUDE_INTERESTING:
+        if user.email_tag_filter_strategy == const.INCLUDE_INTERESTING or \
+           user.email_tag_filter_strategy == const.INCLUDE_SUBSCRIBED:
             extend_question_list(q_all_A, q_list)
             extend_question_list(q_all_B, q_list)
 
@@ -385,6 +386,7 @@ class Command(NoArgsCommand):
         #q_list is actually an ordered dictionary
         #print 'user %s gets %d' % (user.username, len(q_list.keys()))
         #todo: sort question list by update time
+
         return q_list 
 
     def send_email_alerts(self):
@@ -420,7 +422,9 @@ class Command(NoArgsCommand):
                 }
 
                 #todo: send this to special log
-                #print 'have %d updated questions for %s' % (num_q, user.username)
+                print 'have %d updated questions for %s' % (num_q, user.username)
+                if DEBUG_THIS_COMMAND == True:
+                   continue
                 text = ungettext(
                     '<p>Dear %(name)s,</p><p>The following question has been updated '
                     '%(sitename)s</p>',

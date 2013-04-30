@@ -85,79 +85,70 @@ Like delete_tags, but using tag id's
         from_tags = get_tags_by_ids(tag_ids)
         admin = get_admin(options['user_id'])
 
-        questions = models.Thread.objects.all()
+        question_list = models.Thread.objects.all()
         for from_tag in from_tags:
-            questions = questions.filter(tags=from_tag)
+            questions = question_list.filter(tags=from_tag)
 
-        #print some feedback here and give a chance to bail out
-        question_count = questions.count()
-        if question_count == 0:
-            print """Did not find any matching questions."""
-            exit(1)
-        elif question_count == 1:
-            print "One question matches:"
-        elif question_count <= 10:
-            print "%d questions match:" % question_count
-        if question_count > 10:
-            print "%d questions match." % question_count
-            print "First 10 are:"
-        for question in questions[:10]:
-            print '* %s' % question.title.strip()
 
-        from_tag_names = format_tag_name_list(from_tags)
-
-        prompt = 'Remove tags %s ?' % (from_tag_names)
-        choice = console.choice_dialog(prompt, choices=('yes', 'no'))
-        if choice == 'no':
-            print 'Canceled'
-            sys.exit()
-        else:
-            sys.stdout.write('Processing:')
-
-        #actual processing stage, only after this point we start to
-        #modify stuff in the database, one question per transaction
-        from_tag_names = get_tag_names(from_tags)
-        i = 0
-        skip = 0
-        for question in questions:
-            tag_names = set(question.get_tag_names())
-            orig = "%s" % tag_names
-            # If it's the only tag, keep it
-            if len(tag_names) == 1:
-                skip += 1
+            #print some feedback here and give a chance to bail out
+            question_count = questions.count()
+            if question_count == 0:
+                print """Did not find any matching questions."""
+                from_tag.delete()
+                sys.stdout.write('Erased Tag %s\n' % from_tag.name)
                 continue
+            elif question_count == 1:
+                print "One question matches:"
+            elif question_count <= 10:
+                print "%d questions match:" % question_count
+            if question_count > 10:
+                print "%d questions match." % question_count
+                print "First 10 are:"
+            for question in questions[:10]:
+                print '* %s' % question.title.strip()
 
-            tag_names.difference_update(from_tag_names)
 
-            print "%s -> %s" % (orig, tag_names)
-            admin.retag_question(
-                question = question._question_post(),
-                tags = u' '.join(tag_names),
-                #silent = True #do we want to timestamp activity on question
-              )
-            i += 1
-            sys.stdout.write('%6.2f%%' % (100*float(i)/float(question_count)))
-            sys.stdout.write('\b'*7)
-            sys.stdout.flush()
+            prompt = 'Remove tags %s ?' % (from_tag.name)
+            choice = console.choice_dialog(prompt, choices=('yes', 'no'))
+            if choice == 'no':
+                print 'Canceled'
+                continue
+            else:
+                sys.stdout.write('Processing:')
 
-        sys.stdout.write('\n')
-        sys.stdout.write('Skipped %d Questions\n' % skip)
-        #transaction.commit()
+            #actual processing stage, only after this point we start to
+            #modify stuff in the database, one question per transaction
+            from_tag_names = get_tag_names([from_tag])
+            i = 0
+            skip = 0
+            for question in questions:
+                tag_names = set(question.get_tag_names())
+                orig = "%s" % tag_names
+                # If it's the only tag, keep it
+                if len(tag_names) == 1:
+                    skip += 1
+                    continue
 
-        #may need to run assertions on that there are
-        #print 'Searching for similar tags...',
-        #leftover_questions = models.Thread.objects.filter(
-        #                        icontains=from_tag.name
-        #                    )
-        #if leftover_questions.count() > 0:
-        #    tag_strings = leftover_questions.values_list('tagnames', flat=True)
-        #    similar_tags = get_similar_tags_from_strings(
-        #                                        tag_strings,
-        #                                        from_tag.name
-        #                                    )
-        #    print '%d found:' % len(similar_tags),
-        #    print '\n*'.join(sorted(list(similar_tags)))
-        #else:
-        #    print "None found."
-        #print "Done."
+                tag_names.difference_update(from_tag_names)
+
+                print "%s -> %s" % (orig, tag_names)
+                admin.retag_question(
+                    question = question._question_post(),
+                    tags = u' '.join(tag_names),
+                    #silent = True #do we want to timestamp activity on question
+                  )
+                i += 1
+                sys.stdout.write('%6.2f%%' % (100*float(i)/float(question_count)))
+                sys.stdout.write('\b'*7)
+                sys.stdout.flush()
+
+            sys.stdout.write('\n')
+            #transaction.commit()
+            if skip < 1:
+              # delete Tag from database
+              #from_tag.delete()
+              sys.stdout.write('Erased Tag %s\n' % from_tag_names)
+            else:
+                sys.stdout.write('Skipped %d Questions\n' % skip)
+        # foreach tag ids
         #transaction.commit()
