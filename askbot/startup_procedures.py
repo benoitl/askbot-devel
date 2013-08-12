@@ -31,7 +31,8 @@ PREAMBLE = """\n
 """
 
 FOOTER = """\n
-If necessary, type ^C (Ctrl-C) to stop the program.
+If necessary, type ^C (Ctrl-C) to stop the program
+(to disable the self-test add ASKBOT_SELF_TEST = False).
 """
 
 class AskbotConfigError(ImproperlyConfigured):
@@ -43,9 +44,18 @@ class AskbotConfigError(ImproperlyConfigured):
             msg += FOOTER
             super(AskbotConfigError, self).__init__(msg)
 
+def domain_is_bad():
+    from askbot.conf import settings as askbot_settings
+    parsed = urlparse(askbot_settings.APP_URL)
+    if parsed.netloc == '':
+        return True
+    if parsed.scheme not in ('http', 'https'):
+        return True
+    return False
+
 def askbot_warning(line):
     """prints a warning with the nice header, but does not quit"""
-    print >> sys.stderr, line
+    print >> sys.stderr, unicode(line).encode('utf-8')
 
 def print_errors(error_messages, header = None, footer = None):
     """if there is one or more error messages,
@@ -65,6 +75,7 @@ def print_errors(error_messages, header = None, footer = None):
     message += '\n\n'.join(error_messages)
     if footer:
         message += '\n\n' + footer
+
     raise AskbotConfigError(message)
 
 def format_as_text_tuple_entries(items):
@@ -218,16 +229,6 @@ def test_postgres():
         else:
             pass #everythin is ok
 
-def test_encoding():
-    """prints warning if encoding error is not UTF-8"""
-    if hasattr(sys.stdout, 'encoding'):
-        if sys.stdout.encoding != 'UTF-8':
-            askbot_warning(
-                'Your output encoding is not UTF-8, there may be '
-                'issues with the software when anything is printed '
-                'to the terminal or log files'
-            )
-
 def test_template_loader():
     """Sends a warning if you have an old style template
     loader that used to send a warning"""
@@ -309,22 +310,24 @@ def test_celery():
 
 def test_compressor():
     """test settings for django compressor"""
-    precompilers = getattr(django_settings, 'COMPRESS_PRECOMPILERS', None)
     errors = list()
-    lessc_item = ('text/less', 'lessc {infile} {outfile}')
-    if precompilers is None:
-        errors.append(
-            'Please add to your settings.py file: \n'
-            'COMPRESS_PRECOMPILERS = (\n'
-            "    ('%s', '%s'),\n"
-            ')' % lessc_item
-        )
-    else:
-        if lessc_item not in precompilers:
+
+    if getattr(django_settings, 'ASKBOT_CSS_DEVEL', False):
+        precompilers = getattr(django_settings, 'COMPRESS_PRECOMPILERS', None)
+        lessc_item = ('text/less', 'lessc {infile} {outfile}')
+        if precompilers is None:
             errors.append(
-                'Please add to the COMPRESS_PRECOMPILERS the following item:\n'
-                "('%s', '%s')," % lessc_item
+                'Please add to your settings.py file: \n'
+                'COMPRESS_PRECOMPILERS = (\n'
+                "    ('%s', '%s'),\n"
+                ')' % lessc_item
             )
+        else:
+            if lessc_item not in precompilers:
+                errors.append(
+                    'Please add to the COMPRESS_PRECOMPILERS the following item:\n'
+                    "('%s', '%s')," % lessc_item
+                )
 
     js_filters = getattr(django_settings, 'COMPRESS_JS_FILTERS', [])
     if len(js_filters) > 0:
@@ -364,7 +367,8 @@ class SettingsTester(object):
         * required_value (optional)
         * error_message
         """
-        self.settings = load_module(os.environ['DJANGO_SETTINGS_MODULE'])
+        settings_module = os.environ['DJANGO_SETTINGS_MODULE']
+        self.settings = load_module(settings_module.encode('utf-8'))
         self.messages = list()
         self.requirements = requirements
 
@@ -499,7 +503,7 @@ def test_staticfiles():
     if extra_skins_dir is not None:
         if not os.path.isdir(extra_skins_dir):
             errors.append(
-                'Directory specified with settning ASKBOT_EXTRA_SKINS_DIR '
+                'Directory specified with setting ASKBOT_EXTRA_SKINS_DIR '
                 'must exist and contain your custom skins for askbot.'
             )
         if extra_skins_dir not in staticfiles_dirs:
@@ -623,13 +627,29 @@ def test_haystack():
         try_import('haystack', 'django-haystack', short_message = True)
         if getattr(django_settings, 'ENABLE_HAYSTACK_SEARCH', False):
             errors = list()
-            if not hasattr(django_settings, 'HAYSTACK_SEARCH_ENGINE'):
-                message = "Please HAYSTACK_SEARCH_ENGINE to an appropriate value, value 'simple' can be used for basic testing"
+            if not hasattr(django_settings, 'HAYSTACK_CONNECTIONS'):
+                message = "Please HAYSTACK_CONNECTIONS to an appropriate value, value 'simple' can be used for basic testing sample:\n"
+                message += """HAYSTACK_CONNECTIONS = {
+                    'default': {
+                    'ENGINE': 'haystack.backends.simple_backend.SimpleEngine',
+                        }
+                    }"""
                 errors.append(message)
-            if not hasattr(django_settings, 'HAYSTACK_SITECONF'):
-                message = 'Please add HAYSTACK_SITECONF = "askbot.search.haystack"'
-                errors.append(message)
-            footer = 'Please refer to haystack documentation at http://django-haystack.readthedocs.org/en/v1.2.7/settings.html#haystack-search-engine'
+
+            if getattr(django_settings, 'ASKBOT_MULTILINGUAL'):
+                if not hasattr(django_settings, "HAYSTACK_ROUTERS"):
+                    message = "Please add HAYSTACK_ROUTERS = ['askbot.search.haystack.routers.LanguageRouter',] to settings.py"
+                    errors.append(message)
+                elif 'askbot.search.haystack.routers.LanguageRouter' not in \
+                        getattr(django_settings, 'HAYSTACK_ROUTERS'):
+                    message = "'askbot.search.haystack.routers.LanguageRouter' to HAYSTACK_ROUTERS as first element in settings.py"
+                    errors.append(message)
+
+            if getattr(django_settings, 'HAYSTACK_SIGNAL_PROCESSOR',
+                       '').endswith('AskbotCelerySignalProcessor'):
+                try_import('celery_haystack', 'celery-haystack', short_message = True)
+
+            footer = 'Please refer to haystack documentation at https://django-haystack.readthedocs.org/en/latest/settings.html'
             print_errors(errors, footer=footer)
 
 def test_custom_user_profile_tab():
@@ -871,6 +891,19 @@ def test_secret_key():
             'Please change your SECRET_KEY setting, the current is not secure'
         ])
 
+def test_locale_middlewares():
+    is_multilang = getattr(django_settings, 'ASKBOT_MULTILINGUAL', False)
+    django_locale_middleware = 'django.middleware.locale.LocaleMiddleware'
+    askbot_locale_middleware = 'askbot.middleware.locale.LocaleMiddleware'
+    errors = list()
+
+    if is_multilang:
+        if askbot_locale_middleware in django_settings.MIDDLEWARE_CLASSES:
+            errors.append("Please remove '%s' from your MIDDLEWARE_CLASSES" % askbot_locale_middleware)
+        if django_locale_middleware not in django_settings.MIDDLEWARE_CLASSES:
+            errors.append("Please add '%s' to your MIDDLEWARE_CLASSES" % django_locale_middleware)
+
+    print_errors(errors)
 
 def test_multilingual():
     is_multilang = getattr(django_settings, 'ASKBOT_MULTILINGUAL', False)
@@ -903,6 +936,41 @@ def test_messages_framework():
         errors = ('Add to the INSTALLED_APPS section of your settings.py:\n "django.contrib.messages"', )
         print_errors(errors)
 
+def test_service_url_prefix():
+    errors = list()
+    prefix = getattr(django_settings, 'ASKBOT_SERVICE_URL_PREFIX', '')
+    message = 'Service url prefix must have > 1 letters and must end with /'
+    if prefix:
+        if len(prefix) == 1 or (not prefix.endswith('/')):
+            print_errors((message,))
+
+def test_versions():
+    """inform of version incompatibilities, where possible"""
+    errors = list()
+    py_ver = sys.version_info
+    #python3 will not work
+    if py_ver[0] == 3:
+        errors.append(
+            'Askbot does not yet support Python3, please use '
+            'the latest release of Python 2.x'
+        )
+
+    #if django version is >= 1.5, require python 2.6.5 or higher
+    dj_ver = django.VERSION
+    if dj_ver[:2] > (1, 5):
+        errors.append(
+            'Highest major version of django supported is 1.5 '
+            'if you would like to try newer version add setting.'
+        )
+    elif dj_ver[0:2] == (1, 5) and py_ver[:3] < (2, 6, 4):
+        errors.append(
+            'Django 1.5 and higher requires Python '
+            'version 2.6.4 or higher, please see release notes.\n'
+            'https://docs.djangoproject.com/en/dev/releases/1.5/'
+        )
+
+    print_errors(errors)
+
 def run_startup_tests():
     """function that runs
     all startup tests, mainly checking settings config so far
@@ -911,13 +979,13 @@ def run_startup_tests():
     test_modules()
 
     #todo: refactor this when another test arrives
+    test_versions()
     test_askbot_url()
     test_avatar()
     test_cache_backend()
     test_celery()
     test_compressor()
     test_custom_user_profile_tab()
-    test_encoding()
     test_group_messaging()
     test_haystack()
     test_jinja2()
@@ -928,8 +996,10 @@ def run_startup_tests():
     test_messages_framework()
     test_middleware()
     test_multilingual()
+    test_locale_middlewares()
     #test_csrf_cookie_domain()
     test_secret_key()
+    test_service_url_prefix()
     test_staticfiles()
     test_template_loader()
     test_template_context_processors()
@@ -964,10 +1034,6 @@ def run_startup_tests():
             'value': True,
             'message': 'Please add: RECAPTCHA_USE_SSL = True'
         },
-        'HAYSTACK_SITECONF': {
-            'value': 'askbot.search.haystack',
-            'message': 'Please add: HAYSTACK_SITECONF = "askbot.search.haystack"'
-        }
     })
     settings_tester.run()
     if 'manage.py test' in ' '.join(sys.argv):
@@ -977,7 +1043,8 @@ def run_startup_tests():
 def run():
     """runs all the startup procedures"""
     try:
-        run_startup_tests()
+        if getattr(django_settings, 'ASKBOT_SELF_TEST', True):
+            run_startup_tests()
     except AskbotConfigError, error:
         transaction.rollback()
         print error

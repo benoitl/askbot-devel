@@ -4,261 +4,342 @@
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 msgid ""
 msgstr ""
-"Project-Id-Version: askbot\n"
+"Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-04-18 18:53-0500\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2011-11-27 01:58-0600\n"
+"PO-Revision-Date: 2012-02-28 17:17+0200\n"
+"Last-Translator: Dimitris Spingos <dmtrs32@gmail.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: el\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Translate Toolkit 1.9.0\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Pootle 2.1.6\n"
 
 #: skins/common/media/jquery-openid/jquery.openid.js:73
-#, perl-format
+#, c-format
 msgid "Are you sure you want to remove your %s login?"
-msgstr ""
+msgstr "Είστε σίγουροι ότι θέλετε να αφαιρέσετε την %s σύνδεσή σας;"
 
 #: skins/common/media/jquery-openid/jquery.openid.js:90
 msgid "Please add one or more login methods."
-msgstr ""
+msgstr "Παρακαλώ προσθέστε μία ή περισσότερες μεθόδους σύνδεσης."
 
 #: skins/common/media/jquery-openid/jquery.openid.js:93
 msgid ""
 "You don't have a method to log in right now, please add one or more by "
 "clicking any of the icons below."
 msgstr ""
+"Δεν έχετε μέθοδο σύνδεσης τώρα, παρακαλώ προσθέστε μία ή περισσότερες "
+"πατώντας σε οποιαδήποτε από τα παρακάτω εικονίδια."
 
 #: skins/common/media/jquery-openid/jquery.openid.js:135
 msgid "passwords do not match"
-msgstr ""
+msgstr "οι κωδικοί πρόσβασης δεν ταιριάζουν"
 
-#: skins/common/media/jquery-openid/jquery.openid.js:161
+#: skins/common/media/jquery-openid/jquery.openid.js:162
 msgid "Show/change current login methods"
-msgstr ""
+msgstr "Εμφάνιση/αλλαγή τρεχουσών μεθόδων σύνδεσης"
 
-#: skins/common/media/jquery-openid/jquery.openid.js:226
-#, perl-format
+#: skins/common/media/jquery-openid/jquery.openid.js:223
+#, c-format
 msgid "Please enter your %s, then proceed"
-msgstr ""
+msgstr "Παρακαλώ εισάγετε το %s σας, έπειτα συνεχίστε"
 
-#: skins/common/media/jquery-openid/jquery.openid.js:228
+#: skins/common/media/jquery-openid/jquery.openid.js:225
 msgid "Connect your %(provider_name)s account to %(site)s"
-msgstr ""
+msgstr "Συνδέστε το λογαριασμό σας του %(provider_name)s στο %(site)s"
 
-#: skins/common/media/jquery-openid/jquery.openid.js:322
-#, perl-format
+#: skins/common/media/jquery-openid/jquery.openid.js:319
+#, c-format
 msgid "Change your %s password"
-msgstr ""
+msgstr "Αλλαγή του κωδικού σας %s"
+
+#: skins/common/media/jquery-openid/jquery.openid.js:320
+msgid "Change password"
+msgstr "Αλλαγή κωδικού πρόσβασης"
 
 #: skins/common/media/jquery-openid/jquery.openid.js:323
-msgid "Change password"
-msgstr ""
-
-#: skins/common/media/jquery-openid/jquery.openid.js:326
-#, perl-format
+#, c-format
 msgid "Create a password for %s"
-msgstr ""
+msgstr "Δημιουργία κωδικού πρόσβασης για %s"
 
-#: skins/common/media/jquery-openid/jquery.openid.js:327
+#: skins/common/media/jquery-openid/jquery.openid.js:324
 msgid "Create password"
-msgstr ""
+msgstr "Δημιουργία κωδικού πρόσβασης"
 
-#: skins/common/media/jquery-openid/jquery.openid.js:343
+#: skins/common/media/jquery-openid/jquery.openid.js:340
 msgid "Create a password-protected account"
-msgstr ""
+msgstr "Δημιουργία λογαριασμού που προστατεύεται με κωδικό"
 
 #: skins/common/media/js/post.js:28
 msgid "loading..."
-msgstr ""
+msgstr "φόρτωση..."
 
-#: skins/common/media/js/post.js:318
+#: skins/common/media/js/post.js:128 skins/common/media/js/post.js.c:859
+msgid "tags cannot be empty"
+msgstr "οι ετικέτες δεν μπορεί να είναι κενές"
+
+#: skins/common/media/js/post.js:134
+msgid "content cannot be empty"
+msgstr "το περιεχόμενο δεν μπορεί να είναι κενό"
+
+#: skins/common/media/js/post.js:135
+#, c-format
+msgid "%s content minchars"
+msgstr "περιεχόμενο με τουλάχιστον %s χαρακτήρες"
+
+#: skins/common/media/js/post.js:138
+msgid "please enter title"
+msgstr "παρακαλώ εισάγετε τίτλο"
+
+#: skins/common/media/js/post.js:139 skins/common/media/js/post.js.c:987
+#, c-format
+msgid "%s title minchars"
+msgstr "τουλάχιστον %s χαρακτήρες τίτλου"
+
+#: skins/common/media/js/post.js:282
 msgid "insufficient privilege"
-msgstr ""
+msgstr "ανεπαρκές δικαίωμα"
 
-#: skins/common/media/js/post.js:319
+#: skins/common/media/js/post.js:283
 msgid "cannot pick own answer as best"
-msgstr ""
+msgstr "αδυναμία επιλογής της δικιάς σας απάντησης ως άριστης"
 
-#: skins/common/media/js/post.js:324
+#: skins/common/media/js/post.js:288
 msgid "please login"
-msgstr ""
+msgstr "παρακαλώ συνδεθείτε"
 
-#: skins/common/media/js/post.js:326
+#: skins/common/media/js/post.js:290
 msgid "anonymous users cannot follow questions"
-msgstr ""
+msgstr "οι ανώνυμοι χρήστες δεν μπορούν να παρακολουθούν ερωτήσεις"
 
-#: skins/common/media/js/post.js:327
+#: skins/common/media/js/post.js:291
 msgid "anonymous users cannot subscribe to questions"
-msgstr ""
+msgstr "οι ανώνυμοι χρήστες δεν μπορούν να συνεισφέρουν σε ερωτήσεις"
 
-#: skins/common/media/js/post.js:328
+#: skins/common/media/js/post.js:292
 msgid "anonymous users cannot vote"
-msgstr ""
+msgstr "οι ανώνυμοι χρήστες δεν μπορούν να ψηφίσουν"
 
-#: skins/common/media/js/post.js:330
+#: skins/common/media/js/post.js:294
 msgid "please confirm offensive"
-msgstr ""
+msgstr "παρακαλώ επιβεβαιώστε επιθετικότητα"
 
-#: skins/common/media/js/post.js:331
-msgid "please confirm removal of offensive flag"
-msgstr ""
-
-#: skins/common/media/js/post.js:332
+#: skins/common/media/js/post.js:295
 msgid "anonymous users cannot flag offensive posts"
-msgstr ""
+msgstr "οι ανώνυμοι χρήστες δεν μπορούν να σημειώσουν επιθετικά άρθρα"
 
-#: skins/common/media/js/post.js:333
+#: skins/common/media/js/post.js:296
 msgid "confirm delete"
-msgstr ""
+msgstr "επιβεβαίωση διαγραφής"
 
-#: skins/common/media/js/post.js:334
+#: skins/common/media/js/post.js:297
 msgid "anonymous users cannot delete/undelete"
-msgstr ""
+msgstr "οι ανώνυμοι χρήστες δεν μπορούν να διαγράψουν/επαναφέρουν"
 
-#: skins/common/media/js/post.js:335
+#: skins/common/media/js/post.js:298
 msgid "post recovered"
-msgstr ""
+msgstr "επαναφορά ταχυδρομείου"
 
-#: skins/common/media/js/post.js:336
+#: skins/common/media/js/post.js:299
 msgid "post deleted"
-msgstr ""
+msgstr "διαγραφή ταχυδρομείου"
 
-#: skins/common/media/js/post.js:1206
+#: skins/common/media/js/post.js:539 skins/old/media/js/post.js:535
+msgid "Follow"
+msgstr "Παρακολούθηση"
+
+#: skins/common/media/js/post.js:548 skins/common/media/js/post.js.c:557
+#: skins/old/media/js/post.js:544 skins/old/media/js/post.js.c:553
+#, c-format
+msgid "%s follower"
+msgid_plural "%s followers"
+msgstr[0] "%s οπαδός"
+msgstr[1] "%s οπαδοί"
+
+#: skins/common/media/js/post.js:553 skins/old/media/js/post.js:549
+msgid "<div>Following</div><div class=\"unfollow\">Unfollow</div>"
+msgstr "<div>Παρακολούθηση</div><div class=\"unfollow\">Μη παρακολούθηση</div>"
+
+#: skins/common/media/js/post.js:615
+msgid "undelete"
+msgstr "επαναφορά"
+
+#: skins/common/media/js/post.js:620
+msgid "delete"
+msgstr "διαγραφή"
+
+#: skins/common/media/js/post.js:957
 msgid "add comment"
-msgstr ""
+msgstr "προσθήκη σχολίου"
 
-#: skins/common/media/js/post.js:1209
+#: skins/common/media/js/post.js:960
 msgid "save comment"
-msgstr ""
+msgstr "αποθήκευση σχολίου"
 
-#: skins/common/media/js/post.js:1874
+#: skins/common/media/js/post.js:990
+#, c-format
+msgid "enter %s more characters"
+msgstr "εισαγωγή %s περισσότερων χαρακτήρων"
+
+#: skins/common/media/js/post.js:995
+#, c-format
+msgid "%s characters left"
+msgstr "απομένουν %s χαρακτήρες"
+
+#: skins/common/media/js/post.js:1066
+msgid "cancel"
+msgstr "ακύρωση"
+
+#: skins/common/media/js/post.js:1109
+msgid "confirm abandon comment"
+msgstr "επιβεβαίωση σχολίου εγκατάλειψης"
+
+#: skins/common/media/js/post.js:1183
+msgid "delete this comment"
+msgstr "διαγραφή αυτού του σχολίου"
+
+#: skins/common/media/js/post.js:1387
+msgid "confirm delete comment"
+msgstr "επιβεβαίωση διαγραφής σχολίου"
+
+#: skins/common/media/js/post.js:1628 skins/old/media/js/post.js:1621
 msgid "Please enter question title (>10 characters)"
-msgstr ""
+msgstr "παρακαλώ εισάγετε τίτλο ερώτησης (>10 χαρακτήρες)"
 
 #: skins/common/media/js/tag_selector.js:15
+#: skins/old/media/js/tag_selector.js:15
 msgid "Tag \"<span></span>\" matches:"
-msgstr ""
+msgstr "Η ετικέτα \"<span></span>\" ταιριάζει:"
 
 #: skins/common/media/js/tag_selector.js:84
-#, perl-format
+#: skins/old/media/js/tag_selector.js:84
+#, c-format
 msgid "and %s more, not shown..."
-msgstr ""
+msgstr "και %s περισσότερες, που δεν εμφανίζονται..."
 
 #: skins/common/media/js/user.js:14
 msgid "Please select at least one item"
-msgstr ""
+msgstr "Παρακαλώ επιλέξτε τουλάχιστον ένα στοιχείο"
 
 #: skins/common/media/js/user.js:58
 msgid "Delete this notification?"
 msgid_plural "Delete these notifications?"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Διαγραφή αυτής της ανακοίνωσης;"
+msgstr[1] "Διαγραφή αυτών των ανακοινώσεων"
 
-#: skins/common/media/js/user.js:65
-msgid "Close this entry?"
-msgid_plural "Close these entries?"
-msgstr[0] ""
-msgstr[1] ""
-
-#: skins/common/media/js/user.js:72
-msgid "Remove all flags on this entry?"
-msgid_plural "Remove all flags on these entries?"
-msgstr[0] ""
-msgstr[1] ""
-
-#: skins/common/media/js/user.js:79
-msgid "Delete this entry?"
-msgid_plural "Delete these entries?"
-msgstr[0] ""
-msgstr[1] ""
-
-#: skins/common/media/js/user.js:159
+#: skins/common/media/js/user.js:125 skins/old/media/js/user.js:129
 msgid "Please <a href=\"%(signin_url)s\">signin</a> to follow %(username)s"
 msgstr ""
+"Παρακαλώ <a href=\"%(signin_url)s\">συνδεθείτε </a> για παρακολούθηση του %"
+"(username)s"
 
-#: skins/common/media/js/user.js:191
-#, perl-format
+#: skins/common/media/js/user.js:157 skins/old/media/js/user.js:161
+#, c-format
 msgid "unfollow %s"
-msgstr ""
+msgstr "μη παρακολούθηση %s"
 
-#: skins/common/media/js/user.js:194
-#, perl-format
+#: skins/common/media/js/user.js:160 skins/old/media/js/user.js:164
+#, c-format
 msgid "following %s"
-msgstr ""
+msgstr "παρακολούθηση %s"
 
-#: skins/common/media/js/user.js:200
-#, perl-format
+#: skins/common/media/js/user.js:166 skins/old/media/js/user.js:170
+#, c-format
 msgid "follow %s"
-msgstr ""
+msgstr "παρακολούθηση %s"
 
-#: skins/common/media/js/utils.js:44
+#: skins/common/media/js/utils.js:43
 msgid "click to close"
-msgstr ""
+msgstr "κλικ για κλείσιμο"
 
-#: skins/common/media/js/wmd/wmd.js:26
-msgid "bold"
-msgstr ""
+#: skins/common/media/js/utils.js:214
+msgid "click to edit this comment"
+msgstr "κλικ για επεξεργασία αυτού του σχολίου"
 
-#: skins/common/media/js/wmd/wmd.js:27
-msgid "italic"
-msgstr ""
+#: skins/common/media/js/utils.js:215
+msgid "edit"
+msgstr "επεξεργασία"
 
-#: skins/common/media/js/wmd/wmd.js:28
-msgid "link"
-msgstr ""
-
-#: skins/common/media/js/wmd/wmd.js:29
-msgid "quote"
-msgstr ""
+#: skins/common/media/js/utils.js:369
+#, c-format
+msgid "see questions tagged '%s'"
+msgstr "δείτε ερωτήσεις με ετικέτα '%s'"
 
 #: skins/common/media/js/wmd/wmd.js:30
-msgid "preformatted text"
-msgstr ""
+msgid "bold"
+msgstr "έντονα"
 
 #: skins/common/media/js/wmd/wmd.js:31
-msgid "image"
-msgstr ""
+msgid "italic"
+msgstr "πλάγια"
 
 #: skins/common/media/js/wmd/wmd.js:32
-msgid "attachment"
-msgstr ""
+msgid "link"
+msgstr "σύνδεσμος"
 
 #: skins/common/media/js/wmd/wmd.js:33
-msgid "numbered list"
-msgstr ""
+msgid "quote"
+msgstr "Παράθεση"
 
 #: skins/common/media/js/wmd/wmd.js:34
-msgid "bulleted list"
-msgstr ""
+msgid "preformatted text"
+msgstr "προμορφοποιημένο κείμενο"
 
 #: skins/common/media/js/wmd/wmd.js:35
-msgid "heading"
-msgstr ""
+msgid "image"
+msgstr "εικόνα"
 
 #: skins/common/media/js/wmd/wmd.js:36
-msgid "horizontal bar"
-msgstr ""
+msgid "attachment"
+msgstr "προσκόλληση"
 
 #: skins/common/media/js/wmd/wmd.js:37
+msgid "numbered list"
+msgstr "αριθμημένη λίστα"
+
+#: skins/common/media/js/wmd/wmd.js:38
+msgid "bulleted list"
+msgstr "λίστα με κουκκίδες"
+
+#: skins/common/media/js/wmd/wmd.js:39
+msgid "heading"
+msgstr "κεφαλίδα"
+
+#: skins/common/media/js/wmd/wmd.js:40
+msgid "horizontal bar"
+msgstr "οριζόντια γραμμή"
+
+#: skins/common/media/js/wmd/wmd.js:41
 msgid "undo"
-msgstr ""
+msgstr "αναίρεση"
 
-#: skins/common/media/js/wmd/wmd.js:38 skins/common/media/js/wmd/wmd.js:1053
+#: skins/common/media/js/wmd/wmd.js:42 skins/common/media/js/wmd/wmd.js:1116
 msgid "redo"
-msgstr ""
+msgstr "επανάληψη"
 
-#: skins/common/media/js/wmd/wmd.js:47
+#: skins/common/media/js/wmd/wmd.js:53
 msgid "enter image url"
-msgstr ""
+msgstr "εισαγωγή url εικόνας"
 
-#: skins/common/media/js/wmd/wmd.js:48
+#: skins/common/media/js/wmd/wmd.js:54
 msgid "enter url"
-msgstr ""
+msgstr "εισαγωγή url"
 
-#: skins/common/media/js/wmd/wmd.js:49
+#: skins/common/media/js/wmd/wmd.js:55
 msgid "upload file attachment"
-msgstr ""
+msgstr "ανέβασμα επισύναψης αρχείου"
+
+#: skins/common/media/js/wmd/wmd.js:1778
+msgid "image description"
+msgstr "περιγραφή εικόνας"
+
+#: skins/common/media/js/wmd/wmd.js:1781
+msgid "file name"
+msgstr "όνομα αρχείου"
+
+#: skins/common/media/js/wmd/wmd.js:1785
+msgid "link text"
+msgstr "κείμενο συνδέσμου"

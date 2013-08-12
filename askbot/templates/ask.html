@@ -22,7 +22,7 @@
                 {% else %}
                     {% if settings.EMAIL_VALIDATION %}
                         {% if not request.user.email_isvalid %}
-                        <li class="warning">{% trans email=request.user.email %}YYour email, %(email)s has not yet been validated. To post messages you must verify your email, please see <a href='%(email_validation_faq_url)s'>more details here</a>. You can submit your question now and validate email after that. Meanwhile, your question will saved as pending.{% endtrans %}</li>
+                        <li class="warning">{% trans email=request.user.email %}Your email, {{ email }} has not yet been validated. To post messages you must verify your email, please see <a href='{{ email_validation_faq_url }}'>more details here</a>. You can submit your question now and validate email after that. Meanwhile, your question will saved as pending.{% endtrans %}</li>
                         {% endif %}
                     {% endif %}
                 {% endif %}
@@ -44,8 +44,7 @@
     <script type='text/javascript' src='{{"/js/jquery.validate.js"|media}}'></script>
     <script type='text/javascript' src='{{"/js/post.js"|media}}'></script>
     {% if settings.EDITOR_TYPE == 'markdown' %}
-        <script type='text/javascript' src='{{"/js/wmd/showdown.js"|media}}'></script>
-        <script type='text/javascript' src='{{"/js/wmd/wmd.js"|media}}'></script>
+        {% include "meta/markdown_javascript.html" %}
     {% endif %}
     {% include "meta/editor_data.html" %}
     {% if mandatory_tags %}
@@ -56,11 +55,20 @@
     {% endif %}
     <script type='text/javascript'>
         askbot['urls']['saveDraftQuestion'] = '{% url save_draft_question %}';
+        askbot['messages']['userNamePrompt'] = '{% trans %}User name:{% endtrans %}';
         {% if settings.ENABLE_MATHJAX or settings.MARKUP_CODE_FRIENDLY %}
             var codeFriendlyMarkdown = true;
         {% else %}
             var codeFriendlyMarkdown = false;
         {% endif %}
+        (function() {
+            var bodyTriggerLink = $('.question-body-trigger');
+            if (bodyTriggerLink.length === 1) {
+                var foldedEditor = new FoldedEditor();
+                foldedEditor.setExternalTrigger(bodyTriggerLink);
+                foldedEditor.decorate($('.folded-editor'));
+            }
+        })();
         $().ready(function(){
             //set current module button style
             $('#editor').TextAreaResizer();

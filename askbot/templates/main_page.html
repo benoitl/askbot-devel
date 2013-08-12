@@ -8,6 +8,9 @@
     there is no html markup in this file
 #}
 <!-- questions.html -->
+{% block forejs %}
+    {% include "main_page/custom_head_javascript.html" ignore missing %}
+{% endblock %}
 {% block title %}{% spaceless %}{% trans %}Questions{% endtrans %}{% endspaceless %}{% endblock %}
 {% block content %}
     {% include "main_page/tab_bar.html" %}
@@ -23,6 +26,13 @@
     {% include "main_page/sidebar.html" %}
 {% endblock %}
 {% block endjs %}
+    <script type="text/javascript">
+        {# cant cache this #}
+        askbot['settings']['showSortByRelevance'] = {{ show_sort_by_relevance|as_js_bool }};
+    </script>
+    {% compress js %}
     {% include "main_page/javascript.html" %}
+    {% include "main_page/custom_javascript.html" ignore missing %}
+    {% endcompress %}
 {% endblock %}
 <!-- end questions.html -->

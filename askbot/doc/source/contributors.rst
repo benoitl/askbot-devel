@@ -45,12 +45,20 @@ Programming, bug fixes and documentation
 * Niki Rocco
 * `Tyler Mandry <https://github.com/tmandry>`_
 * `Jorge López Pérez <https://github.com/adobo>`_
+* `Zafer Cakmak <https://github.com/xaph>`_
+* `Kevin Porterfield <http://www.shotgunsoftware.com>_`
+* `Robert Martin <https://github.com/bobbydavid>_`
+* `pcompassion https://github.com/pcompassion`_
 
 Translations
 ------------
+Thanks for the help to all translators.
+If you believe you were incorrectly missed out of this list,
+please let us know at support@askbot.com.
+
 * Mike Chen, Sailing Cai, suyu8776 - Chinese
 * Bruno Sarlo, Adolfo Fitoria, Francisco Espinoza - Spanish
-* Evgeny Kalinin - Russian
+* Evgeny Kalinin, Andrey Komrachkov - Russian
 * Evgeny Fadeev - English
 * Oktay Yildiz, Onur Mat, Cemre - Turkish
 * Jérôme Blondon (bearstech) - French
@@ -59,4 +67,5 @@ Translations
 * Adi Robian - Romanian
 * `Stefano Mancini <https://github.com/xponrails>`_, Dario Ghilardi, Federico Poloni, `Luca Ferroni <http://www.linkedin.com/in/lucaferroni>`_ - Italian
 * `Jordi Bofill <https://github.com/jbofill>`_ - Catalan
-
+* Vašek Chalupníček - Chech
+* Dario Kolak - Croatian

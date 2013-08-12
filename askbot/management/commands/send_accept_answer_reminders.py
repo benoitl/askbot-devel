@@ -9,6 +9,7 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import ungettext
 from askbot import mail
 from askbot.utils.classes import ReminderSchedule
+from askbot.utils.html import site_url
 from django.template import Context
 
 DEBUG_THIS_COMMAND = False
@@ -67,7 +68,7 @@ class Command(NoArgsCommand):
                 reminder_phrase = _('Please accept the best answer for these questions:')
 
             data = {
-                    'site_url': askbot_settings.APP_URL,
+                    'site_url': site_url(''),#here we need only the domain name
                     'questions': final_question_list,
                     'reminder_phrase': reminder_phrase
                    }

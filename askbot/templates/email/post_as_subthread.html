@@ -6,7 +6,7 @@
     {% if comments %}
         <p>
             {% trans count=comments|length -%}
-                {{ comment }} comment:
+                {{ count }} comment:
             {%- pluralize -%}
                 {{ count }} comments:
             {%- endtrans -%}

@@ -17,6 +17,7 @@ from django.utils.encoding import smart_str
 from askbot import exceptions as askbot_exceptions
 from askbot.conf import settings as askbot_settings
 from askbot.utils import url_utils
+from askbot.utils.html import site_url
 from askbot import get_version
 
 def auto_now_timestamp(func):
@@ -204,7 +205,7 @@ def check_spam(field):
                 from akismet import Akismet
                 api = Akismet(
                     askbot_settings.AKISMET_API_KEY, 
-                    smart_str(askbot_settings.APP_URL), 
+                    smart_str(site_url(reverse('questions'))), 
                     "Askbot/%s" % get_version()
                 )
 

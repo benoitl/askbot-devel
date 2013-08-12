@@ -91,7 +91,9 @@ class BadgeData(models.Model):
     """Awarded for notable actions performed on the site by Users."""
     slug = models.SlugField(max_length=50, unique=True)
     awarded_count = models.PositiveIntegerField(default=0)
-    awarded_to    = models.ManyToManyField(User, through='Award', related_name='badges')
+    awarded_to = models.ManyToManyField(
+                    User, through='Award', related_name='badges'
+                )
 
     def _get_meta_data(self):
         """retrieves badge metadata stored
@@ -99,16 +101,13 @@ class BadgeData(models.Model):
         from askbot.models import badges
         return badges.get_badge(self.slug)
 
-    @property
-    def name(self):
+    def get_name(self):
         return self._get_meta_data().name
 
-    @property
-    def description(self):
+    def get_description(self):
         return self._get_meta_data().description
 
-    @property
-    def css_class(self):
+    def get_css_class(self):
         return self._get_meta_data().css_class
 
     def get_type_display(self):
@@ -125,19 +124,6 @@ class BadgeData(models.Model):
     def get_absolute_url(self):
         return '%s%s/' % (reverse('badge', args=[self.id]), self.slug)
 
-class AwardManager(models.Manager):
-    def get_recent_awards(self):
-        awards = super(AwardManager, self).extra(
-            select={'badge_id': 'badge.id', 'badge_name':'badge.name',
-                          'badge_description': 'badge.description', 'badge_type': 'badge.type',
-                          'user_id': 'auth_user.id', 'user_name': 'auth_user.username'
-                          },
-            tables=['award', 'badge', 'auth_user'],
-            order_by=['-awarded_at'],
-            where=['auth_user.id=award.user_id AND badge_id=badge.id'],
-        ).values('badge_id', 'badge_name', 'badge_description', 'badge_type', 'user_id', 'user_name')
-        return awards
-
 class Award(models.Model):
     """The awarding of a Badge to a User."""
     user       = models.ForeignKey(User, related_name='award_user')
@@ -148,10 +134,8 @@ class Award(models.Model):
     awarded_at = models.DateTimeField(default=datetime.datetime.now)
     notified   = models.BooleanField(default=False)
 
-    objects = AwardManager()
-
     def __unicode__(self):
-        return u'[%s] is awarded a badge [%s] at %s' % (self.user.username, self.badge.name, self.awarded_at)
+        return u'[%s] is awarded a badge [%s] at %s' % (self.user.username, self.badge.get_name(), self.awarded_at)
 
     class Meta:
         app_label = 'askbot'

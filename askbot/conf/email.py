@@ -30,6 +30,21 @@ settings.register(
     )
 )
 
+def get_default_admin_email():
+    try:
+        return django_settings.ADMINS[0][1]
+    except:
+        return ''
+
+settings.register(
+    livesettings.StringValue(
+        EMAIL,
+        'ADMIN_EMAIL',
+        default=get_default_admin_email(),
+        description=_('Site administrator email address')
+    )
+)
+
 settings.register(
     livesettings.BooleanValue(
         EMAIL,
@@ -226,15 +241,6 @@ settings.register(
         hidden=True,
         description=_('Require email verification before allowing to post'),
         help_text=_('Active email verification is done by sending a verification key in email')
-    )
-)
-
-settings.register(
-    livesettings.BooleanValue(
-        EMAIL,
-        'EMAIL_UNIQUE',
-        default=True,
-        description=_('Allow only one account per email address')
     )
 )
 

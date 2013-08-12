@@ -98,8 +98,11 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = (
     #'django.middleware.gzip.GZipMiddleware',
-    #'askbot.middleware.locale.LocaleMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    ## Enable the following middleware if you want to enable
+    ## language selection in the site settings.
+    #'askbot.middleware.locale.LocaleMiddleware',
     #'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.common.CommonMiddleware',
     #'django.middleware.cache.FetchFromCacheMiddleware',
@@ -170,6 +173,7 @@ INSTALLED_APPS = (
     'django.contrib.humanize',
     'django.contrib.sitemaps',
     'django.contrib.messages',
+    'compressor',
     #'debug_toolbar',
     #'haystack',
     'askbot',
@@ -255,10 +259,16 @@ RECAPTCHA_USE_SSL = True
 
 #HAYSTACK_SETTINGS
 ENABLE_HAYSTACK_SEARCH = False
-HAYSTACK_SITECONF = 'askbot.search.haystack'
-#more information
-#http://django-haystack.readthedocs.org/en/v1.2.7/settings.html
-HAYSTACK_SEARCH_ENGINE = 'simple'
+#Uncomment for multilingual setup:
+#HAYSTACK_ROUTERS = ['askbot.search.haystack.routers.LanguageRouter',]
+
+#Uncomment if you use haystack
+#More info in http://django-haystack.readthedocs.org/en/latest/settings.html
+#HAYSTACK_CONNECTIONS = {
+#            'default': {
+#                        'ENGINE': 'haystack.backends.simple_backend.SimpleEngine',
+#            }
+#}
 
 TINYMCE_COMPRESSOR = True
 TINYMCE_SPELLCHECKER = False
@@ -273,7 +283,7 @@ TINYMCE_DEFAULT_CONFIG = {
     'force_p_newlines': False,
     'forced_root_block': '',
     'mode' : 'textareas',
-    'oninit': "function(){ tinyMCE.activeEditor.setContent(askbot['data']['editorContent'] || ''); }",
+    'oninit': "TinyMCE.onInitHook",
     'plugins': 'askbot_imageuploader,askbot_attachment',
     'theme_advanced_toolbar_location' : 'top',
     'theme_advanced_toolbar_align': 'left',
@@ -297,3 +307,19 @@ GROUP_MESSAGING = {
 }
 
 ASKBOT_MULTILINGUAL = False
+
+ASKBOT_CSS_DEVEL = False
+if 'ASKBOT_CSS_DEVEL' in locals() and ASKBOT_CSS_DEVEL == True:
+    COMPRESS_PRECOMPILERS = (
+        ('text/less', 'lessc {infile} {outfile}'),
+    )
+
+COMPRESS_JS_FILTERS = []
+COMPRESS_PARSER = 'compressor.parser.HtmlParser'
+JINJA2_EXTENSIONS = ('compressor.contrib.jinja2ext.CompressorExtension',)
+
+# Use syncdb for tests instead of South migrations. Without this, some tests
+# fail spuriously in MySQL.
+SOUTH_TESTS_MIGRATE = False
+
+VERIFIER_EXPIRE_DAYS = 3

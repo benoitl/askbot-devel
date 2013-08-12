@@ -6,7 +6,9 @@ from askbot.views import writers
 from askbot.views import commands
 from askbot.views import users
 from askbot.views import meta
+from askbot.views import sharing
 from askbot.views import widgets
+from askbot.views import api_v1
 from django.conf import settings
 if 'avatar' in settings.INSTALLED_APPS:
     from askbot.views import avatar_views

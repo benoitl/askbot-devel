@@ -3,6 +3,7 @@ this file is a candidate for publishing as an independent module
 """
 import re
 import sys
+from askbot.conf import settings as askbot_settings
 
 #Regexes for quote separators
 #add more via variables ending with _QUOTE_RE
@@ -13,21 +14,38 @@ import sys
 #expressions are stripped of month and day names
 #to keep them simpler and make the additions of language variants
 #easier.
-GMAIL_QUOTE_RE = r'\nOn [^\n]* wrote:\Z'
-GMAIL_SECOND_QUOTE_RE = r'\n\d{4}/\d{1,2}/\d{1,2} [^\n]*\Z'
-YAHOO_QUOTE_RE = r'\n_+\n\s*From: [^\n]+\nTo: [^\n]+\nSent: [^\n]+\nSubject: [^\n]+\Z'
-KMAIL_QUOTE_RE = r'\AOn [^\n]+ you wrote:\s*\n\n'
-OUTLOOK_RTF_QUOTE_RE = r'\nSubject: [^\n]+\nFrom: [^\n]+\nTo: [^\n]+\nDate: [^\n]+\Z'
-OUTLOOK_TEXT_QUOTE_RE = r'\n_+\Z'
+QUOTE_REGEXES = (
+    #GMAIL_QUOTE_RE = 
+    r'\nOn [^\n]* wrote:\Z',
+    #GMAIL_SECOND_QUOTE_RE = 
+    r'\n\d{4}/\d{1,2}/\d{1,2} [^\n]*\Z',
+    #OUTLOOK1_QUOTE_RE = 
+    r'\n-+Original Message-+\nFrom:.*?\nSent:.*?\nTo:.*?\nSubject:.*?\Z',
+    #YAHOO_QUOTE_RE = 
+    r'\n_+\n\s*From: [^\n]+\nTo: [^\n]+\nSent: [^\n]+\nSubject: [^\n]+\Z',
+    #KMAIL_QUOTE_RE = 
+    r'\AOn [^\n]+ you wrote:\s*\n\n',
+    #OUTLOOK_RTF_QUOTE_RE = 
+    r'\nSubject: [^\n]+\nFrom: [^\n]+\nTo: [^\n]+\nDate: [^\n]+\Z',
+    #OUTLOOK_TEXT_QUOTE_RE = 
+    r'\n_+\Z',
+)
+
+
+# extra samples
+"""
+-----Original Message-----^M
+From: forum@example.com [mailto:forum@example.com] ^M
+Sent: Wednesday, August 07, 2013 11:00 AM^M
+To: Jane Doe^M
+Subject: "One more test question from email."^M
+
+"""
+
 
 def compile_quote_regexes():
-    regex_names = filter(
-        lambda v: v.endswith('_QUOTE_RE'),
-        globals().keys()
-    )
     compiled_regexes = list()
-    for regex_name in regex_names:
-        regex = globals()[regex_name]
+    for regex in QUOTE_REGEXES:
         compiled_regexes.append(
             re.compile(
                 regex,
@@ -44,6 +62,12 @@ def strip_trailing_empties_and_quotes(text):
 
 def strip_leading_empties(text):
     return re.sub(r'\A[\n\s\xa0]*', '', text)
+
+def strip_trailing_sender_references(text, email_address):
+    server_email = 'ask@' + askbot_settings.REPLY_BY_EMAIL_HOSTNAME
+    email_pattern = '(%s|%s)' % (email_address, server_email)
+    pattern = r'\n[^\n]*%s[^\n]*$' % email_pattern
+    return re.sub(pattern, '', text, re.IGNORECASE)
 
 def strip_email_client_quote_separator(text):
     """strips email client quote separator from the responses,

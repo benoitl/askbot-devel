@@ -1,12 +1,3 @@
-{% if edit_title %}
-    <div class="form-item">
-        <label for="id_title" ><strong>{{ post_form.title.label_tag() }}:</strong></label> <span class="form-error"></span><br/>
-        {{ post_form.title }} {{ post_form.title.errors }}
-        <div class="title-desc">
-            {{ post_form.title.help_text }}
-        </div>
-    </div>
-{% endif %}
 {% if editor_type == 'markdown' %}
     <div class="wmd-container">
         <div id="wmd-button-bar" class="wmd-panel"></div>
@@ -29,7 +20,7 @@
 </div>
 {# need label element for resizable input, b/c form validation won't find span #}
 {% if post_type == 'question' %}
-    <div class="form-item">
+    <div class="form-item question-tags">
         {% if use_category_selector %}
             {% include "widgets/three_column_category_selector.html" %}
             <div class="tags-desc">{% trans %}Tags{% endtrans %}</div>
@@ -57,13 +48,12 @@
             {% endif %}
             <span class="form-error">{{ post_form.tags.errors }}</span><br/>
             {{ post_form.tags }}
-            <div class="title-desc">
-                {{ post_form.tags.help_text }}
-            </div>
+            <br/><label for="id_tags">{{ post_form.tags.help_text }}</label>
         {% endif %}
     </div>
 {% endif %}
-{% if 'summary' in post_form['fields'] %}
+{#% if 'summary' in post_form['fields'] %}
+    <!-- todo: either remove this field or make it folded by default -->
     <div class="form-item revision-comment">
         <strong>{{ post_form.summary.label_tag() }}</strong> <br/>
         {{ post_form.summary }}
@@ -72,7 +62,7 @@
         </div>
         <div class="form-error" >{{ post_form.summary.errors }}</div>
     </div>
-{% endif %}
+{% endif %#}
 
 {% if editor_type == 'markdown' %}
     <div class="preview-toggle">

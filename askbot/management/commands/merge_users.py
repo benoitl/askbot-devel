@@ -21,13 +21,13 @@ class MergeUsersBaseCommand(BaseCommand):
             try:
                 self.process_field(rel.model, rel.field.name)
             except Exception, error:
-                self.stdout.write(u'Warning: %s\n' % error)
+                self.stdout.write((u'Warning: %s\n' % error).encode('utf-8'))
 
         for rel in User._meta.get_all_related_many_to_many_objects():
             try:
                 self.process_m2m_field(rel.model, rel.field.name)
             except Exception, error:
-                self.stdout.write(u'Warning: %s\n' % error)
+                self.stdout.write((u'Warning: %s\n' % error).encode('utf-8'))
 
         self.process_custom_user_fields()
 

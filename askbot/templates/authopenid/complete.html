@@ -76,5 +76,8 @@ anyone, must be valid</i>)
 {% endblock %}
 <!-- end complete.html -->
 {% block endjs %}
+    <script type="text/javascript">
+        $('#id_username').focus();
+    </script>
     {{ macros.one_shot_form_js(form='#register-form', submit_button='#register-button') }}
 {% endblock %}

@@ -28,6 +28,21 @@ settings.register(
     )
 )
 
+COMMENTS_EDITOR_CHOICES = (
+    ('plain-text', 'Plain text editor'),
+    ('rich-text', 'Same editor as for questions and answers')
+)
+
+settings.register(
+    livesettings.StringValue(
+        FORUM_DATA_RULES,
+        'COMMENTS_EDITOR_TYPE',
+        default='plain-text',
+        choices=COMMENTS_EDITOR_CHOICES,
+        description=_('Editor for the comments')
+    )
+)
+
 settings.register(
     livesettings.BooleanValue(
         FORUM_DATA_RULES,
@@ -98,6 +113,35 @@ settings.register(
 settings.register(
     livesettings.BooleanValue(
         FORUM_DATA_RULES,
+        'AUTO_FOLLOW_QUESTION_BY_OP',
+        default=True,
+        description=_('Auto-follow questions by the Author')
+    )
+)
+
+QUESTION_BODY_EDITOR_MODE_CHOICES = (
+    ('open', _('Fully open by default')),
+    ('folded', _('Folded by default'))
+)
+
+settings.register(
+    livesettings.StringValue(
+        FORUM_DATA_RULES,
+        'QUESTION_BODY_EDITOR_MODE',
+        choices=QUESTION_BODY_EDITOR_MODE_CHOICES,
+        default='open',
+        description=_('Question details/body editor should be'),
+        help_text =_(
+            '<b style="color:red;">To use folded mode, please first set minimum '
+            'question body length to 0. Also - please make tags '
+            'optional.</b>'
+        )
+    )
+)
+
+settings.register(
+    livesettings.BooleanValue(
+        FORUM_DATA_RULES,
         'ALLOW_SWAPPING_QUESTION_WITH_ANSWER',
         default = False,
         description = _('Allow swapping answer with question'),
@@ -150,6 +194,17 @@ settings.register(
 )
 
 settings.register(
+    livesettings.IntegerValue(
+        FORUM_DATA_RULES,
+        'MIN_COMMENT_BODY_LENGTH',
+        default=10,
+        description=_(
+            'Minimum length of comment (number of characters)'
+        )
+    )
+)
+
+settings.register(
     livesettings.BooleanValue(
         FORUM_DATA_RULES,
         'LIMIT_ONE_ANSWER_PER_USER',
@@ -157,6 +212,15 @@ settings.register(
         description = _(
             'Limit one answer per question per user'
         )
+    )
+)
+
+settings.register(
+    livesettings.BooleanValue(
+        FORUM_DATA_RULES,
+        'ACCEPTING_ANSWERS_ENABLED',
+        default=True,
+        description = _('Enable accepting best answer')
     )
 )
 
@@ -330,8 +394,12 @@ settings.register(
     livesettings.BooleanValue(
         FORUM_DATA_RULES,
         'SAVE_COMMENT_ON_ENTER',
-        default = True,
-        description = _('Save comment by pressing <Enter> key')
+        default=False,
+        description=_('Save comment by pressing <Enter> key'),
+        help_text=_(
+            'This may be useful when only one-line comments '
+            'are desired. Will not work with TinyMCE editor.'
+        )
     )
 )
 

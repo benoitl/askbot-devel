@@ -36,7 +36,7 @@
 
 {%- macro post_vote_buttons(post = None) -%}
 <div id="{{post.post_type}}-img-upvote-{{ post.id }}"
-    class="{{post.post_type}}-img-upvote post-vote">
+    class="{{post.post_type}}-img-upvote post-vote upvote">
 </div>
 <div 
     id="{{post.post_type}}-vote-number-{{ post.id }}"
@@ -45,7 +45,7 @@
 >{{ post.score }}</div>
 <div
     id="{{post.post_type}}-img-downvote-{{ post.id }}"
-    class="{{post.post_type}}-img-downvote post-vote">
+    class="{{post.post_type}}-img-downvote post-vote downvote">
 </div>
 <script type="text/javascript">
     askbot['functions']['renderPostVoteButtons']('{{post.post_type}}', '{{post.id}}');
@@ -57,10 +57,7 @@
         <img alt="{% trans %}anonymous user{% endtrans %}" src="{{ '/images/anon.png'|media }} " class="gravatar" width="32" height="32" />
         <p>{{ user.get_anonymous_name() }}</p>
     {% else %}
-        {{ gravatar(user, 32) }}
-        {{ user.get_profile_link()}}{{ user_country_flag(user) }}<br/>
-        {{ user_score_and_badge_summary(user, karma_mode = karma_mode, badges_mode = badges_mode) }}<br/>
-        {{ user_website_link(user) }}
+        {{ user_card(user, karma_mode=karma_mode, badges_mode=badges_mode) }}
     {% endif %}
     {{ user_primary_group(user) }}
 {%- endmacro -%}
@@ -378,6 +375,12 @@ for the purposes of the AJAX comment editor #}
     </script>
 {%- endmacro -%}
 
+{%- macro csrf_middleware_token(csrf_token) -%}
+    <div style="display: none;">
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" />
+    </div>
+{%- endmacro -%}
+
 {%- macro post_comments_widget(
         post=None,
         show_post = None,
@@ -389,11 +392,11 @@ for the purposes of the AJAX comment editor #}
 -%}
     {% spaceless %}
     {% if post.comment_count > 0 %}
-        <h2 id="comment-title">Comments</h2>
+        <h2 class="comment-title">{% trans %}Comments{% endtrans %}</h2>
         <div class="clean"></div> 
     {% endif %}
     {% set widget_id = 'comments-for-' + post.post_type + '-' + post.id|string %}
-    <div class="comments" id="{{widget_id}}">
+    <div class="comments{% if post.comment_count == 0 %} empty{% endif %}" id="{{ widget_id }}">
         <div class="content">
             {% if show_post == post and show_comment and show_comment_position > max_comments %}
                 {% set comments = post.get_cached_comments()[:show_comment_position] %}
@@ -417,23 +420,38 @@ for the purposes of the AJAX comment editor #}
                             <div class="upvote"></div>
                         {% endif %}
                     </div>
-                    <div 
-                        id="post-{{comment.id}}-delete"
-                        class="comment-delete"
-                    >
-                        <span class="delete-icon" title="{% trans %}delete this comment{% endtrans %}"></span>
-                    </div>
-                    <div class="comment-body">
-                        {{comment.html}}
-                        <a class="author" href="{{comment.author.get_profile_url()}}">{{comment.author.username|escape}}</a>
-                        <span class="age">&nbsp;({{ timeago(comment.added_at) }})</span>
-                        <a id="post-{{comment.id}}-edit"
-                            class="edit">{% trans %}edit{% endtrans %}</a>
-                        <form action="{% url comment_to_answer %}" method="POST" accept-charset="utf-8" class='convert-comment'>
-                          {% csrf_token %}
-                          <input type="hidden" value="{{comment.id}}" name="comment_id" id="id_comment_id">
-                          <input type="submit" value="{% trans %}convert to answer{% endtrans %}">
-                        </form>
+                    <div class="comment-content">
+                        <div 
+                            id="post-{{comment.id}}-delete"
+                            class="comment-delete"
+                        >
+                            <span 
+                                class="delete-icon"
+                                title="{% trans %}delete this comment{% endtrans %}"
+                            ></span>
+                        </div>
+                        <div class="comment-body">
+                            {{comment.html}}
+                            <a 
+                                class="author"
+                                href="{{comment.author.get_profile_url()}}"
+                            >{{comment.author.username|escape}}</a>
+                            <span class="age">&nbsp;({{ timeago(comment.added_at) }})</span>
+                            <a 
+                                id="post-{{comment.id}}-edit"
+                                class="edit"
+                            >{% trans %}edit{% endtrans %}</a>
+                            <form 
+                                action="{% url comment_to_answer %}"
+                                method="POST"
+                                accept-charset="utf-8"
+                                class='convert-comment'
+                            >
+                                {% csrf_token %}
+                                <input type="hidden" value="{{comment.id}}" name="comment_id" id="id_comment_id">
+                                <input type="submit" value="{% trans %}convert to answer{% endtrans %}">
+                            </form>
+                        </div>
                     </div>
                 </div>
                 <script type="text/javascript">
@@ -526,7 +544,6 @@ for the purposes of the AJAX comment editor #}
                 post_type = None,
                 post_html = None,
                 mandatory_tags = None,
-                edit_title = False,
                 use_category_selector = False,
                 tag_names = None,
                 editor_type = None,
@@ -539,7 +556,6 @@ for the purposes of the AJAX comment editor #}
 {%- macro tag_autocomplete_js(id = '#id_tags') -%}
     var tagAc = new AutoCompleter({
             url: '{% url "get_tag_list" %}',
-            preloadData: true,
             minChars: 1,
             useCache: true,
             matchInside: true,
@@ -550,15 +566,7 @@ for the purposes of the AJAX comment editor #}
 {%- endmacro -%}
 
 {%- macro answer_classes(answer, question) -%}
-answer {% if answer.accepted() %}accepted-answer{% endif %} {% if answer.author_id==question.author_id %} answered-by-owner{% endif %} {% if answer.deleted %}deleted{% endif -%}
-{%- endmacro -%}
-
-{%- macro user_score_and_badge_summary(
-                                    user,
-                                    karma_mode = None,
-                                    badges_mode = None
-) -%}
-  {%include "widgets/user_score_and_badge_summary.html"%}
+ {% if answer.accepted() %}accepted-answer{% endif %} {% if answer.author_id==question.author_id %} answered-by-owner{% endif %} {% if answer.deleted %}deleted{% endif -%}
 {%- endmacro -%}
 
 {%- macro follow_toggle(follow, name, alias, id) -%}
@@ -634,11 +642,12 @@ answer {% if answer.accepted() %}accepted-answer{% endif %} {% if answer.author_
     {{ user_country_name_and_flag(user) }}
 {%- endmacro -%}
 
-{%- macro user_list(
-        users, profile_section = None, karma_mode = None, badges_mode = None
-    )
--%}
-{% include "widgets/user_list.html"%}
+{% macro user_card(user, karma_mode=None, badges_mode=None) %}
+    {% include "widgets/user_card.html" %}
+{% endmacro %}
+
+{%- macro user_list(users, karma_mode=None, badges_mode=None) -%}
+    {% include "widgets/user_list.html" %}
 {%- endmacro -%}
 
 {#todo: rename this to avatar #}

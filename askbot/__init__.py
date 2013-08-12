@@ -15,7 +15,7 @@ REQUIREMENTS = {
     'akismet': 'akismet',
     'psycopg2': 'psycopg2',
     'importlib': 'importlib',
-    'django': 'django>=1.3.1,<1.5',
+    'django': 'django>=1.3.1,<=1.5',
     'compressor': 'django-compressor==1.2',
     'jinja2': 'Jinja2',
     'coffin': 'Coffin>=0.3.3',
@@ -38,7 +38,8 @@ REQUIREMENTS = {
     'pytz': 'pytz',
     'tinymce': 'django-tinymce==1.5.1b2',
     'longerusername': 'longerusername',
-    'bs4': 'beautifulsoup4'
+    'bs4': 'beautifulsoup4',
+    'picklefield': 'django-picklefield==0.3.0',
 }
 
 if platform.system() != 'Windows':

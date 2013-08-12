@@ -28,6 +28,42 @@ var animateHashes = function(){
     }
 };
 
+/**
+ * @param {string} id_token - any token
+ * @param {string} unique_seed - the unique part
+ * @returns {string} unique id that can be used in DOM
+ */
+var askbotMakeId = function(id_token, unique_seed) {
+    return id_token + '-' + unique_seed;
+};
+
+var getNewUniqueInt = function() {
+    var num = askbot['data']['uniqueInt'] || 0;
+    num = num + 1;
+    askbot['data']['uniqueInt'] = num;
+    return num;
+};
+
+var getSingletonController = function(controllerClass, name) {
+    askbot['controllers'] = askbot['controllers'] || {};
+    var controller = askbot['controllers'][name];
+    if (controller === undefined) {
+        controller = new controllerClass();
+        askbot['controllers'][name] = controller;
+    }
+    return controller;
+};
+
+var setController = function(controller, name) {
+    askbot['controllers'] = askbot['controllers'] || {};
+    askbot['controllers'][name] = controller;
+};
+
+var sortChildNodes = function(node, cmpFunc) {
+    var items = node.children().sort(cmpFunc);
+    node.append(items);
+};
+
 var getUniqueValues = function(values) {
     var uniques = new Object();
     var out = new Array();
@@ -137,6 +173,14 @@ var setupButtonEventHandlers = function(button, callback){
     button.click(callback);
 };
 
+var removeButtonEventHandlers = function(button) {
+    button.unbind('click');
+    button.unbind('keydown');
+};
+
+var decodeHtml = function(encodedText) {
+    return $('<div/>').html(encodedText).text();
+};
 
 var putCursorAtEnd = function(element){
     var el = $(element).get()[0];
@@ -245,10 +289,10 @@ QSutils.patch_query_string = function (query_string, patch, remove) {
     /* The order of selectors should match the Django URL */
     add_selector('scope');
     add_selector('sort');
-    add_selector('query');
     add_selector('tags');
     add_selector('author');
     add_selector('page');
+    add_selector('query');
 
     return new_query_string;
 };
@@ -307,10 +351,31 @@ var inherits = function(childCtor, parentCtor) {
 var WrappedElement = function(){
     this._element = null;
     this._in_document = false;
+    this._idSeed = null;
 };
 /* note that we do not call inherits() here
  * See TippedInput as an example of a subclass
  */
+
+/**
+ * returns a unique integer for any instance of WrappedElement
+ * which can be used to construct a unique id for use in the DOM
+ * @return {string}
+ */
+WrappedElement.prototype.getIdSeed = function() {
+    var seed = this._idSeed || parseInt(getNewUniqueInt());
+    this._idSeed = seed;
+    return seed;
+};
+
+/**
+ * returns unique ide based on the prefix and the id seed
+ * @param {string} prefix
+ * @return {string}
+ */
+WrappedElement.prototype.makeId = function(prefix) {
+    return askbotMakeId(prefix, this.getIdSeed());
+};
 
 /**
  * notice that we use ObjCls.prototype.someMethod = function()
@@ -362,8 +427,12 @@ WrappedElement.prototype.getElement = function(){
     }
     return this._element;
 };
+
+WrappedElement.prototype.hasElement = function() {
+    return (this._element !== undefined);
+};
 WrappedElement.prototype.inDocument = function(){
-    return this._in_document;
+    return (this._element && this._element.is(':hidden') === false);
 };
 WrappedElement.prototype.enterDocument = function(){
     return this._in_document = true;
@@ -789,6 +858,12 @@ SimpleControl.prototype.setTitle = function(title){
     this._title = title;
 };
 
+SimpleControl.prototype.decorate = function(element) {
+    this._element = element;
+    this.setHandlerInternal();
+};
+
+
 var EditLink = function(){
     SimpleControl.call(this)
 };
@@ -888,6 +963,8 @@ var ModalDialog = function() {
     var me = this;
     this._reject_handler = function() { me.hide(); };
     this._content_element = undefined;
+    this._headerEnabled = true;
+    this._className = undefined;
 };
 inherits(ModalDialog, WrappedElement);
 
@@ -948,21 +1025,26 @@ ModalDialog.prototype.createDom = function() {
     var element = this._element;
 
     element.addClass('modal');
+    if (this._className) {
+        element.addClass(this._className);
+    }
 
     //1) create header
-    var header = this.makeElement('div')
-    header.addClass('modal-header');
-    element.append(header);
+    if (this._headerEnabled) {
+        var header = this.makeElement('div')
+        header.addClass('modal-header');
+        element.append(header);
+        var close_link = this.makeElement('div');
+        close_link.addClass('close');
+        close_link.attr('data-dismiss', 'modal');
+        close_link.html('x');
+        header.append(close_link);
+        var title = this.makeElement('h3');
+        title.html(this._heading_text);
+        header.append(title);
+    }
 
-    var close_link = this.makeElement('div');
-    close_link.addClass('close');
-    close_link.attr('data-dismiss', 'modal');
-    close_link.html('x');
-    header.append(close_link);
 
-    var title = this.makeElement('h3');
-    title.html(this._heading_text);
-    header.append(title);
 
     //2) create content
     var body = this.makeElement('div')
@@ -979,13 +1061,13 @@ ModalDialog.prototype.createDom = function() {
     element.append(footer);
 
     var accept_btn = this.makeElement('button');
-    accept_btn.addClass('btn btn-primary');
+    accept_btn.addClass('submit');
     accept_btn.html(this._accept_button_text);
     footer.append(accept_btn);
 
     if (this._reject_button_text) {
         var reject_btn = this.makeElement('button');
-        reject_btn.addClass('btn cancel');
+        reject_btn.addClass('submit cancel');
         reject_btn.html(this._reject_button_text);
         footer.append(reject_btn);
     }
@@ -995,7 +1077,9 @@ ModalDialog.prototype.createDom = function() {
     if (this._reject_button_text) {
         setupButtonEventHandlers(reject_btn, this._reject_handler);
     }
-    setupButtonEventHandlers(close_link, this._reject_handler);
+    if (this._headerEnabled) {
+        setupButtonEventHandlers(close_link, this._reject_handler);
+    }
 
     this.hide();
 };
@@ -1005,9 +1089,27 @@ ModalDialog.prototype.createDom = function() {
  */
 var FileUploadDialog = function() {
     ModalDialog.call(this);
-    self._post_upload_handler = undefined;
+    this._className = 'file-upload-dialog';
+    this._post_upload_handler = undefined;
+    this._fileType = 'image';
+    this._headerEnabled = false;
 };
 inherits(FileUploadDialog, ModalDialog);
+
+/**
+ * allowed values: 'image', 'attachment'
+ */
+FileUploadDialog.prototype.setFileType = function(fileType) {
+    this._fileType = fileType;
+};
+
+FileUploadDialog.prototype.getFileType = function() {
+    return this._fileType;
+};
+
+FileUploadDialog.prototype.setButtonText = function(text) {
+    this._fakeInput.val(text);
+};
 
 FileUploadDialog.prototype.setPostUploadHandler = function(handler) {
     this._post_upload_handler = handler;
@@ -1023,6 +1125,16 @@ FileUploadDialog.prototype.setInputId = function(id) {
 
 FileUploadDialog.prototype.getInputId = function() {
     return this._input_id;
+};
+
+FileUploadDialog.prototype.setErrorText = function(text) {
+    this.setLabelText(text);
+    this._label.addClass('error');
+};
+
+FileUploadDialog.prototype.setLabelText= function(text) {
+    this._label.html(text);
+    this._label.removeClass('error');
 };
 
 FileUploadDialog.prototype.setUrlInputTooltip = function(text) {
@@ -1048,30 +1160,113 @@ FileUploadDialog.prototype.resetInputs = function() {
     this._upload_input.val('');
 };
 
+FileUploadDialog.prototype.getInputElement = function() {
+    return $('#' + this.getInputId());
+};
+
+FileUploadDialog.prototype.installFileUploadHandler = function(handler) {
+    var upload_input = this.getInputElement();
+    upload_input.unbind('change');
+    //todo: fix this - make event handler reinstall work
+    upload_input.change(handler);
+};
+
 FileUploadDialog.prototype.show = function() {
     //hack around the ajaxFileUpload plugin
     FileUploadDialog.superClass_.show.call(this);
-    var upload_input = this._upload_input;
-    upload_input.unbind('change');
-    //todo: fix this - make event handler reinstall work
-    upload_input.change(this.getStartUploadHandler());
+    var handler = this.getStartUploadHandler();
+    this.installFileUploadHandler(handler);
+};
+
+FileUploadDialog.prototype.getUrlInputElement = function() {
+    return this._url_input.getElement();
+};
+
+/*
+ * argument startUploadHandler is very special it must
+ * be a function calling this one!!! Todo: see if there
+ * is a more civilized way to do this.
+ */
+FileUploadDialog.prototype.startFileUpload = function(startUploadHandler) {
+
+    var spinner = this._spinner;
+    var label = this._label;
+
+    spinner.ajaxStart(function(){ 
+        spinner.show();
+        label.hide();
+    });
+    spinner.ajaxComplete(function(){
+        spinner.hide();
+        label.show();
+    });
+
+    /* important!!! upload input must be loaded by id
+     * because ajaxFileUpload monkey-patches the upload form */
+    var uploadInput = this.getInputElement();
+    uploadInput.ajaxStart(function(){ uploadInput.hide(); });
+    uploadInput.ajaxComplete(function(){ uploadInput.show(); });
+
+    //var localFilePath = upload_input.val();
+
+    var me = this;
+
+    $.ajaxFileUpload({
+        url: askbot['urls']['upload'],
+        secureuri: false,//todo: check on https
+        fileElementId: this.getInputId(),
+        dataType: 'xml',
+        success: function (data, status) {
+
+            var fileURL = $(data).find('file_url').text();
+            var origFileName = $(data).find('orig_file_name').text();
+            var newStatus = interpolate(
+                                gettext('Uploaded file: %s'),
+                                [origFileName]
+                            );
+            /*
+            * hopefully a fix for the "fakepath" issue
+            * https://www.mediawiki.org/wiki/Special:Code/MediaWiki/83225
+            */
+            fileURL = fileURL.replace(/\w:.*\\(.*)$/,'$1');
+            var error = $(data).find('error').text();
+            if (error != ''){
+                me.setErrorText(error);
+            } else {
+                me.getUrlInputElement().attr('value', fileURL);
+                me.setLabelText(newStatus);
+                if (me.getFileType() === 'image') {
+                    var buttonText = gettext('Choose a different image');
+                } else {
+                    var buttonText = gettext('Choose a different file');
+                }
+                me.setButtonText(buttonText);
+            }
+
+            /* re-install this as the upload extension
+             * will remove the handler to prevent double uploading
+             * this hack is a manipulation around the 
+             * ajaxFileUpload jQuery plugin. */
+            me.installFileUploadHandler(startUploadHandler);
+        },
+        error: function (data, status, e) {
+            /* re-install this as the upload extension
+            * will remove the handler to prevent double uploading */
+            me.setErrorText(gettext('Oops, looks like we had an error. Sorry.'));
+            me.installFileUploadHandler(startUploadHandler);
+        }
+    });
+    return false;
 };
 
 FileUploadDialog.prototype.getStartUploadHandler = function(){
-    /* startUploadHandler is passed in to re-install the event handler
-     * which is removed by the ajaxFileUpload jQuery extension
-     */
-    var spinner = this._spinner;
-    var uploadInputId = this.getInputId();
-    var urlInput = this._url_input;
+    var me = this;
     var handler = function() {
-        var options = {
-            'spinner': spinner,
-            'uploadInputId': uploadInputId,
-            'urlInput': urlInput.getElement(),
-            'startUploadHandler': handler//pass in itself
-        };
-        return ajaxFileUpload(options);
+        /* the trick is that we need inside the function call
+         * to have a reference to itself
+         * in order to reinstall the handler later
+         * because ajaxFileUpload jquery extension might be destroying it */
+        return me.startFileUpload(handler);
     };
     return handler;
 };
@@ -1098,22 +1293,46 @@ FileUploadDialog.prototype.createDom = function() {
     superClass.createDom.call(this);
 
     var form = this.makeElement('form');
+    form.addClass('ajax-file-upload');
     form.css('margin-bottom', 0);
     this.prependContent(form);
 
-    // File upload button
+    // Browser native file upload field
     var upload_input = this.makeElement('input');
     upload_input.attr({
         id: this._input_id,
         type: 'file',
-        name: 'file-upload',
+        name: 'file-upload'
         //size: 26???
     });
     form.append(upload_input);
     this._upload_input = upload_input;
-    form.append($('<br/>'));
 
-    // The url input text box
+    var fakeInput = this.makeElement('input');
+    fakeInput.attr('type', 'button');
+    fakeInput.addClass('submit');
+    fakeInput.addClass('fake-file-input');
+    if (this._fileType === 'image') {
+        var buttonText = gettext('Choose an image to insert');
+    } else {
+        var buttonText = gettext('Choose a file to insert');
+    }
+    fakeInput.val(buttonText);
+    this._fakeInput = fakeInput;
+    form.append(fakeInput);
+
+    setupButtonEventHandlers(fakeInput, function() { upload_input.click() });
+
+    // Label which will also serve as status display
+    var label = this.makeElement('label');
+    label.attr('for', this._input_id);
+    var types = askbot['settings']['allowedUploadFileTypes'];
+    types = types.join(', ');
+    label.html(gettext('Allowed file types are:') + ' ' + types + '.');
+    form.append(label);
+    this._label = label;
+
+    // The url input text box, probably unused in fact
     var url_input = new TippedInput();
     url_input.setInstruction(this._url_input_tooltip || gettext('Or paste file url here'));
     var url_input_element = url_input.getElement();
@@ -1125,15 +1344,6 @@ FileUploadDialog.prototype.createDom = function() {
     //form.append($('<br/>'));
     this._url_input = url_input;
 
-    var label = this.makeElement('label');
-    label.attr('for', this._input_id);
-
-    var types = askbot['settings']['allowedUploadFileTypes'];
-    types = types.join(', ');
-    label.html(gettext('Allowed file types are:') + ' ' + types + '.');
-    form.append(label);
-    form.append($('<br/>'));
-
     /* //Description input box
     var descr_input = new TippedInput();
     descr_input.setInstruction(gettext('Describe the image here'));
@@ -1143,8 +1353,9 @@ FileUploadDialog.prototype.createDom = function() {
     this._description_input = descr_input;
     */
     var spinner = this.makeElement('img');
-    spinner.attr('src', mediaUrl('media/images/indicator.gif'));
+    spinner.attr('src', mediaUrl('media/images/ajax-loader.gif'));
     spinner.css('display', 'none');
+    spinner.addClass('spinner');
     form.append(spinner);
     this._spinner = spinner;
 
@@ -1418,28 +1629,30 @@ TwoStateToggle.prototype.decorate = function(element){
         }
     }
 
-    //set mouseover handler
-    var me = this;
-    element.mouseover(function(){
-        var is_on = me.isOn();
-        if (is_on){
-            me.setState('off-prompt');
-        } else {
-            me.setState('on-prompt');
-        }
-        //element.css('background-color', 'red');
-        return false;
-    });
-    element.mouseout(function(){
-        var is_on = me.isOn();
-        if (is_on){
-            me.setState('on-state');
-        } else {
-            me.setState('off-state');
-        }
-        //element.css('background-color', 'white');
-        return false;
-    });
+    //set mouseover handler only for non-checkbox version
+    if (this.isCheckBox() === false) {
+        var me = this;
+        element.mouseover(function(){
+            var is_on = me.isOn();
+            if (is_on){
+                me.setState('off-prompt');
+            } else {
+                me.setState('on-prompt');
+            }
+            //element.css('background-color', 'red');
+            return false;
+        });
+        element.mouseout(function(){
+            var is_on = me.isOn();
+            if (is_on){
+                me.setState('on-state');
+            } else {
+                me.setState('off-state');
+            }
+            //element.css('background-color', 'white');
+            return false;
+        });
+    }
 
     setupButtonEventHandlers(element, this.getHandler());
 };
@@ -1816,8 +2029,18 @@ SelectBox.prototype.createDom = function() {
 var GroupDropdown = function(groups){
     WrappedElement.call(this);
     this._group_list = groups; 
+};
+inherits(GroupDropdown, WrappedElement);
+
+GroupDropdown.prototype.createDom =  function(){
+    this._element = this.makeElement('ul');
+    this._element.attr('class', 'dropdown-menu');
+    this._element.attr('id', 'groups-dropdown');
+    this._element.attr('role', 'menu');
+    this._element.attr('aria-labelledby', 'navGroups');
+
     this._input_box = new TippedInput();
-    this._input_box.setInstruction('group name');
+    this._input_box.setInstruction(gettext('group name'));
     this._input_box.createDom();
     this._input_box_element = this._input_box.getElement();
     this._input_box_element.attr('class', 'group-name');
@@ -1825,116 +2048,129 @@ var GroupDropdown = function(groups){
     this._add_link = this.makeElement('a');
     this._add_link.attr('href', '#');
     this._add_link.attr('class', 'group-name');
-    this._add_link.text('add new group');
-};
-inherits(GroupDropdown, WrappedElement);
+    this._add_link.text(gettext('add new group'));
 
-GroupDropdown.prototype.createDom =  function(){
-  this._element = this.makeElement('ul');
-  this._element.attr('class', 'dropdown-menu');
-  this._element.attr('id', 'groups-dropdown');
-  this._element.attr('role', 'menu');
-  this._element.attr('aria-labelledby', 'navGroups');
-
-  for (i=0; i<this._group_list.length; i++){
-    li_element = this.makeElement('li');
-    a_element = this.makeElement('a');
-    a_element.text(this._group_list[i].name);
-    a_element.attr('href', this._group_list[i].link);
-    a_element.attr('class', 'group-name');
-    li_element.append(a_element);
-    this._element.append(li_element);
-  }
-};
-
-GroupDropdown.prototype.decorate = function(element){
-  this._element = element; 
-  this._element.attr('class', 'dropdown-menu');
-  this._element.attr('id', 'groups-dropdown');
-  this._element.attr('role', 'menu');
-  this._element.attr('aria-labelledby', 'navGroups');
-
-  for (i=0; i<this._group_list.length; i++){
-    li_element = this.makeElement('li');
-    a_element = this.makeElement('a');
-    a_element.text(this._group_list[i].name);
-    a_element.attr('href', this._group_list[i].link);
-    a_element.attr('class', 'group-name');
-    li_element.append(a_element);
-    this._element.append(li_element);
-  }
-};
-
-GroupDropdown.prototype.insertGroup = function(group_name, url){
-    var new_group_li = this.makeElement('li');
-    new_group_a = this.makeElement('a');
-    new_group_a.attr('href', url);
-    new_group_a.attr('class', 'group-name');
-    new_group_a.text(group_name);
-    new_group_li.append(new_group_a);
-    links_array = this._element.find('a')
-    for (i=1; i < links_array.length; i++){
-        var listedName = links_array[i].text;
-        var cleanedListedName = listedName.toLowerCase();
-        var cleanedNewName = group_name.toLowerCase()
-        if (listedName < newName) {
-            if (i == links_array.length - 1){
-                new_group_li.insertAfter(this._element.find('li')[i-1])
-                break;
-            } else {
-                continue;
-            }
-        } else if (cleanedNewName === cleanedNewName) {
-            var message = interpolate(gettext(
-                    'Group %(name)s already exists. Group names are case-insensitive.'
-                ), {'name': listedName}, true
-            );
-            notify.show(message);
-            return;
-        } else {
-            new_group_li.insertAfter(this._element.find('li')[i-1])
-            break;
-        }
+    for (var i=0; i<this._group_list.length; i++){
+        var li = this.makeElement('li');
+        var a = this.makeElement('a');
+        a.text(this._group_list[i].name);
+        a.attr('href', this._group_list[i].link);
+        a.attr('class', 'group-name');
+        li.append(a);
+        this._element.append(li);
+    }
+    if (askbot['data']['userIsAdmin']) {
+        this.enableAddGroups();
     }
 };
 
-GroupDropdown.prototype._add_group_handler = function(group_name){
-  var group_name = this._input_box_element.val();
-  self = this;
-  if (!group_name){
-    return;
-  }
+/**
+ * inserts a link to group with a given url to the group page
+ * and name
+ */
+GroupDropdown.prototype.insertGroup = function(group_name, url){
 
-  $.ajax({
-    type: 'POST',
-    url: askbot['urls']['add_group'],
-    data: {group: group_name},
-    success: function(data){
-       if (data.success){
-         self.insertGroup(data.group_name, data.url);
-         self._input_box_element.hide();
-         self._add_link.show();
-         return true; 
-       } else{
-         return false;
-       }
-     },
-     error: function(){console.log('error');}
-  });
+    //1) take out first and last list elements: 
+    // everyone and the "add group" item
+    var list = this._element.children();
+    var everyoneGroup = list.first().detach();
+    var groupAdder = list.last().detach();
+    var divider = this._element.find('.divider').detach();
+
+    //2) append group link into the list
+    var li = this.makeElement('li');
+    var a = this.makeElement('a');
+    a.attr('href', url);
+    a.attr('class', 'group-name');
+    a.text(group_name);
+    li.append(a);
+    li.hide();
+    this._element.append(li);
+
+    //3) sort rest of the list alphanumerically
+    sortChildNodes(
+        this._element,
+        function(a, b) {
+            var valA = $(a).find('a').text().toLowerCase();
+            var valB = $(b).find('a').text().toLowerCase();
+            return (valA < valB) ? -1: (valA > valB) ? 1: 0;
+        }
+    );
+
+    //a dramatic effect
+    li.fadeIn();
+
+    //4) reinsert the first and last elements of the list:
+    this._element.prepend(everyoneGroup);
+    this._element.append(divider);
+    this._element.append(groupAdder);
+};
+
+GroupDropdown.prototype.setState = function(state) {
+    if (state === 'display') {
+        this._input_box_element.hide();
+        this._add_link.show();
+    }
+};
+
+GroupDropdown.prototype.hasGroup = function(groupName) {
+    var items = this._element.find('li');
+    for (var i=1; i < items.length - 1; i++) {
+        var cGroupName = $(items[i]).find('a').text();
+        if (cGroupName.toLowerCase() === groupName.toLowerCase()) {
+            return true;
+        }
+    }
+    return false;
+};
+
+GroupDropdown.prototype._add_group_handler = function(group_name){
+    var group_name = this._input_box_element.val();
+    var me = this;
+    if (!group_name){
+        return;
+    }
+
+    $.ajax({
+        type: 'POST',
+        url: askbot['urls']['add_group'],
+        data: {group: group_name},
+        success: function(data){
+            if (data['success']){
+                var groupName = data['group_name'];
+                if (me.hasGroup(groupName)) {
+                    var message = interpolate(gettext(
+                            'Group %(name)s already exists. Group names are case-insensitive.'
+                        ), {'name': groupName}, true
+                    );
+                    notify.show(message);
+                    return false;
+                } else {
+                    me.insertGroup(data['group_name'], data['url']);
+                    me.setState('display');
+                    return true; 
+                }
+            } else{
+                notify.show(data['message']);
+                return false;
+            }
+        },
+        error: function(){console.log('error');}
+    });
 };
 
 GroupDropdown.prototype.enableAddGroups = function(){
     var self = this;
     this._add_link.click(function(){ 
-      self._add_link.hide();
-      self._input_box_element.show(); 
-      self._input_box_element.focus(); 
+        self._add_link.hide();
+        self._input_box_element.show(); 
+        self._input_box_element.focus(); 
     });
     this._input_box_element.keydown(function(event){
-      if (event.which == 13 || event.keyCode==13){
-        self._add_group_handler(); 
-        self._input_box_element.val('');
-      }
+        if (event.which == 13 || event.keyCode==13){
+            self._add_group_handler(); 
+            self._input_box_element.val('');
+        }
     });
 
     var divider = this.makeElement('li');
@@ -2102,6 +2338,149 @@ Tag.prototype.createDom = function(){
     }
 };
 
+var PermsHoverCard = function() {
+    WrappedElement.call(this);
+    this._isLoaded = false;
+};
+inherits(PermsHoverCard, WrappedElement);
+
+PermsHoverCard.prototype.setContent = function(data) {
+    this._element.html(data['html']);
+};
+
+PermsHoverCard.prototype.setTrigger = function(trigger) {
+    this._trigger = trigger;
+};
+
+PermsHoverCard.prototype.setPosition = function() {
+    var trigger = this._trigger.getElement();
+    var coors = trigger.offset();
+    var height = trigger.outerHeight();
+    var triangle = this._element.find('.triangle')
+    var triangleHeight = triangle.outerHeight();
+    this._element.css({
+        'top': coors.top + height + triangleHeight,
+        'left': coors.left
+    });
+};
+
+PermsHoverCard.prototype.setUrl = function(url) {
+    this._url = url;
+};
+
+PermsHoverCard.prototype.startLoading = function(onLoad) {
+    var me = this;
+    $.ajax({
+        type: 'GET',
+        dataType: 'json',
+        cache: false,
+        url: this._url,
+        success: function(data) {
+            if (data['success']) {
+                me.setContent(data);
+                me.setPosition();
+                onLoad();
+                me.setIsLoaded();
+            } else {
+                notify.show(data['message']);
+            }
+        }
+    });
+};
+
+PermsHoverCard.prototype.isLoaded = function() {
+    return this._isLoaded;
+};
+
+PermsHoverCard.prototype.setIsLoaded = function() {
+    this._isLoaded = true;
+};
+
+PermsHoverCard.prototype.getOpenHandler = function() {
+    var me = this;
+    return function() {
+        me.clearCancelOpenTimeout();
+        if (me.isLoaded()) {
+            me.getElement().show();
+        } else {
+            var onload = function() {
+                me.getElement().show();
+            }
+            me.startLoading(onload);
+        }
+    };
+};
+
+PermsHoverCard.prototype.setCancelOpenTimoutId = function(timeoutId) {
+    this._cancelOpenTimeoutId = timeoutId;
+};
+
+PermsHoverCard.prototype.clearCancelOpenTimeout = function() {
+    var timeout = this._cancelOpenTimeoutId;
+    if (timeout) {
+        clearTimeout(timeout);
+    }
+};
+
+PermsHoverCard.prototype.getCloseHandler = function() {
+    var me = this;
+    return function() {
+        var element = me.getElement();
+        //start timeout to close
+        var timeout = setTimeout(function() {
+            element.hide();
+            //element.fadeOut('fast');
+        }, 200);
+        me.setCancelOpenTimoutId(timeout);
+    };
+};
+
+PermsHoverCard.prototype.getImmediateCloseHandler = function() {
+    var me = this;
+    return function() {
+        me.getElement().hide();
+    };
+};
+
+PermsHoverCard.prototype.getKeepHandler = function() {
+    var me = this;
+    return function() {
+        me.clearCancelOpenTimeout();
+    };
+};
+
+PermsHoverCard.prototype.createDom = function() {
+    var element = this.makeElement('div');
+    this._element = element;
+    element.addClass('hovercard');
+    element.hover(
+        this.getKeepHandler(),
+        this.getCloseHandler()
+    );
+    this._element.hide();
+};
+
+var ShowPermsTrigger = function() {
+    WrappedElement.call(this);
+};
+inherits(ShowPermsTrigger, WrappedElement);
+
+ShowPermsTrigger.prototype.decorate = function(element) {
+    this._element = element;
+    var hoverCard = new PermsHoverCard();
+    this._hoverCard = hoverCard;
+    $('body').append(hoverCard.getElement());
+
+    hoverCard.setTrigger(this);
+    hoverCard.setUrl(element.data('url'));
+
+    var onEnter = hoverCard.getOpenHandler();
+    var onExit = hoverCard.getCloseHandler();
+    element.hover(onEnter, onExit);
+    var onClose = hoverCard.getImmediateCloseHandler();
+    $('body').click(onClose);
+};
+
 //Search Engine Keyword Highlight with Javascript
 //http://scott.yang.id.au/code/se-hilite/
 Hilite={elementid:"content",exact:true,max_nodes:1000,onload:true,style_name:"hilite",style_name_suffix:true,debug_referrer:""};Hilite.search_engines=[["local","q"],["cnprog\\.","q"],["google\\.","q"],["search\\.yahoo\\.","p"],["search\\.msn\\.","q"],["search\\.live\\.","query"],["search\\.aol\\.","userQuery"],["ask\\.com","q"],["altavista\\.","q"],["feedster\\.","q"],["search\\.lycos\\.","q"],["alltheweb\\.","q"],["technorati\\.com/search/([^\\?/]+)",1],["dogpile\\.com/info\\.dogpl/search/web/([^\\?/]+)",1,true]];Hilite.decodeReferrer=function(d){var g=null;var e=new RegExp("");for(var c=0;c<Hilite.search_engines.length;c++){var f=Hilite.search_engines[c];e.compile("^http://(www\\.)?"+f[0],"i");var b=d.match(e);if(b){var a;if(isNaN(f[1])){a=Hilite.decodeReferrerQS(d,f[1])}else{a=b[f[1]+1]}if(a){a=decodeURIComponent(a);if(f.length>2&&f[2]){a=decodeURIComponent(a)}a=a.replace(/\'|"/g,"");a=a.split(/[\s,\+\.]+/);return a}break}}return null};Hilite.decodeReferrerQS=function(f,d){var b=f.indexOf("?");var c;if(b>=0){var a=new String(f.substring(b+1));b=0;c=0;while((b>=0)&&((c=a.indexOf("=",b))>=0)){var e,g;e=a.substring(b,c);b=a.indexOf("&",c)+1;if(e==d){if(b<=0){return a.substring(c+1)}else{return a.substring(c+1,b-1)}}else{if(b<=0){return null}}}}return null};Hilite.hiliteElement=function(f,e){if(!e||f.childNodes.length==0){return}var c=new Array();for(var b=0;b<e.length;b++){e[b]=e[b].toLowerCase();if(Hilite.exact){c.push("\\b"+e[b]+"\\b")}else{c.push(e[b])}}c=new RegExp(c.join("|"),"i");var a={};for(var b=0;b<e.length;b++){if(Hilite.style_name_suffix){a[e[b]]=Hilite.style_name+(b+1)}else{a[e[b]]=Hilite.style_name}}var d=function(m){var j=c.exec(m.data);if(j){var n=j[0];var i="";var h=m.splitText(j.index);var g=h.splitText(n.length);var l=m.ownerDocument.createElement("SPAN");m.parentNode.replaceChild(l,h);l.className=a[n.toLowerCase()];l.appendChild(h);return l}else{return m}};Hilite.walkElements(f.childNodes[0],1,d)};Hilite.hilite=function(){var a=Hilite.debug_referrer?Hilite.debug_referrer:document.referrer;var b=null;a=Hilite.decodeReferrer(a);if(a&&((Hilite.elementid&&(b=document.getElementById(Hilite.elementid)))||(b=document.body))){Hilite.hiliteElement(b,a)}};Hilite.walkElements=function(d,f,e){var a=/^(script|style|textarea)/i;var c=0;while(d&&f>0){c++;if(c>=Hilite.max_nodes){var b=function(){Hilite.walkElements(d,f,e)};setTimeout(b,50);return}if(d.nodeType==1){if(!a.test(d.tagName)&&d.childNodes.length>0){d=d.childNodes[0];f++;continue}}else{if(d.nodeType==3){d=e(d)}}if(d.nextSibling){d=d.nextSibling}else{while(f>0){d=d.parentNode;f--;if(d.nextSibling){d=d.nextSibling;break}}}}};if(Hilite.onload){if(window.attachEvent){window.attachEvent("onload",Hilite.hilite)}else{if(window.addEventListener){window.addEventListener("load",Hilite.hilite,false)}else{var __onload=window.onload;window.onload=function(){Hilite.hilite();__onload()}}}};
@@ -2224,6 +2603,8 @@ var AutoCompleter = function(options) {
      * @private
      */
     this.finishOnBlur_ = true;
+
+    this._isRunning = false;
 
     this.options.minChars = parseInt(this.options.minChars, 10);
     if (isNaN(this.options.minChars) || this.options.minChars < 1) {
@@ -2453,6 +2834,9 @@ AutoCompleter.prototype.activate = function() {
 };
 
 AutoCompleter.prototype.activateNow = function() {
+    if (this._isRunning) {
+        return;
+    }
     var value = this.getValue();
     if (value.length === 0) {
         this.finish();
@@ -2464,6 +2848,10 @@ AutoCompleter.prototype.activateNow = function() {
             this.fetchData(value);
         }
     }
+};
+
+AutoCompleter.prototype.setIsRunning = function(isRunning) {
+    this._isRunning = isRunning;
 };
 
 AutoCompleter.prototype.fetchData = function(value) {
@@ -2496,11 +2884,21 @@ AutoCompleter.prototype.fetchRemoteData = function(filter, callback) {
         };
         $.ajax({
             url: this.makeUrl(filter),
-            success: ajaxCallback,
+            success: function(data) {
+                ajaxCallback(data);
+                self.setIsRunning(false);
+                //if query changed - rerun the search immediately
+                var newQuery = self.getValue();
+                if (newQuery && newQuery !== filter) {
+                    self.activateNow();
+                }
+            },
             error: function() {
                 ajaxCallback(false);
+                self.setIsRunning(false);
             }
         });
+        self.setIsRunning(true);
     }
 };
 
@@ -2824,6 +3222,9 @@ AutoCompleter.prototype.isContentChar = function(symbol){
  * autocompletable word
  */
 AutoCompleter.prototype.getValue = function(){
+    if (this._element === undefined) {
+        return '';
+    }
     var sel = this._element.getSelection();
     var text = this._element.val();
     var pos = sel.start;//estimated start
@@ -2873,6 +3274,17 @@ AutoCompleter.prototype.displayValue = function(value, data) {
     } else {
         return value;
     }
+};
+
+AutoCompleter.prototype.clear = function() {
+    this._element.val('');
+    this._results.hide();
+    this.lastKeyPressed_ = null;
+    this.lastProcessedValue_ = null;
+    if (this._keyTimeout_) {
+        clearTimeout(this._keyTimeout);
+    }
+    this._active = false;
 };
 
 AutoCompleter.prototype.finish = function() {

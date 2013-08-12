@@ -71,7 +71,7 @@ settings.register(#this field is not editable manually
         FLATPAGES,
         'CATEGORY_TREE',
         description = 'Category tree',#no need to translate
-        default = '',#empty array of arrays in json
+        default = '[["dummy",[]]]',#empty array of arrays in json
         help_text=_('Do not edit this field manually!!!')
         #hidden = True
     )

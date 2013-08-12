@@ -203,11 +203,8 @@ def list_suggested_tags(request):
     paginator_context = functions.setup_paginator({
         'is_paginated' : True,
         'pages': paginator.num_pages,
-        'page': page_no,
-        'has_previous': page.has_previous(),
-        'has_next': page.has_next(),
-        'previous': page.previous_page_number(),
-        'next': page.next_page_number(),
+        'current_page_number': page_no,
+        'page_object': page,
         'base_url' : request.path
     })
 

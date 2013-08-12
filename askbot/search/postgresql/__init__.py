@@ -65,13 +65,18 @@ def run_full_text_search(query_set, query_text, text_search_vector_name):
 
     language_code = get_language()
 
+    #a hack with japanese search for the short queries
+    if language_code == 'ja' and len(query_text) in (1, 2):
+        mul = 4/len(query_text) #4 for 1 and 2 for 2
+        query_text = (query_text + ' ')*mul
+
     #the table name is a hack, because user does not have the language code
-    is_multilingual = getattr(django_settings, 'ASKBOT_MULTILINGUAL', True)
+    is_multilingual = getattr(django_settings, 'ASKBOT_MULTILINGUAL', False)
     if is_multilingual and table_name == 'askbot_thread':
         where_clause += " AND " + table_name + \
                         '.' + "language_code='" + language_code + "'"
 
-    search_query = '&'.join(query_text.split())#apply "AND" operator
+    search_query = '|'.join(query_text.split())#apply "OR" operator
     language_name = LANGUAGE_NAMES.get(language_code, 'english')
     extra_params = (language_name, search_query,)
     extra_kwargs = {

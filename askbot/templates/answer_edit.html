@@ -6,19 +6,14 @@
     <link rel="stylesheet" type="text/css" href="{{"/js/wmd/wmd.css"|media}}" />
 {% endblock %}
 {% block content %}
-<h1 class="section-title">
+<div class="section-title">
     {% trans %}Edit answer{% endtrans %} [<a href="{{ answer.thread._question_post().get_absolute_url() }}#{{ answer.id }}">{% trans %}back{% endtrans %}</a>]
-</h1>
+</div>
 <div id="main-body" class="ask-body">
     <form id="fmedit" action="{% url edit_answer answer.id %}" method="post" >{% csrf_token %}
-        <label for="id_revision" >{% trans %}revision{% endtrans %}:</label> <br/> 
         {% if revision_form.revision.errors %}{{ revision_form.revision.errors.as_ul() }}{% endif %}
-        <div style="vertical-align:middle">
-        {{ revision_form.revision }} <input type="hidden"
-                                    id="select_revision"
-                                    name="select_revision"
-                                    value="false">
-        </div>
+        {{ revision_form.revision }}
+        <input type="hidden" id="select_revision" name="select_revision" value="false"/>
         {{ macros.edit_post(
                         form,
                         post_html = revision.text,
@@ -44,12 +39,12 @@
                 id="edit_post_form_submit_button"
                 type="submit"
                 value="{% trans %}Save edit{% endtrans %}"
-                class="large submit"
+                class="submit"
             />&nbsp;
             <input 
                 type="button"
                 value="{% trans %}Cancel{% endtrans %}"
-                class="large submit"
+                class="submit cancel"
                 onclick="history.back(-1);"
             />
         </div>
@@ -75,8 +70,7 @@
         {% endif %}
     </script>
     {% if settings.EDITOR_TYPE == 'markdown' %}
-        <script type='text/javascript' src='{{"/js/wmd/showdown.js"|media}}'></script>
-        <script type='text/javascript' src='{{"/js/wmd/wmd.js"|media}}'></script>
+        {% include "meta/markdown_javascript.html" %}
     {% endif %}
     <script type="text/javascript">
         $().ready(function(){

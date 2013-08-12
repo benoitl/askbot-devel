@@ -79,10 +79,10 @@ Attacklab.wmdBase = function(){
 	// A collection of the important regions on the page.
 	// Cached so we don't have to keep traversing the DOM.
 	wmd.PanelCollection = function(){
-		this.buttonBar = doc.getElementById("wmd-button-bar");
-		this.preview = doc.getElementById("previewer");
-		this.output = doc.getElementById("wmd-output");
-		this.input = doc.getElementById("editor");
+		this.buttonBar = doc.getElementById(util.makeId("wmd-button-bar"));
+		this.preview = doc.getElementById(util.makeId("previewer"));
+		this.output = doc.getElementById(util.makeId("wmd-output"));
+		this.input = doc.getElementById(util.makeId("editor"));
 	};
 	
 	// This PanelCollection object can't be filled until after the page
@@ -195,7 +195,7 @@ Attacklab.wmdBase = function(){
 		var imgPath = imageDirectory + img;
 		
 		var elem = doc.createElement("img");
-		elem.className = "wmd-button";
+		elem.className = "wmd-button wmd-image-button";
 		elem.src = imgPath;
 
 		return elem;
@@ -276,24 +276,21 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
         // so we make the whole window transparent.
         //
         // Is this necessary on modern konqueror browsers?
-        if (global.isKonqueror){
+        if (global.isKonqueror) {
             style.backgroundColor = "transparent";
-        }
-        else if (global.isIE){
+        } else if (global.isIE) {
             style.filter = "alpha(opacity=50)";
-        }
-        else {
+        } else {
             style.opacity = "0.5";
         }
         
         var pageSize = position.getPageSize();
         style.height = pageSize[1] + "px";
         
-        if(global.isIE){
+        if(global.isIE) {
             style.left = doc.documentElement.scrollLeft;
             style.width = doc.documentElement.clientWidth;
-        }
-        else {
+        } else {
             style.left = "0";
             style.width = "100%";
         }
@@ -333,7 +330,7 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
         // The input text box
         input = doc.createElement("input");
         if(dialogType == 'image' || dialogType == 'file'){
-            input.id = "image-url";
+            input.id = util.makeId("image-url");
         }
         input.type = "text";
         if (dialogType == 'file'){
@@ -449,14 +446,13 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
     
     // Why is this in a zero-length timeout?
     // Is it working around a browser bug?
-    top.setTimeout(function(){
+    setTimeout(function(){
         createDialog();
         var defTextLen = defaultInputText.length;
         if (input.type == 'text' && input.selectionStart !== undefined) {
             input.selectionStart = 0;
             input.selectionEnd = defTextLen;
-        }
-        else if (input.createTextRange) {
+        } else if (input.createTextRange) {
             var range = input.createTextRange();
             range.collapse(false);
             range.moveStart("character", -defTextLen);
@@ -497,30 +493,26 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 		var innerWidth, innerHeight;
 		
 		// It's not very clear which blocks work with which browsers.
-		if(self.innerHeight && self.scrollMaxY){
+		if (self.innerHeight && self.scrollMaxY) {
 			scrollWidth = doc.body.scrollWidth;
 			scrollHeight = self.innerHeight + self.scrollMaxY;
-		}
-		else if(doc.body.scrollHeight > doc.body.offsetHeight){
+		} else if (doc.body.scrollHeight > doc.body.offsetHeight){
 			scrollWidth = doc.body.scrollWidth;
 			scrollHeight = doc.body.scrollHeight;
-		}
-		else{
+		} else {
 			scrollWidth = doc.body.offsetWidth;
 			scrollHeight = doc.body.offsetHeight;
 		}
 		
-		if(self.innerHeight){
+		if (self.innerHeight) {
 			// Non-IE browser
 			innerWidth = self.innerWidth;
 			innerHeight = self.innerHeight;
-		}
-		else if(doc.documentElement && doc.documentElement.clientHeight){
+		} else if (doc.documentElement && doc.documentElement.clientHeight){
 			// Some versions of IE (IE 6 w/ a DOCTYPE declaration)
 			innerWidth = doc.documentElement.clientWidth;
 			innerHeight = doc.documentElement.clientHeight;
-		}
-		else if(doc.body){
+		} else if(doc.body) {
 			// Other versions of IE
 			innerWidth = doc.body.clientWidth;
 			innerHeight = doc.body.clientHeight;
@@ -585,11 +577,11 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 		// Set how often we poll the textarea for changes.
 		var assignInterval = function(){
 			// previewPollInterval is set at the top of the namespace.
-			killHandle = top.setInterval(doTickCallback, interval);
+			killHandle = setInterval(doTickCallback, interval);
 		};
 		
 		this.destroy = function(){
-			top.clearInterval(killHandle);
+			clearInterval(killHandle);
 		};
 		
 		assignInterval();
@@ -619,7 +611,7 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 			}
 			
 			if (!global.isIE || mode != "moving") {
-				timer = top.setTimeout(refreshState, 1);
+				timer = setTimeout(refreshState, 1);
 			}
 			else {
 				inputStateObj = null;
@@ -635,7 +627,7 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 		this.setCommandMode = function(){
 			mode = "command";
 			saveState();
-			timer = top.setTimeout(refreshState, 0);
+			timer = setTimeout(refreshState, 0);
 		};
 		
 		this.canUndo = function(){
@@ -750,8 +742,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 				if (event.preventDefault) {
 					event.preventDefault();
 				}
-				if (top.event) {
-					top.event.returnValue = false;
+				if (event) {
+					event.returnValue = false;
 				}
 				return;
 			}
@@ -932,8 +924,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 			
 		var setUndoRedoButtonStates = function(){
 			if(undoMgr){
-				setupButton(document.getElementById("wmd-undo-button"), undoMgr.canUndo());
-				setupButton(document.getElementById("wmd-redo-button"), undoMgr.canRedo());
+				setupButton(document.getElementById(util.makeId("wmd-undo-button")), undoMgr.canUndo());
+				setupButton(document.getElementById(util.makeId("wmd-redo-button")), undoMgr.canRedo());
 			}
 		};
 		
@@ -981,19 +973,21 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 		};
 
 		var makeSpritedButtonRow = function(){
-			var buttonBar = document.getElementById("wmd-button-bar");
+			var buttonBar = document.getElementById(util.makeId("wmd-button-bar"));
+            buttonBar.className = 'wmd-button-bar';
 			var normalYShift = "0px";
 			var disabledYShift = "-20px";
 			var highlightYShift = "-40px";
 			
 			var buttonRow = document.createElement("ul");
-			buttonRow.id = "wmd-button-row";
+            buttonRow.className = 'wmd-button-row';
+			buttonRow.id = util.makeId("wmd-button-row");
 			buttonRow = buttonBar.appendChild(buttonRow);
 
             if (isButtonUsed('bold')){
                 var boldButton = document.createElement("li");
-                boldButton.className = "wmd-button";
-                boldButton.id = "wmd-bold-button";
+                boldButton.className = "wmd-button wmd-bold-button";
+                boldButton.id = util.makeId("wmd-bold-button");
                 boldButton.title = toolbar_strong_label;
                 boldButton.XShift = "0px";
                 boldButton.textOp = command.doBold;
@@ -1003,8 +997,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 			
             if (isButtonUsed('italic')){
                 var italicButton = document.createElement("li");
-                italicButton.className = "wmd-button";
-                italicButton.id = "wmd-italic-button";
+                italicButton.className = "wmd-button wmd-italic-button";
+                italicButton.id = util.makeId("wmd-italic-button");
                 italicButton.title = toolbar_emphasis_label;
                 italicButton.XShift = "-20px";
                 italicButton.textOp = command.doItalic;
@@ -1020,15 +1014,15 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
                 isButtonUsed('attachment')
             ) {
                 var spacer1 = document.createElement("li");
-                spacer1.className = "wmd-spacer";
-                spacer1.id = "wmd-spacer1";
+                spacer1.className = "wmd-spacer wmd-spacer1";
+                spacer1.id = util.makeId("wmd-spacer1");
                 buttonRow.appendChild(spacer1); 
             }
 
             if (isButtonUsed('link')){
                 var linkButton = document.createElement("li");
-                linkButton.className = "wmd-button";
-                linkButton.id = "wmd-link-button";
+                linkButton.className = "wmd-button wmd-link-button";
+                linkButton.id = util.makeId("wmd-link-button");
                 linkButton.title = toolbar_hyperlink_label;
                 linkButton.XShift = "-40px";
                 linkButton.textOp = function(chunk, postProcessing){
@@ -1040,8 +1034,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 
             if (isButtonUsed('blockquote')){
                 var quoteButton = document.createElement("li");
-                quoteButton.className = "wmd-button";
-                quoteButton.id = "wmd-quote-button";
+                quoteButton.className = "wmd-button wmd-quote-button";
+                quoteButton.id = util.makeId("wmd-quote-button");
                 quoteButton.title = toolbar_blockquote_label;
                 quoteButton.XShift = "-60px";
                 quoteButton.textOp = command.doBlockquote;
@@ -1051,8 +1045,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 			
             if (isButtonUsed('code')){
                 var codeButton = document.createElement("li");
-                codeButton.className = "wmd-button";
-                codeButton.id = "wmd-code-button";
+                codeButton.className = "wmd-button wmd-code-button";
+                codeButton.id = util.makeId("wmd-code-button");
                 codeButton.title = toolbar_code_label;
                 codeButton.XShift = "-80px";
                 codeButton.textOp = command.doCode;
@@ -1062,8 +1056,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 
             if (isButtonUsed('image')){
                 var imageButton = document.createElement("li");
-                imageButton.className = "wmd-button";
-                imageButton.id = "wmd-image-button";
+                imageButton.className = "wmd-button wmd-image-button";
+                imageButton.id = util.makeId("wmd-image-button");
                 imageButton.title = toolbar_image_label;
                 imageButton.XShift = "-100px";
                 imageButton.textOp = function(chunk, postProcessing){
@@ -1075,8 +1069,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 
             if (isButtonUsed('attachment')){
                 var attachmentButton = document.createElement("li");
-                attachmentButton.className = "wmd-button";
-                attachmentButton.id = "wmd-attachment-button";
+                attachmentButton.className = "wmd-button wmd-attachment-button";
+                attachmentButton.id = util.makeId("wmd-attachment-button");
                 attachmentButton.title = toolbar_attachment_label;
                 attachmentButton.XShift = "-120px";
                 attachmentButton.textOp = function(chunk, postProcessing){
@@ -1093,15 +1087,15 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
                 isButtonUsed('hr')
             ) {
                 var spacer2 = document.createElement("li");
-                spacer2.className = "wmd-spacer";
-                spacer2.id = "wmd-spacer2";
+                spacer2.className = "wmd-spacer wmd-spacer2";
+                spacer2.id = util.makeId("wmd-spacer2");
                 buttonRow.appendChild(spacer2); 
             }
 
             if (isButtonUsed('ol')) {
                 var olistButton = document.createElement("li");
-                olistButton.className = "wmd-button";
-                olistButton.id = "wmd-olist-button";
+                olistButton.className = "wmd-button wmd-olist-button";
+                olistButton.id = util.makeId("wmd-olist-button");
                 olistButton.title = toolbar_numbered_label;
                 olistButton.XShift = "-140px";
                 olistButton.textOp = function(chunk, postProcessing){
@@ -1113,8 +1107,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 			
             if (isButtonUsed('ul')) {
                 var ulistButton = document.createElement("li");
-                ulistButton.className = "wmd-button";
-                ulistButton.id = "wmd-ulist-button";
+                ulistButton.className = "wmd-button wmd-ulist-button";
+                ulistButton.id = util.makeId("wmd-ulist-button");
                 ulistButton.title = toolbar_bulleted_label;
                 ulistButton.XShift = "-160px";
                 ulistButton.textOp = function(chunk, postProcessing){
@@ -1126,8 +1120,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 			
             if (isButtonUsed('heading')) {
                 var headingButton = document.createElement("li");
-                headingButton.className = "wmd-button";
-                headingButton.id = "wmd-heading-button";
+                headingButton.className = "wmd-button wmd-heading-button";
+                headingButton.id = util.makeId("wmd-heading-button");
                 headingButton.title = toolbar_heading_label;
                 headingButton.XShift = "-180px";
                 headingButton.textOp = command.doHeading;
@@ -1137,8 +1131,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 			
             if (isButtonUsed('hr')) {
                 var hrButton = document.createElement("li");
-                hrButton.className = "wmd-button";
-                hrButton.id = "wmd-hr-button";
+                hrButton.className = "wmd-button wmd-hr-button";
+                hrButton.id = util.makeId("wmd-hr-button");
                 hrButton.title = toolbar_horizontal_label;
                 hrButton.XShift = "-200px";
                 hrButton.textOp = command.doHorizontalRule;
@@ -1148,13 +1142,13 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 			
             if (isButtonUsed('undo')){
                 var spacer3 = document.createElement("li");
-                spacer3.className = "wmd-spacer";
-                spacer3.id = "wmd-spacer3";
+                spacer3.className = "wmd-spacer wmd-spacer3";
+                spacer3.id = util.makeId("wmd-spacer3");
                 buttonRow.appendChild(spacer3); 
                 
                 var undoButton = document.createElement("li");
-                undoButton.className = "wmd-button";
-                undoButton.id = "wmd-undo-button";
+                undoButton.className = "wmd-button wmd-undo-button";
+                undoButton.id = util.makeId("wmd-undo-button");
                 undoButton.title = toolbar_undo_label;
                 undoButton.XShift = "-220px";
                 undoButton.execute = function(manager){
@@ -1164,8 +1158,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
                 buttonRow.appendChild(undoButton); 
                 
                 var redoButton = document.createElement("li");
-                redoButton.className = "wmd-button";
-                redoButton.id = "wmd-redo-button";
+                redoButton.className = "wmd-button wmd-redo-button";
+                redoButton.id = util.makeId("wmd-redo-button");
                 redoButton.title = toolbar_redo_label;
                 if (/win/.test(nav.platform.toLowerCase())) {
                     redoButton.title = toolbar_redo_label;
@@ -1184,8 +1178,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
             }
 			/*
 			var helpButton = document.createElement("li");
-			helpButton.className = "wmd-button";
-			helpButton.id = "wmd-help-button";
+			helpButton.className = "wmd-button wmd-help-button";
+			helpButton.id = util.makeId("wmd-help-button");
 			helpButton.XShift = "-240px";
 			helpButton.isHelp = true;
 			
@@ -1239,44 +1233,44 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 					
 					switch(keyCodeStr) {
 						case "b":
-							doClick(document.getElementById("wmd-bold-button"));
+							doClick(document.getElementById(util.makeId("wmd-bold-button")));
 							break;
 						case "i":
-							doClick(document.getElementById("wmd-italic-button"));
+							doClick(document.getElementById(util.makeId("wmd-italic-button")));
 							break;
 						case "l":
-							doClick(document.getElementById("wmd-link-button"));
+							doClick(document.getElementById(util.makeId("wmd-link-button")));
 							break;
 						case ".":
-							doClick(document.getElementById("wmd-quote-button"));
+							doClick(document.getElementById(util.makeId("wmd-quote-button")));
 							break;
 						case "k":
-							doClick(document.getElementById("wmd-code-button"));
+							doClick(document.getElementById(util.makeId("wmd-code-button")));
 							break;
 						case "g":
-							doClick(document.getElementById("wmd-image-button"));
+							doClick(document.getElementById(util.makeId("wmd-image-button")));
 							break;
 						case "o":
-							doClick(document.getElementById("wmd-olist-button"));
+							doClick(document.getElementById(util.makeId("wmd-olist-button")));
 							break;
 						case "u":
-							doClick(document.getElementById("wmd-ulist-button"));
+							doClick(document.getElementById(util.makeId("wmd-ulist-button")));
 							break;
 						case "h":
-							doClick(document.getElementById("wmd-heading-button"));
+							doClick(document.getElementById(util.makeId("wmd-heading-button")));
 							break;
 						case "r":
-							doClick(document.getElementById("wmd-hr-button"));
+							doClick(document.getElementById(util.makeId("wmd-hr-button")));
 							break;
 						case "y":
-							doClick(document.getElementById("wmd-redo-button"));
+							doClick(document.getElementById(util.makeId("wmd-redo-button")));
 							break;
 						case "z":
 							if(key.shiftKey) {
-								doClick(document.getElementById("wmd-redo-button"));
+								doClick(document.getElementById(util.makeId("wmd-redo-button")));
 							}
 							else {
-								doClick(document.getElementById("wmd-undo-button"));
+								doClick(document.getElementById(util.makeId("wmd-undo-button")));
 							}
 							break;
 						default:
@@ -1288,8 +1282,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 						key.preventDefault();
 					}
 					
-					if (top.event) {
-						top.event.returnValue = false;
+					if (event) {
+						event.returnValue = false;
 					}
 				}
 			});
@@ -1322,7 +1316,7 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 		var convertToHtml = function(){
 		
 			if (wmd.showdown) {
-				var markdownConverter = new wmd.showdown.converter();
+				var markdownConverter = getAskbotMarkdownConverter();
 			}
 			var text = inputBox.value;
 			
@@ -1335,7 +1329,7 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 				if (markdownConverter) {
 					inputBox.value = markdownConverter.makeHtml(text);
           //value is assigned here
-					top.setTimeout(callback, 0);
+					setTimeout(callback, 0);
 				}
 			}
 			return true;
@@ -1370,7 +1364,7 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 			if (inputBox) {
 				inputBox.style.marginTop = "";
 			}
-			top.clearInterval(creationHandle);
+			clearInterval(creationHandle);
 		};
 		
 		init();
@@ -1877,8 +1871,17 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 		wmd.wmd.editor = wmd.editor;
 		wmd.wmd.previewManager = wmd.previewManager;
 	};
+
+    util.makeId = function(idToken) {
+        if (wmd.wmd_env['idSeed']) {
+            return askbotMakeId(idToken, wmd.wmd_env['idSeed']);
+        }
+        return idToken;
+    };
 	
-	util.startEditor = function(start_now, buttons){
+	util.startEditor = function(start_now, buttons, idSeed){
+
+        wmd.wmd_env['idSeed'] = idSeed;
 	
 		if (wmd.wmd_env.autostart === false) {
 			util.makeAPI();
@@ -1909,7 +1912,7 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
         if (start_now){
             loadListener();
         } else {
-		    util.addEvent(top, "load", loadListener);
+		    util.addEvent(window, "load", loadListener);
         }
 	};
 	
@@ -1942,8 +1945,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 		
 			var result = 0;
 			
-			if (top.innerHeight) {
-				result = top.pageYOffset;
+			if (window.innerHeight) {
+				result = pageYOffset;
 			}
 			else 
 				if (doc.documentElement && doc.documentElement.scrollTop) {
@@ -1975,8 +1978,8 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 			
 			var prevTime = new Date().getTime();
 			
-			if (!converter && wmd.showdown) {
-				converter = new wmd.showdown.converter();
+			if (!converter) {
+                converter = getAskbotMarkdownConverter();
 			}
 			
 			if (converter) {
@@ -1996,7 +1999,7 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 		var applyTimeout = function(){
 		
 			if (timeout) {
-				top.clearTimeout(timeout);
+				clearTimeout(timeout);
 				timeout = undefined;
 			}
 			
@@ -2011,7 +2014,7 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 				if (delay > maxDelay) {
 					delay = maxDelay;
 				}
-				timeout = top.setTimeout(makePreviewHtml, delay);
+				timeout = setTimeout(makePreviewHtml, delay);
 			}
 		};
 		
@@ -2096,12 +2099,12 @@ util.prompt = function(text, defaultInputText, makeLinkMarkdown, dialogType){
 			var fullTop = position.getTop(wmd.panels.input) - getDocScrollTop();
 			
 			if (global.isIE) {
-				top.setTimeout(function(){
-					top.scrollBy(0, fullTop - emptyTop);
+				setTimeout(function(){
+					scrollBy(0, fullTop - emptyTop);
 				}, 0);
 			}
 			else {
-				top.scrollBy(0, fullTop - emptyTop);
+				scrollBy(0, fullTop - emptyTop);
 			}
 		};
 		
@@ -2472,28 +2475,22 @@ Attacklab.wmd_env = {};
 Attacklab.account_options = {};
 Attacklab.wmd_defaults = {version:1, output:"Markdown", lineLength:40, delayLoad:false};
 
-if(!Attacklab.wmd)
-{
-	Attacklab.wmd = function()
-	{
-		Attacklab.loadEnv = function()
-		{
-			var mergeEnv = function(env)
-			{
-				if(!env)
-				{
+if (askbot['settings']['editorType'] == 'markdown' && !Attacklab.wmd) {
+	Attacklab.wmd = function() {
+		Attacklab.loadEnv = function() {
+			var mergeEnv = function(env) {
+				if(!env) {
 					return;
 				}
 			
-				for(var key in env)
-				{
+				for(var key in env) {
 					Attacklab.wmd_env[key] = env[key];
 				}
 			};
 			
 			mergeEnv(Attacklab.wmd_defaults);
 			mergeEnv(Attacklab.account_options);
-			mergeEnv(top["wmd_options"]);
+			mergeEnv(window["wmd_options"]);
 			Attacklab.full = true;
 			
 			var defaultButtons = "bold italic link blockquote code image attachment ol ul heading hr";
@@ -2507,4 +2504,3 @@ if(!Attacklab.wmd)
 	Attacklab.wmdBase();
 	Attacklab.Util.startEditor();
 };
-

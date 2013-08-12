@@ -1,7 +1,6 @@
 <script type='text/javascript' src='{{"/js/editor.js"|media}}'></script>
 <script type="text/javascript" src='{{"/bootstrap/js/bootstrap.js"|media}}'></script>
-<script type='text/javascript' src='{{"/js/wmd/showdown.js"|media}}'></script>
-<script type='text/javascript' src='{{"/js/wmd/wmd.js"|media}}'></script>
+{% include "meta/markdown_javascript.html" %}
 <script type='text/javascript' src='{{"/js/jquery.validate.min.js"|media}}'></script>
 <script type='text/javascript' src='{{"/js/post.js"|media}}'></script>
 <script type="text/javascript">
@@ -84,4 +83,11 @@
             CPValidator.getAnswerFormMessages()
         );
     }
+    (function() {
+        var editorBox = $('.folded-editor');
+        if (editorBox.length) {
+            var foldedEditor = new FoldedEditor();
+            foldedEditor.decorate(editorBox);
+        }
+    })();
 </script>

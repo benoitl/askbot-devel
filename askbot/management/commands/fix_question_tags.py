@@ -7,8 +7,6 @@ from askbot.utils import console
 from askbot.models import signals
 from askbot.conf import settings as askbot_settings
 
-FORMAT_STRING = '%6.2f%%'
-
 class Command(NoArgsCommand):
     def handle_noargs(self, **options):
         signal_data = signals.pop_all_db_signal_receivers()
@@ -70,9 +68,9 @@ class Command(NoArgsCommand):
 
             transaction.commit()
             checked_count += 1
-            progress = 100*float(checked_count)/float(total_count)
-            console.print_progress(FORMAT_STRING, progress)
-        print FORMAT_STRING % 100
+            console.print_progress(checked_count, total_count)
+        console.print_progress(checked_count, total_count)
+
         if found_count:
             print '%d problem questions found, tag records restored' % found_count
         else:

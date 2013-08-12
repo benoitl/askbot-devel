@@ -363,21 +363,18 @@ class ChangeEmailForm(forms.Form):
     def clean_email(self):
         """ check if email don't exist """
         if 'email' in self.cleaned_data:
-            if askbot_settings.EMAIL_UNIQUE == True:
-                try:
-                    user = User.objects.get(email = self.cleaned_data['email'])
-                    if self.user and self.user == user:   
-                        return self.cleaned_data['email']
-                except User.DoesNotExist:
+            try:
+                user = User.objects.get(email = self.cleaned_data['email'])
+                if self.user and self.user == user:   
                     return self.cleaned_data['email']
-                except User.MultipleObjectsReturned:
-                    raise forms.ValidationError(u'There is already more than one \
-                        account registered with that e-mail address. Please try \
-                        another.')
-                raise forms.ValidationError(u'This email is already registered \
-                    in our database. Please choose another.')
-            else:
+            except User.DoesNotExist:
                 return self.cleaned_data['email']
+            except User.MultipleObjectsReturned:
+                raise forms.ValidationError(u'There is already more than one \
+                    account registered with that e-mail address. Please try \
+                    another.')
+            raise forms.ValidationError(u'This email is already registered \
+                in our database. Please choose another.')
 
 class AccountRecoveryForm(forms.Form):
     """with this form user enters email address and
@@ -395,9 +392,9 @@ class AccountRecoveryForm(forms.Form):
         if 'email' in self.cleaned_data:
             email = self.cleaned_data['email']
             try:
-                user = User.objects.get(email__iexact=email)
+                user = User.objects.filter(email__iexact=email)[0]
                 self.cleaned_data['user'] = user
-            except User.DoesNotExist:
+            except IndexError:
                 del self.cleaned_data['email']
                 message = _('Sorry, we don\'t have this email address in the database')
                 raise forms.ValidationError(message)

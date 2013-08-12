@@ -71,6 +71,11 @@ To enable:
 * add ENABLE_HAYSTACK_SEARCH = True in settings.py 
 * Configure your search backend according to your setup following `this guide <http://django-haystack.readthedocs.org/en/latest/tutorial.html#modify-your-settings-py>`_
 
+Solr and  Multilingual Support
+-------------------------
+
+There is more documentation about solr and multilingual support  please visit :ref:`this link <solr>`
+
 Embedding video
 ===============
 

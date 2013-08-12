@@ -15,6 +15,7 @@ import operator
 import urllib
 
 from django.db.models import Count
+from django.db.models import Q
 from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
 from django.core import exceptions as django_exceptions
@@ -27,6 +28,7 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.http import HttpResponseRedirect, Http404
 from django.utils.translation import ugettext as _
 from django.utils import simplejson
+from django.utils.html import strip_tags as strip_all_tags
 from django.views.decorators import csrf
 
 from askbot.utils.slug import slugify
@@ -59,6 +61,7 @@ def owner_or_moderator_required(f):
             return HttpResponseRedirect(url_utils.get_login_url() + params)
         return f(request, profile_owner, context)
     return wrapped_func
+
 
 def show_users(request, by_group=False, group_id=None, group_slug=None):
     """Users view, including listing of users by group"""
@@ -163,11 +166,8 @@ def show_users(request, by_group=False, group_id=None, group_slug=None):
     paginator_data = {
         'is_paginated' : is_paginated,
         'pages': objects_list.num_pages,
-        'page': page,
-        'has_previous': users_page.has_previous(),
-        'has_next': users_page.has_next(),
-        'previous': users_page.previous_page_number(),
-        'next': users_page.next_page_number(),
+        'current_page_number': page,
+        'page_object': users_page,
         'base_url' : base_url
     }
     paginator_context = functions.setup_paginator(paginator_data) #
@@ -305,6 +305,15 @@ def set_new_email(user, new_email, nomessage=False):
         #if askbot_settings.EMAIL_VALIDATION == True:
         #    send_new_email_key(user,nomessage=nomessage)
 
+
+def need_to_invalidate_post_caches(user, form):
+    """a utility function for the edit user profile view"""
+    new_country = (form.cleaned_data.get('country') != user.country)
+    new_show_country = (form.cleaned_data.get('show_country') != user.show_country)
+    new_username = (form.cleaned_data.get('username') != user.username)
+    return (new_country or new_show_country or new_username)
+
+
 @login_required
 @csrf.csrf_protect
 def edit_user(request, id):
@@ -321,15 +330,30 @@ def edit_user(request, id):
                 new_email = sanitize_html(form.cleaned_data['email'])
                 set_new_email(user, new_email)
 
+            prev_username = user.username
             if askbot_settings.EDITABLE_SCREEN_NAME:
-                new_username = sanitize_html(form.cleaned_data['username'])
+                new_username = strip_all_tags(form.cleaned_data['username'])
                 if user.username != new_username:
                     group = user.get_personal_group()
                     user.username = new_username
                     group.name = format_personal_group_name(user)
                     group.save()
 
-            user.real_name = sanitize_html(form.cleaned_data['realname'])
+            #Maybe we need to clear post caches, b/c
+            #author info may need to be updated on posts and thread summaries
+            if need_to_invalidate_post_caches(user, form):
+                #get threads where users participated
+                thread_ids = models.Post.objects.filter(
+                                    Q(author=user) | Q(last_edited_by=user)
+                                ).values_list(
+                                    'thread__id', flat=True
+                                ).distinct()
+                threads = models.Thread.objects.filter(id__in=thread_ids)
+                for thread in threads:
+                    #for each thread invalidate cache keys for posts, etc
+                    thread.invalidate_cached_data(lazy=True)
+
+            user.real_name = strip_all_tags(form.cleaned_data['realname'])
             user.website = sanitize_html(form.cleaned_data['website'])
             user.location = sanitize_html(form.cleaned_data['city'])
             user.date_of_birth = form.cleaned_data.get('birthday', None)
@@ -528,6 +552,13 @@ def user_stats(request, user, context):
     }
     context.update(data)
 
+    extra_context = view_context.get_extra(
+                                'ASKBOT_USER_PROFILE_PAGE_EXTRA_CONTEXT',
+                                request,
+                                context
+                            )
+    context.update(extra_context)
+
     return render(request, 'user_profile/user_stats.html', context)
 
 def user_recent(request, user, context):
@@ -539,19 +570,14 @@ def user_recent(request, user, context):
 
     class Event(object):
         is_badge = False
-        def __init__(self, time, type, title, summary, answer_id, question_id):
+        def __init__(self, time, type, title, summary, url):
             self.time = time
             self.type = get_type_name(type)
             self.type_id = type
             self.title = title
             self.summary = summary
             slug_title = slugify(title)
-            self.title_link = reverse(
-                                'question',
-                                kwargs={'id':question_id}
-                            ) + u'%s' % slug_title
-            if int(answer_id) > 0:
-                self.title_link += '#%s' % answer_id
+            self.title_link = url
 
     class AwardEvent(object):
         is_badge = True
@@ -573,123 +599,47 @@ def user_recent(request, user, context):
         const.TYPE_ACTIVITY_PRIZE
     )
 
-    #source of information about activities
+    #1) get source of information about activities
     activity_objects = models.Activity.objects.filter(
                                         user=user,
                                         activity_type__in=activity_types
+                                    ).order_by(
+                                        '-active_at'
                                     )[:const.USER_VIEW_DATA_SIZE]
 
+    #2) load content objects ("c.objects) for each activity
+    # the return value is dictionary where activity id's are keys
+    content_objects_by_activity = activity_objects.fetch_content_objects_dict()
+
+        
     #a list of digest objects, suitable for display
     #the number of activities to show is not guaranteed to be
     #const.USER_VIEW_DATA_TYPE, because we don't show activity
     #for deleted content
     activities = []
     for activity in activity_objects:
+        content = content_objects_by_activity.get(activity.id)
 
-        # TODO: multi-if means that we have here a construct for which a design pattern should be used
+        if content is None:
+            continue
 
-        # ask questions
-        if activity.activity_type == const.TYPE_ACTIVITY_ASK_QUESTION:
-            question = activity.content_object
-            if not question.deleted:
-                activities.append(Event(
-                    time=activity.active_at,
-                    type=activity.activity_type,
-                    title=question.thread.title,
-                    summary='', #q.summary,  # TODO: was set to '' before, but that was probably wrong
-                    answer_id=0,
-                    question_id=question.id
-                ))
+        if activity.activity_type == const.TYPE_ACTIVITY_PRIZE:
+            event = AwardEvent(
+                time=content.awarded_at,
+                type=activity.activity_type,
+                content_object=content.content_object,
+                badge=content.badge,
+            )
+        else:
+            event = Event(
+                time=activity.active_at,
+                type=activity.activity_type,
+                title=content.thread.title,
+                summary=content.summary,
+                url=content.get_absolute_url()
+            )
 
-        elif activity.activity_type == const.TYPE_ACTIVITY_ANSWER:
-            ans = activity.content_object
-            question = ans.thread._question_post()
-            if not ans.deleted and not question.deleted:
-                activities.append(Event(
-                    time=activity.active_at,
-                    type=activity.activity_type,
-                    title=ans.thread.title,
-                    summary=question.summary,
-                    answer_id=ans.id,
-                    question_id=question.id
-                ))
-
-        elif activity.activity_type == const.TYPE_ACTIVITY_COMMENT_QUESTION:
-            cm = activity.content_object
-            q = cm.parent
-            #assert q.is_question(): todo the activity types may be wrong
-            if not q.deleted:
-                activities.append(Event(
-                    time=cm.added_at,
-                    type=activity.activity_type,
-                    title=q.thread.title,
-                    summary='',
-                    answer_id=0,
-                    question_id=q.id
-                ))
-
-        elif activity.activity_type == const.TYPE_ACTIVITY_COMMENT_ANSWER:
-            cm = activity.content_object
-            ans = cm.parent
-            #assert ans.is_answer()
-            question = ans.thread._question_post()
-            if not ans.deleted and not question.deleted:
-                activities.append(Event(
-                    time=cm.added_at,
-                    type=activity.activity_type,
-                    title=ans.thread.title,
-                    summary='',
-                    answer_id=ans.id,
-                    question_id=question.id
-                ))
-
-        elif activity.activity_type == const.TYPE_ACTIVITY_UPDATE_QUESTION:
-            q = activity.content_object
-            if not q.deleted:
-                activities.append(Event(
-                    time=activity.active_at,
-                    type=activity.activity_type,
-                    title=q.thread.title,
-                    summary=q.summary,
-                    answer_id=0,
-                    question_id=q.id
-                ))
-
-        elif activity.activity_type == const.TYPE_ACTIVITY_UPDATE_ANSWER:
-            ans = activity.content_object
-            question = ans.thread._question_post()
-            if not ans.deleted and not question.deleted:
-                activities.append(Event(
-                    time=activity.active_at,
-                    type=activity.activity_type,
-                    title=ans.thread.title,
-                    summary=ans.summary,
-                    answer_id=ans.id,
-                    question_id=question.id
-                ))
-
-        elif activity.activity_type == const.TYPE_ACTIVITY_MARK_ANSWER:
-            ans = activity.content_object
-            question = ans.thread._question_post()
-            if not ans.deleted and not question.deleted:
-                activities.append(Event(
-                    time=activity.active_at,
-                    type=activity.activity_type,
-                    title=ans.thread.title,
-                    summary='',
-                    answer_id=0,
-                    question_id=question.id
-                ))
-
-        elif activity.activity_type == const.TYPE_ACTIVITY_PRIZE:
-            award = activity.content_object
-            if award is not None:#todo: work around halfa$$ comment deletion
-                activities.append(AwardEvent(
-                    time=award.awarded_at,
-                    type=activity.activity_type,
-                    content_object=award.content_object,
-                    badge=award.badge,
-                ))
+        activities.append(event)
 
     activities.sort(key=operator.attrgetter('time'), reverse=True)
 
@@ -1107,7 +1057,7 @@ def user(request, id, slug=None, tab_name=None):
         sort=None,
         query=None,
         tags=None,
-        author=profile_owner.id,
+        author=None,
         page=None,
         user_logged_in=profile_owner.is_authenticated(),
     )

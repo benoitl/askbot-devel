@@ -514,9 +514,14 @@ class GroupTests(AskbotTestCase):
         self.assertEqual(qa.groups.filter(name='private').exists(), True)
 
     def test_global_group_name_setting_changes_group_name(self):
+        orig_group_name = askbot_settings.GLOBAL_GROUP_NAME;
         askbot_settings.update('GLOBAL_GROUP_NAME', 'all-people')
         group = models.Group.objects.get_global_group()
         self.assertEqual(group.name, 'all-people')
+        # Revert the global group name, so we don't mess up other tests!
+        askbot_settings.update('GLOBAL_GROUP_NAME', orig_group_name);
+        group = models.Group.objects.get_global_group()
+        self.assertEqual(group.name, orig_group_name)
 
     def test_ask_global_group_by_id_works(self):
         group = models.Group.objects.get_global_group()
@@ -644,6 +649,21 @@ class GroupTests(AskbotTestCase):
         found_count = self.u1.get_groups().filter(name='somegroup').count()
         self.assertEqual(found_count, 1)
 
+        #closed group
+        closed_group = models.Group(name="secretgroup")
+        closed_group.openness = models.Group.CLOSED
+        closed_group.save()
+
+        #join (should raise exception)
+        self.assertRaises(exceptions.PermissionDenied,
+                          self.u1.join_group, closed_group)
+        #testing force parameter
+        self.u1.join_group(closed_group, force=True)
+
+        #assert membership of askbot group object
+        found_count = self.u1.get_groups().filter(name='secretgroup').count()
+        self.assertEqual(found_count, 1)
+
     def test_group_moderation(self):
         #create group
         group = models.Group(name='somegroup')
@@ -698,5 +718,3 @@ class LinkPostingTests(AskbotTestCase):
         self.assert_no_link(question.html)
         self.edit_question(user=admin, question=question, body_text=text + ' ok')
         self.assert_has_link(question.html, 'http://wikipedia.org')
-
-    

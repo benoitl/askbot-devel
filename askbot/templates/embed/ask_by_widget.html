@@ -167,7 +167,7 @@
 <div class="title">{{widget.title}}</div>
 <form action="." method="POST" accept-charset="utf-8">
   {% csrf_token %}
-  <label>{%trans%}Please enter a descriptive title for your question{%endtrans%}</label>
+  <label>{%trans%}Please enter your question{%endtrans%}</label>
   <div class="input-title">
     {{form.title}}
   </div>
@@ -201,16 +201,15 @@
 {% block endjs %}
 <script type='text/javascript' src='{{"/js/editor.js"|media}}'></script>
 {% if editor_type == 'markdown' %}
-    <script type='text/javascript' src='{{"/js/wmd/showdown.js"|media}}'></script>
-    <script type='text/javascript' src='{{"/js/wmd/wmd.js"|media}}'></script>
+    {% include "meta/markdown_javascript.html" %}
 {% else %}
     {% include "meta/tinymce_css.html" %}{# todo - maybe move to form media? #}
 {% endif %}
 
 <script type="text/javascript" src='{{"/js/live_search_new_thread.js"|media}}'></script>
 <script type="text/javascript" charset="utf-8">
-    askbot['settings']['minSearchWordLength'] = {{settings.MIN_SEARCH_WORD_LENGTH}};
-    askbot['urls']['titleSearch'] = '{% url title_search %}';
+    askbot['settings']['minSearchWordLength'] = {{ min_search_word_length }};
+    askbot['urls']['apiGetQuestions'] = '{% url "api_get_questions" %}';
     askbot['urls']['upload'] = '{% url upload %}';
     $(document).ready(function(){
         var searchInput = $('#id_title');

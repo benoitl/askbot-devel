@@ -546,7 +546,8 @@ class ThreadRenderCacheUpdateTests(AskbotTestCase):
         })
         self.assertEqual(2, Post.objects.count())
         answer = Post.objects.get_answers()[0]
-        self.assertRedirects(response=response, expected_url=answer.get_absolute_url())
+        expected_url=answer.get_absolute_url()
+        self.assertRedirects(response=response, expected_url=expected_url)
 
         thread = answer.thread
         self.assertEqual(1, thread.answer_count)
@@ -629,8 +630,11 @@ class ThreadRenderCacheUpdateTests(AskbotTestCase):
 
         self.client.logout()
         self.client.login(username='user2', password='pswd')
-        response = self.client.post(urlresolvers.reverse('vote', kwargs={'id': question.id}), data={'type': '1'},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest') # use AJAX request
+        response = self.client.post(
+            urlresolvers.reverse('vote'),
+            data={'type': '1', 'postId': question.id},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        ) # use AJAX request
         self.assertEqual(200, response.status_code)
         data = simplejson.loads(response.content)
 
@@ -645,8 +649,11 @@ class ThreadRenderCacheUpdateTests(AskbotTestCase):
 
         ###
 
-        response = self.client.post(urlresolvers.reverse('vote', kwargs={'id': question.id}), data={'type': '2'},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest') # use AJAX request
+        response = self.client.post(
+            urlresolvers.reverse('vote'),
+            data={'type': '2', 'postId': question.id},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        ) # use AJAX request
         self.assertEqual(200, response.status_code)
         data = simplejson.loads(response.content)
 
@@ -665,8 +672,11 @@ class ThreadRenderCacheUpdateTests(AskbotTestCase):
 
         self.client.logout()
         self.client.login(username='user2', password='pswd')
-        response = self.client.post(urlresolvers.reverse('vote', kwargs={'id': question.id}), data={'type': '0', 'postId': answer.id},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest') # use AJAX request
+        response = self.client.post(
+            urlresolvers.reverse('vote'),
+            data={'type': '0', 'postId': answer.id},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        ) # use AJAX request
         self.assertEqual(200, response.status_code)
         data = simplejson.loads(response.content)
 

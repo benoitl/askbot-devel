@@ -27,6 +27,8 @@ DATABASES = {
         'PASSWORD': '{{database_password}}',                  # Not used with sqlite3.
         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+        'TEST_CHARSET': 'utf8',              # Setting the character set and collation to utf-8
+        'TEST_COLLATION': 'utf8_general_ci', # is necessary for MySQL tests to work properly.
     }
 }
 
@@ -46,7 +48,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 #go to the site's live settings and enable the feature
 #"Email settings" -> "allow asking by email"
 #
-#   WARNING: command post_emailed_questions DELETES all 
+#   WARNING: command post_emailed_questions DELETES all
 #            emails from the mailbox each time
 #            do not use your personal mail box here!!!
 #
@@ -100,8 +102,11 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = (
     #'django.middleware.gzip.GZipMiddleware',
-    #'askbot.middleware.locale.LocaleMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    ## Enable the following middleware if you want to enable
+    ## language selection in the site settings.
+    #'askbot.middleware.locale.LocaleMiddleware',
     #'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.common.CommonMiddleware',
     #'django.middleware.cache.FetchFromCacheMiddleware',
@@ -124,7 +129,7 @@ ROOT_URLCONF = os.path.basename(os.path.dirname(__file__)) + '.urls'
 
 #UPLOAD SETTINGS
 FILE_UPLOAD_TEMP_DIR = os.path.join(
-                                os.path.dirname(__file__), 
+                                os.path.dirname(__file__),
                                 'tmp'
                             ).replace('\\','/')
 
@@ -167,6 +172,7 @@ INSTALLED_APPS = (
     #'debug_toolbar',
     #Optional, to enable haystack search
     #'haystack',
+    'compressor',
     'askbot',
     'askbot.deps.django_authopenid',
     #'askbot.importers.stackexchange', #se loader
@@ -241,17 +247,29 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, "static")
 STATICFILES_DIRS = (
     ('default/media', os.path.join(ASKBOT_ROOT, 'media')),
 )
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'compressor.finders.CompressorFinder',
+)
 
 RECAPTCHA_USE_SSL = True
 
 #HAYSTACK_SETTINGS
 ENABLE_HAYSTACK_SEARCH = False
-HAYSTACK_SITECONF = 'askbot.search.haystack'
-#more information
-#http://django-haystack.readthedocs.org/en/v1.2.7/settings.html
-HAYSTACK_SEARCH_ENGINE = 'simple'
+#Uncomment for multilingual setup:
+#HAYSTACK_ROUTERS = ['askbot.search.haystack.routers.LanguageRouter',]
 
-TINYMCE_COMPRESSOR = True 
+#Uncomment if you use haystack
+#More info in http://django-haystack.readthedocs.org/en/latest/settings.html
+#HAYSTACK_CONNECTIONS = {
+#            'default': {
+#                        'ENGINE': 'haystack.backends.simple_backend.SimpleEngine',
+#            }
+#}
+
+
+TINYMCE_COMPRESSOR = True
 TINYMCE_SPELLCHECKER = False
 TINYMCE_JS_ROOT = os.path.join(STATIC_ROOT, 'default/media/js/tinymce/')
 #TINYMCE_JS_URL = STATIC_URL + 'default/media/js/tinymce/tiny_mce.js'
@@ -264,7 +282,7 @@ TINYMCE_DEFAULT_CONFIG = {
     'force_p_newlines': False,
     'forced_root_block': '',
     'mode' : 'textareas',
-    'oninit': "function(){ tinyMCE.activeEditor.setContent(askbot['data']['editorContent'] || ''); }",
+    'oninit': "TinyMCE.onInitHook",
     'plugins': 'askbot_imageuploader,askbot_attachment',
     'theme_advanced_toolbar_location' : 'top',
     'theme_advanced_toolbar_align': 'left',
@@ -280,7 +298,7 @@ TINYMCE_DEFAULT_CONFIG = {
 }
 
 #delayed notifications, time in seconds, 15 mins by default
-NOTIFICATION_DELAY_TIME = 60 * 15 
+NOTIFICATION_DELAY_TIME = 60 * 15
 
 GROUP_MESSAGING = {
     'BASE_URL_GETTER_FUNCTION': 'askbot.models.user_get_profile_url',
@@ -288,3 +306,19 @@ GROUP_MESSAGING = {
 }
 
 ASKBOT_MULTILINGUAL = False
+
+ASKBOT_CSS_DEVEL = False
+if 'ASKBOT_CSS_DEVEL' in locals() and ASKBOT_CSS_DEVEL == True:
+    COMPRESS_PRECOMPILERS = (
+        ('text/less', 'lessc {infile} {outfile}'),
+    )
+
+COMPRESS_JS_FILTERS = []
+COMPRESS_PARSER = 'compressor.parser.HtmlParser'
+JINJA2_EXTENSIONS = ('compressor.contrib.jinja2ext.CompressorExtension',)
+
+# Use syncdb for tests instead of South migrations. Without this, some tests
+# fail spuriously in MySQL.
+SOUTH_TESTS_MIGRATE = False
+
+VERIFIER_EXPIRE_DAYS = 3

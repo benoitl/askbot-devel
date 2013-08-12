@@ -14,6 +14,14 @@ SearchDropMenu.prototype.setAskHandler = function(handler) {
     this._askHandler = handler;
 };
 
+SearchDropMenu.prototype.setSearchWidget = function(widget) {
+    this._searchWidget = widget;
+};
+
+SearchDropMenu.prototype.getSearchWidget = function() {
+    return this._searchWidget;
+};
+
 SearchDropMenu.prototype.setAskButtonEnabled = function(isEnabled) {
     this._askButtonEnabled = isEnabled;
 };
@@ -41,6 +49,11 @@ SearchDropMenu.prototype.render = function() {
         this._element.removeClass('empty');
     }
 };
+
+SearchDropMenu.prototype.clearSelectedItem = function() {
+    this._selectedItemIndex = 0;
+    this._resultsList.find('li').removeClass('selected');
+}
 
 /**
  * @param {number} idx position of item starting from 1 for the topmost
@@ -126,7 +139,17 @@ SearchDropMenu.prototype.makeKeyHandler = function() {
                     return false;
                 }
             }
-            me.selectItem(curItem);
+
+            var widget = me.getSearchWidget();
+            if (curItem === 0) {
+                //activate key handlers on input box
+                widget.setFullTextSearchEnabled(true);
+                me.clearSelectedItem();
+            } else {
+                //deactivate key handlers on input box
+                widget.setFullTextSearchEnabled(false);
+                me.selectItem(curItem);
+            }
             return false
         }
     };
@@ -149,10 +172,30 @@ SearchDropMenu.prototype.hideWaitIcon = function() {
     }
 };
 
+SearchDropMenu.prototype.hideHeader = function() {
+    if (this._header) {
+        this._header.hide();
+    }
+};
+
+SearchDropMenu.prototype.showHeader = function() {
+    if (this._header) {
+        this._header.show();
+    }
+};
+
 SearchDropMenu.prototype.createDom = function() {
     this._element = this.makeElement('div');
     this._element.addClass('search-drop-menu');
     this._element.hide();
+
+    if (askbot['data']['languageCode'] === 'ja') {
+        var warning = this.makeElement('p');
+        this._header = warning;
+        warning.addClass('header');
+        warning.html(gettext('To see search results, 2 or more characters may be required'));
+        this._element.append(warning);
+    }
 
     this._resultsList = this.makeElement('ul');
     this._element.append(this._resultsList);
@@ -332,6 +375,7 @@ var FullTextSearch = function() {
     /** @todo: the questions/ needs translation... */
     this._searchUrl = '/scope:all/sort:activity-desc/page:1/'
     this._askButtonEnabled = true;
+    this._fullTextSearchEnabled = true;
 };
 inherits(FullTextSearch, WrappedElement);
 
@@ -389,7 +433,7 @@ FullTextSearch.prototype.runTagSearch = function() {
         url: url,
         dataType: 'json',
         success: function(data, text_status, xhr){
-            me.renderFullTextResult(data, text_status, xhr);
+            me.renderFullTextSearchResult(data, text_status, xhr);
             $('#ab-tag-search').val('');
         },
     });
@@ -420,13 +464,12 @@ FullTextSearch.prototype.activateTagSearchInput = function() {
     var me = this;
     var ac = new AutoCompleter({
         url: askbot['urls']['get_tag_list'],
-        preloadData: true,
         minChars: 1,
         useCache: true,
         matchInside: true,
         maxCacheLength: 100,
         maxItemsToShow: 20,
-        onItemSelect: function(){ this.runTagSearch(); },
+        onItemSelect: function(){ me.runTagSearch(); },
         delay: 10
     });
     ac.decorate($('#ab-tag-search'));
@@ -442,7 +485,7 @@ FullTextSearch.prototype.sendTitleSearchQuery = function(query_text) {
     var data = {query_text: query_text};
     var me = this;
     $.ajax({
-        url: askbot['urls']['titleSearch'],
+        url: askbot['urls']['apiGetQuestions'],
         data: data,
         dataType: 'json',
         success: function(data, text_status, xhr){
@@ -504,6 +547,9 @@ FullTextSearch.prototype.getSearchQuery = function() {
 FullTextSearch.prototype.renderTitleSearchResult = function(data) {
     var menu = this._dropMenu;
     menu.hideWaitIcon();
+    if (data.length > 0) {
+        menu.hideHeader();
+    }
     menu.setData(data);
     menu.render();
     menu.show();
@@ -750,6 +796,14 @@ FullTextSearch.prototype.updateToolTip = function() {
     }
 };
 
+FullTextSearch.prototype.setFullTextSearchEnabled = function(enabled) {
+    this._fullTextSearchEnabled = enabled;
+};
+
+FullTextSearch.prototype.getFullTextSearchEnabled = function() {
+    return this._fullTextSearchEnabled;
+};
+
 /**
  * keydown handler operates on the tooltip and the X button
  * also opens and closes drop menu according to the min search word threshold
@@ -771,8 +825,12 @@ FullTextSearch.prototype.makeKeyDownHandler = function() {
                 return false;
             }
         } else if (keyCode === 13) {
-            formSubmitHandler(e);
-            return false;
+            if (me.getFullTextSearchEnabled()) {
+                formSubmitHandler(e);
+                return false;
+            } else {
+                return true;
+            }
         }
 
         var query = me.getSearchQuery();
@@ -790,6 +848,7 @@ FullTextSearch.prototype.makeKeyDownHandler = function() {
                        past the minimum length to trigger search */
                     dropMenu.show();
                     dropMenu.showWaitIcon();
+                    dropMenu.showHeader();
                 } else {
                     //close drop menu if we were deleting the query
                     dropMenu.reset();
@@ -833,6 +892,7 @@ FullTextSearch.prototype.decorate = function(element) {
     this._toolTip = toolTip;
 
     var dropMenu = new SearchDropMenu();
+    dropMenu.setSearchWidget(this);
     dropMenu.setAskHandler(this.makeAskHandler());
     dropMenu.setAskButtonEnabled(this._askButtonEnabled);
     this._dropMenu = dropMenu;

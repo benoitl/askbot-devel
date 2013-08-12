@@ -84,18 +84,21 @@ providers = (
     'LaunchPad'
 )
 
-DISABLED_BY_DEFAULT = (
-    'LaunchPad'
-)
+DISABLED_BY_DEFAULT = ('LaunchPad',)
 
-need_extra_setup = ('Twitter', 'Facebook', 'LinkedIn', 'identi.ca',)
+NEED_EXTRA_SETUP = ('Twitter', 'Facebook', 'LinkedIn', 'identi.ca',)
 
 for provider in providers:
+    if provider == 'local':
+        provider_string = unicode(_('local password'))
+    else:
+        provider_string = provider
+
     kwargs = {
-        'description': _('Activate %(provider)s login') % {'provider': provider},
+        'description': _('Activate %(provider)s login') % {'provider': provider_string},
         'default': not (provider in DISABLED_BY_DEFAULT)
     }
-    if provider in need_extra_setup:
+    if provider in NEED_EXTRA_SETUP:
         kwargs['help_text'] = _(
             'Note: to really enable %(provider)s login '
             'some additional parameters will need to be set '

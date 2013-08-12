@@ -3,7 +3,27 @@ Changes in Askbot
 
 Development version
 -------------------
-* Added instant search to the tags page
+* Support for Solr search backend (Adolfo)
+* Allowed read-only access user groups (Adolfo)
+* Added simple read-only API (Adolfo)
+* Added "admin email" to livesettings (Evgeny)
+* Improved Zendesk import feature `Kevin Porterfield, Shotgun Software<http://www.shotgunsoftware.com>_`
+* Added backend support for the tag synonyms `pcompassion https://github.com/pcompassion`_
+* Added management command `apply_hinted_tags` to batch-apply tags from a list (Evgeny)
+* Added hovercard on the user's karma display in the header (Evgeny)
+* Added option to hide ad blocks from logged in users (Evgeny)
+* Applied Askbot templates to the settings control panel (Evgeny)
+* Added option to auto-follow questions by the question posters with default "on" (Evgeny)
+* Support for Django 1.5
+* Auto-tweet option for questions and answers
+* Added Chech and Croatian translations
+* Disable/enable best answer feature
+* Allowed post owners repost answers and comments (this used to be mod-only function).
+* Answer editor is "folded" by default. Editor buttons and options show on click.
+* Management command `askbot_import_jive` to import data from Jive forums.
+* Added possibility to choose editor for comments: plain text, or same as
+  editor used for the questions or answers: WMD or TinyMCE.
+* Added ajax search to the tags page
 * Added a placeholder template for the custom javascript on the question page
 * Allowed to disable the big "ask" button.
 * Some support for the media compression (Tyler Mandry)

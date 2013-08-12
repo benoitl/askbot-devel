@@ -1,12 +1,14 @@
 """Forms, custom form fields and related utility functions
 used in AskBot"""
 import re
+import datetime
 from django import forms
 from askbot import const
 from askbot.const import message_keys
 from django.conf import settings as django_settings
 from django.core.exceptions import PermissionDenied
 from django.forms.util import ErrorList
+from django.utils.html import strip_tags
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy, string_concat
 from django.utils.text import get_text_list
@@ -244,7 +246,7 @@ class TitleField(forms.CharField):
         self.max_length = 255
         self.label = _('title')
         self.help_text = _(
-            'please enter a descriptive title for your question'
+            'Please enter your question'
         )
         self.initial = ''
 
@@ -255,8 +257,8 @@ class TitleField(forms.CharField):
             value = ''
         if len(value) < askbot_settings.MIN_TITLE_LENGTH:
             msg = ungettext_lazy(
-                'title must be > %d character',
-                'title must be > %d characters',
+                'must have > %d character',
+                'must have > %d characters',
                 askbot_settings.MIN_TITLE_LENGTH
             ) % askbot_settings.MIN_TITLE_LENGTH
             raise forms.ValidationError(msg)
@@ -265,14 +267,14 @@ class TitleField(forms.CharField):
             if len(value) > self.max_length:
                 raise forms.ValidationError(
                     _(
-                        'The title is too long, maximum allowed size is '
+                        'The question is too long, maximum allowed size is '
                         '%d characters'
                     ) % self.max_length
                 )
         elif len(encoded_value) > self.max_length:
             raise forms.ValidationError(
                 _(
-                    'The title is too long, maximum allowed size is '
+                    'The question is too long, maximum allowed size is '
                     '%d bytes'
                 ) % self.max_length
             )
@@ -295,9 +297,11 @@ class EditorField(forms.CharField):
         self.user = user
 
         editor_attrs = kwargs.pop('editor_attrs', {})
+        widget_attrs = kwargs.pop('attrs', {})
+        widget_attrs.setdefault('id', 'editor')
+
         super(EditorField, self).__init__(*args, **kwargs)
         self.required = True
-        widget_attrs = {'id': 'editor'}
         if askbot_settings.EDITOR_TYPE == 'markdown':
             self.widget = forms.Textarea(attrs=widget_attrs)
         elif askbot_settings.EDITOR_TYPE == 'tinymce':
@@ -480,16 +484,6 @@ class WikiField(forms.BooleanField):
     def clean(self, value):
         return value and askbot_settings.WIKI_ON
 
-
-class EmailNotifyField(forms.BooleanField):
-    """Rendered as checkbox which turns on
-    email notifications on the post"""
-    def __init__(self, *args, **kwargs):
-        super(EmailNotifyField, self).__init__(*args, **kwargs)
-        self.required = False
-        self.widget.attrs['class'] = 'nomargin'
-
-
 class SummaryField(forms.CharField):
 
     def __init__(self, *args, **kwargs):
@@ -506,17 +500,18 @@ class SummaryField(forms.CharField):
             'field is optional)'
         )
 
-
 class EditorForm(forms.Form):
     """form with one field - `editor`
     the field must be created dynamically, so it's added
     in the __init__() function"""
 
-    def __init__(self, user=None, editor_attrs=None):
+    def __init__(self, attrs=None, user=None, editor_attrs=None):
         super(EditorForm, self).__init__()
         editor_attrs = editor_attrs or {}
         self.fields['editor'] = EditorField(
-                                    user=user, editor_attrs=editor_attrs
+                                    attrs=attrs,
+                                    editor_attrs=editor_attrs,
+                                    user=user
                                 )
 
 
@@ -838,7 +833,7 @@ class PostAsSomeoneForm(forms.Form):
             'Can create new accounts.'
         ),
         required=False,
-        widget=forms.TextInput()
+        widget=forms.TextInput(attrs={'class': 'tipped-input blank'})
     )
     post_author_email = forms.CharField(
         initial=_('Email address:'),
@@ -864,16 +859,16 @@ class PostAsSomeoneForm(forms.Form):
         todo: maybe better to have field where initial value is invalid,
         then we would not have to have two almost identical clean functions?
         """
-        username = self.cleaned_data.get('post_author_username', '')
+        username = self.cleaned_data.get('post_author_username', '').strip()
         initial_username = unicode(self.fields['post_author_username'].initial)
-        if username == initial_username:
+        if username and username == initial_username:
             self.cleaned_data['post_author_username'] = ''
         return self.cleaned_data['post_author_username']
 
     def clean_post_author_email(self):
         """if value is the same as initial, it is reset to
         empty string"""
-        email = self.cleaned_data.get('post_author_email', '')
+        email = self.cleaned_data.get('post_author_email', '').strip()
         initial_email = unicode(self.fields['post_author_email'].initial)
         if email == initial_email:
             email = ''
@@ -1120,14 +1115,36 @@ class AnswerForm(PostAsSomeoneForm, PostPrivatelyForm):
         required=False, max_length=255,
         widget=forms.TextInput(attrs={'size': 40, 'class': 'openid-input'})
     )
-    email_notify = EmailNotifyField(initial=False)
 
     def __init__(self, *args, **kwargs):
         super(AnswerForm, self).__init__(*args, **kwargs)
         self.fields['text'] = AnswerEditorField(user=kwargs['user'])
-        self.fields['email_notify'].widget.attrs['id'] = \
-                                    'question-subscribe-updates'
 
+    def has_data(self):
+        """True if form is bound or has inital data"""
+        if self.is_bound:
+            return True
+
+        initial_text = self.initial.get('text', '')
+        if askbot_settings.EDITOR_TYPE == 'tinymce':
+            stripped_text = strip_tags(initial_text).strip()
+        else:
+            stripped_text = initial_text.strip()
+        return len(stripped_text) > 0
+
+    #People can override this function to save their additional fields to db
+    def save(self, question, user):
+        wiki = self.cleaned_data['wiki']
+        text = self.cleaned_data['text']
+        is_private = self.cleaned_data['post_privately']        
+
+        return user.post_answer(
+            question = question,
+            body_text = text,
+            wiki = wiki,
+            is_private = is_private,
+            timestamp = datetime.datetime.now(),
+        )
 
 class VoteForm(forms.Form):
     """form used in ajax vote view (only comment_upvote so far)
@@ -1339,10 +1356,6 @@ class EditAnswerForm(PostAsSomeoneForm, PostPrivatelyForm):
         else:
             return False
 
-class EditCommentForm(forms.Form):
-    comment_id = forms.IntegerField()
-    suppress_email = SuppressEmailField()
-
 class EditTagWikiForm(forms.Form):
     text = forms.CharField(required=False)
     tag_id = forms.IntegerField()
@@ -1434,21 +1447,20 @@ class EditUserForm(forms.Form):
         """For security reason one unique email in database"""
         if self.user.email != self.cleaned_data['email']:
             #todo dry it, there is a similar thing in openidauth
-            if askbot_settings.EMAIL_UNIQUE is True:
-                if 'email' in self.cleaned_data:
-                    try:
-                        User.objects.get(email=self.cleaned_data['email'])
-                    except User.DoesNotExist:
-                        return self.cleaned_data['email']
-                    except User.MultipleObjectsReturned:
-                        raise forms.ValidationError(_(
-                            'this email has already been registered, '
-                            'please use another one')
-                        )
+            if 'email' in self.cleaned_data:
+                try:
+                    User.objects.get(email=self.cleaned_data['email'])
+                except User.DoesNotExist:
+                    return self.cleaned_data['email']
+                except User.MultipleObjectsReturned:
                     raise forms.ValidationError(_(
                         'this email has already been registered, '
                         'please use another one')
                     )
+                raise forms.ValidationError(_(
+                    'this email has already been registered, '
+                    'please use another one')
+                )
         return self.cleaned_data['email']
 
 
@@ -1688,6 +1700,19 @@ class BulkTagSubscriptionForm(forms.Form):
         self.fields['users'] = forms.ModelMultipleChoiceField(queryset=User.objects.all())
         if askbot_settings.GROUPS_ENABLED:
             self.fields['groups'] = forms.ModelMultipleChoiceField(queryset=Group.objects.exclude_personal())
+
+class GetCommentsForPostForm(forms.Form):
+    post_id = forms.IntegerField()
+
+class NewCommentForm(forms.Form):
+    comment = forms.CharField()
+    post_id = forms.IntegerField()
+
+class EditCommentForm(forms.Form):
+    comment_id = forms.IntegerField()
+    comment = forms.CharField()
+    suppress_email = SuppressEmailField()
+
 
 class DeleteCommentForm(forms.Form):
     comment_id = forms.IntegerField()

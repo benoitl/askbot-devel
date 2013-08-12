@@ -20,7 +20,7 @@ The extension ".json" will be added automatically."""
                         hint = options.get('dump_file', None),
                         extension = '.json'
                     )
-        print "Saving file %s ..." % dump_file.name
+        print ("Saving file %s ..." % dump_file.name).encode('utf-8')
         stdout_orig = sys.stdout
         try:
             sys.stdout = dump_file

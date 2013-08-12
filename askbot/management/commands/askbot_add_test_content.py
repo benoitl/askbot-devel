@@ -1,3 +1,4 @@
+import sys
 from askbot.conf import settings as askbot_settings
 from askbot.models import User
 from askbot.utils.console import choice_dialog
@@ -17,7 +18,10 @@ NUM_COMMENTS = 20
 # karma. This can be calculated dynamically - max of MIN_REP_TO_... settings
 INITIAL_REPUTATION = 500
 
-BAD_STUFF = "<script>alert('hohoho')</script>"
+if '--nospam' in sys.argv:
+    BAD_STUFF = ''
+else:
+    BAD_STUFF = "<script>alert('hohoho')</script>"
 
 # Defining template inputs.
 USERNAME_TEMPLATE = BAD_STUFF + "test_user_%s"
@@ -47,8 +51,14 @@ ALERT_SETTINGS_KEYS = (
 
 class Command(NoArgsCommand):
     option_list = NoArgsCommand.option_list + (
-        make_option('--noinput', action='store_false', dest='interactive', default=True,
-            help='Do not prompt the user for input of any kind.'),
+        make_option(
+            '--noinput', action='store_false', dest='interactive', default=True,
+            help='Do not prompt the user for input of any kind.'
+        ),
+        make_option(
+            '--nospam', action='store_true', dest='nospam', default=False,
+            help='Do not add XSS snippets'
+        )
     )
 
     def save_alert_settings(self):

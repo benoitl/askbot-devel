@@ -1,10 +1,8 @@
 from collections import defaultdict
 import datetime
 import operator
-import cgi
 import logging
 
-from django.utils.html import strip_tags
 from django.contrib.sitemaps import ping_google
 from django.utils import html
 from django.conf import settings as django_settings
@@ -35,7 +33,8 @@ from askbot.models.tag import tags_match_some_wildcard
 from askbot.conf import settings as askbot_settings
 from askbot import exceptions
 from askbot.utils import markup
-from askbot.utils.html import sanitize_html
+from askbot.utils.html import sanitize_html, strip_tags
+from askbot.utils.html import site_url
 from askbot.models.base import BaseQuerySetManager, DraftContent
 
 #todo: maybe merge askbot.utils.markup and forum.utils.html
@@ -406,6 +405,20 @@ class Post(models.Model):
         if number:
             self.points = int(number)
 
+    def as_tweet(self):
+        """a naive tweet representation of post
+        todo: add mentions to relevant people
+        """
+        url = site_url(self.get_absolute_url(no_slug=True))
+        if self.post_type == 'question':
+            tweet = _('Question: ')
+        elif self.post_type == 'answer':
+            tweet = _('Answer: ')
+
+        chars_left = 140 - (len(url) + len(tweet) + 1)
+        title_str = self.thread.title[:chars_left]
+        return tweet + title_str + ' ' + url
+
     def parse_post_text(self):
         """typically post has a field to store raw source text
         in comment it is called .comment, in Question and Answer it is
@@ -422,27 +435,8 @@ class Post(models.Model):
         removed_mentions - list of mention <Activity> objects - for removed ones
         """
 
-        if self.post_type in ('question', 'answer', 'tag_wiki', 'reject_reason'):
-            _urlize = False
-            _use_markdown = (askbot_settings.EDITOR_TYPE == 'markdown')
-            _escape_html = False #markdow does the escaping
-        elif self.is_comment():
-            _urlize = True
-            _use_markdown = (askbot_settings.EDITOR_TYPE == 'markdown')
-            _escape_html = True
-        else:
-            raise NotImplementedError
-
-        text = self.text
-
-        if _escape_html:
-            text = cgi.escape(text)
-
-        if _urlize:
-            text = html.urlize(text)
-
-        if _use_markdown:
-            text = sanitize_html(markup.get_parser().convert(text))
+        text_converter = self.get_text_converter()
+        text = text_converter(self.text)
 
         #todo, add markdown parser call conditional on
         #self.use_markdown flag
@@ -592,7 +586,7 @@ class Post(models.Model):
         user_filter = models.Q(is_superuser=True) | models.Q(status='m')
         if askbot_settings.GROUPS_ENABLED:
             user_filter = user_filter & models.Q(groups__in=self.groups.all())
-        return User.objects.filter(user_filter)
+        return User.objects.filter(user_filter).distinct()
 
     def get_previous_answer(self, user=None):
         """returns a previous answer to a given answer;
@@ -616,6 +610,25 @@ class Post(models.Model):
 
         return answer
 
+    def get_text_converter(self):
+        have_simple_comment = (
+            self.is_comment() and 
+            askbot_settings.COMMENTS_EDITOR_TYPE == 'plain-text'
+        )
+        if have_simple_comment:
+            parser_type = 'plain-text'
+        else:
+            parser_type = askbot_settings.EDITOR_TYPE
+
+        if parser_type == 'plain-text':
+            return markup.plain_text_input_converter
+        elif parser_type == 'markdown':
+            return markup.markdown_input_converter
+        elif parser_type == 'tinymce':
+            return markup.tinymce_input_converter
+        else:
+            raise NotImplementedError
+
     def has_group(self, group):
         """true if post belongs to the group"""
         return self.groups.filter(id=group.id).exists()
@@ -625,6 +638,7 @@ class Post(models.Model):
         #this is likely to be temporary - we add
         #vip groups to the list behind the scenes.
         groups = list(groups)
+        #add moderator groups to the post implicitly
         vips = Group.objects.filter(is_vip=True)
         groups.extend(vips)
         #todo: use bulk-creation
@@ -787,11 +801,17 @@ class Post(models.Model):
         if self.is_answer():
             if not question_post:
                 question_post = self.thread._question_post()
-            url = u'%(base)s%(slug)s/?answer=%(id)d#post-id-%(id)d' % {
-                'base': urlresolvers.reverse('question', args=[question_post.id]),
-                'slug': django_urlquote(slugify(self.thread.title)),
-                'id': self.id
-            }
+            if no_slug:
+                url = u'%(base)s?answer=%(id)d#post-id-%(id)d' % {
+                    'base': urlresolvers.reverse('question', args=[question_post.id]),
+                    'id': self.id
+                }
+            else:
+                url = u'%(base)s%(slug)s/?answer=%(id)d#post-id-%(id)d' % {
+                    'base': urlresolvers.reverse('question', args=[question_post.id]),
+                    'slug': django_urlquote(slugify(self.thread.title)),
+                    'id': self.id
+                }
         elif self.is_question():
             url = urlresolvers.reverse('question', args=[self.id])
             if thread:
@@ -847,11 +867,8 @@ class Post(models.Model):
     def __unicode__(self):
         if self.is_question():
             return self.thread.title
-        elif self.is_answer() or self.is_reject_reason():
+        else:
             return self.html
-        elif self.is_comment():
-            return self.text
-        raise NotImplementedError
 
     def save(self, *args, **kwargs):
         if self.is_answer() and self.is_anonymous:
@@ -2050,7 +2067,7 @@ class PostRevision(models.Model):
     author = models.ForeignKey('auth.User', related_name='%(class)ss')
     revised_at = models.DateTimeField()
     summary = models.CharField(max_length=300, blank=True)
-    text = models.TextField()
+    text = models.TextField(blank=True)
 
     approved = models.BooleanField(default=False, db_index=True)
     approved_by = models.ForeignKey(User, null = True, blank = True)

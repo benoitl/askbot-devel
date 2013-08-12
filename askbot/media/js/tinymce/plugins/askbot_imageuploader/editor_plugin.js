@@ -27,11 +27,8 @@
         }
     };
 
-    var modalMenuHeadline = gettext('Upload an image');
-
     var createDialog = function() {
         var dialog = new FileUploadDialog();
-        dialog.setHeadingText(modalMenuHeadline);
         dialog.setPostUploadHandler(insertIntoDom);
         dialog.setUrlInputTooltip('Or paste image url here');
         dialog.setInputId('askbot_imageuploader_input');

@@ -17,12 +17,14 @@ from django.contrib.syndication.views import Feed
 import itertools
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 
-from askbot.models import Post
 from askbot.conf import settings as askbot_settings
+from askbot.models import Post
+from askbot.utils.html import site_url
 
 class RssIndividualQuestionFeed(Feed):
     """rss feed class for particular questions
@@ -48,10 +50,10 @@ class RssIndividualQuestionFeed(Feed):
     def item_link(self, item):
         """get full url to the item
         """
-        return askbot_settings.APP_URL + item.get_absolute_url()
+        return site_url(item.get_absolute_url())
 
     def link(self):
-        return askbot_settings.APP_URL
+        return site_url(reverse('questions'))
 
     def item_pubdate(self, item):
         """get date of creation for the item
@@ -115,10 +117,10 @@ class RssLastestQuestionsFeed(Feed):
     def item_link(self, item):
         """get full url to the item
         """
-        return askbot_settings.APP_URL + item.get_absolute_url()
+        return site_url(item.get_absolute_url())
 
     def link(self):
-        return askbot_settings.APP_URL
+        return site_url(reverse('questions'))
 
     def item_author_name(self, item):
         """get name of author
@@ -128,7 +130,7 @@ class RssLastestQuestionsFeed(Feed):
     def item_author_link(self, item):
         """get url of the author's profile
         """
-        return askbot_settings.APP_URL + item.author.get_profile_url()
+        return site_url(item.author.get_profile_url())
 
     def item_pubdate(self, item):
         """get date of creation for the item

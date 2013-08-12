@@ -1,6 +1,5 @@
 import re
 from django import forms
-from django.http import str_to_unicode
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.http import Http404
@@ -22,7 +21,8 @@ def clean_next(next, default = None):
             return default
         else:
             return DEFAULT_NEXT
-    next = str_to_unicode(urllib.unquote(next), 'utf-8')
+    if isinstance(next, str):
+        next = unicode(urllib.unquote(next), 'utf-8', 'replace')
     next = next.strip()
     logging.debug('next url is %s' % next)
     return next
@@ -121,7 +121,7 @@ class UserNameField(StrippedNonEmptyCharField):
         max_length = MAX_USERNAME_LENGTH()
         super(UserNameField,self).__init__(
                 max_length=max_length,
-                widget=forms.TextInput(attrs=login_form_widget_attrs),
+                widget=forms.TextInput(attrs=widget_attrs),
                 label=label,
                 error_messages=error_messages,
                 **kw
@@ -247,19 +247,17 @@ class UserEmailField(forms.EmailField):
                     allowed_email_domains=allowed_domains
                 ):
                 raise forms.ValidationError(self.error_messages['unauthorized'])
-        if askbot_settings.EMAIL_UNIQUE == True:
-            try:
-                user = User.objects.get(email = email)
-                logging.debug('email taken')
-                raise forms.ValidationError(self.error_messages['taken'])
-            except User.DoesNotExist:
-                logging.debug('email valid')
-                return email
-            except User.MultipleObjectsReturned:
-                logging.debug('email taken many times over')
-                raise forms.ValidationError(self.error_messages['taken'])
-        else:
-            return email 
+
+        try:
+            user = User.objects.get(email__iexact=email)
+            logging.debug('email taken')
+            raise forms.ValidationError(self.error_messages['taken'])
+        except User.DoesNotExist:
+            logging.debug('email valid')
+            return email
+        except User.MultipleObjectsReturned:
+            logging.critical('email taken many times over')
+            raise forms.ValidationError(self.error_messages['taken'])
 
 class SetPasswordForm(forms.Form):
     password1 = forms.CharField(widget=forms.PasswordInput(attrs=login_form_widget_attrs),

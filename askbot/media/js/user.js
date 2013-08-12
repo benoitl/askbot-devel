@@ -804,7 +804,7 @@ UserGroup.prototype.decorate = function(element){
     this._name = $.trim(element.find('a').html());
     var deleter = new DeleteIcon();
     deleter.setHandler(this.getDeleteHandler());
-    deleter.setContent(gettext('Remove'));
+    //deleter.setContent(gettext('Remove'));
     this._element.find('td:last').append(deleter.getElement());
     this._delete_icon = deleter;
 };
@@ -946,11 +946,11 @@ GroupAdderWidget.prototype.toggleState = function(){
 GroupAdderWidget.prototype.decorate = function(element){
     this._element = element;
     var input = this.makeElement('input');
+    input.attr('type', 'text');
     this._input = input;
 
     var groupsAc = new AutoCompleter({
         url: askbot['urls']['getGroupsList'],
-        preloadData: true,
         minChars: 1,
         useCache: false,
         matchInside: false,
@@ -994,6 +994,81 @@ UserGroupsEditor.prototype.decorate = function(element){
     //todo - add group deleters
 };
 
+/**
+ * controls that set up automatic tweeting to the user account
+ */
+var Tweeting = function() {
+    WrappedElement.call(this);
+};
+inherits(Tweeting, WrappedElement);
+
+Tweeting.prototype.getStartHandler = function() {
+    var url = this._startUrl;
+    return function() {
+        window.location.href = url;
+    };
+};
+
+Tweeting.prototype.getMode = function() {
+    return this._modeSelector.val();
+};
+
+Tweeting.prototype.getModeSelectorHandler = function() {
+    var me = this;
+    var url = this._changeModeUrl;
+    return function() {
+        $.ajax({
+            type: 'POST',
+            dataType: 'json',
+            url: url,
+            data: {'mode': me.getMode() },
+            cache: false
+        });
+    };
+};
+
+Tweeting.prototype.getAccount = function() {
+    return this._accountSelector.val();
+};
+
+Tweeting.prototype.getAccountSelectorHandler = function() {
+    var selectAccountUrl = this._changeModeUrl;
+    var startUrl = this._startUrl;
+    var me = this;
+    return function() {
+        var account = me.getAccount();
+        if (account === 'existing-handle') {
+            $.ajax({
+                type: 'POST',
+                dataType: 'json',
+                url: selectAccountUrl,
+                data: {'mode': 'share-my-posts' },
+                cache: false
+            });
+        } else if (account === 'new-handle') {
+            window.location.href = startUrl;
+        }
+    }
+};
+
+Tweeting.prototype.decorate = function(element) {
+    this._element = element;
+    this._changeModeUrl = element.data('changeModeUrl');
+    this._startUrl = element.data('startUrl');
+    if (element.hasClass('disabled')) {
+        this._startButton = element.find('.start-tweeting');
+        setupButtonEventHandlers(this._startButton, this.getStartHandler());
+    } else if (element.hasClass('inactive')) {
+        //decorate choose account selector
+        this._accountSelector = element.find('select');
+        this._accountSelector.change(this.getAccountSelectorHandler());
+    } else if (element.hasClass('enabled')) {
+        //decorate choose mode selector
+        this._modeSelector = element.find('select');
+        this._modeSelector.change(this.getModeSelectorHandler());
+    }
+};
+
 (function(){
     var fbtn = $('.follow-user-toggle');
     if (fbtn.length === 1){
@@ -1010,5 +1085,11 @@ UserGroupsEditor.prototype.decorate = function(element){
         }
     } else {
         $('#add-group').remove();
+    }
+
+    var tweeting = $('.auto-tweeting');
+    if (tweeting.length) {
+        var tweetingControl = new Tweeting();
+        tweetingControl.decorate(tweeting);
     }
 })();

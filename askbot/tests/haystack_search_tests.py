@@ -12,7 +12,9 @@ class HaystackSearchTests(AskbotTestCase):
     """
     def setUp(self):
         self._old_value = getattr(settings, 'ENABLE_HAYSTACK_SEARCH', False)
+        self._old_search_engine = getattr(settings, 'HAYSTACK_SEARCH_ENGINE', 'simple')
         setattr(settings, "ENABLE_HAYSTACK_SEARCH", True)
+        setattr(settings, "HAYSTACK_SEARCH_ENGINE", 'simple')
 
         self.user = self.create_user(username='gepeto')
         self.other_user = self.create_user(username = 'pinocho')
@@ -53,6 +55,7 @@ class HaystackSearchTests(AskbotTestCase):
 
     def tearDown(self):
         setattr(settings, "ENABLE_HAYSTACK_SEARCH", self._old_value)
+        setattr(settings, "HAYSTACK_SEARCH_ENGINE", self._old_search_engine)
 
     @skipIf('haystack' not in settings.INSTALLED_APPS,
         'Haystack not setup')

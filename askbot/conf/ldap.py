@@ -10,13 +10,6 @@ LDAP_SETTINGS = livesettings.ConfigurationGroup(
                     super_group = EXTERNAL_SERVICES
                 )
 
-def enable_ldap_callback(current_value, new_value):
-    """enables local login form when ldap is on"""
-    if new_value == True:
-        settings.update('SIGNIN_LOCAL_ENABLED', True)
-
-    return new_value
-
 settings.register(
     livesettings.BooleanValue(
         LDAP_SETTINGS,

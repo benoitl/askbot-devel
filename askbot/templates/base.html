@@ -4,6 +4,7 @@
     <head>
         <title>{% block title %}{% endblock %} - {{ settings.APP_TITLE|escape }}</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
         {% block meta_description %}
         <meta name="description" content="{{settings.APP_DESCRIPTION|escape}}" />
         {% endblock %}
@@ -11,13 +12,16 @@
         {% if settings.GOOGLE_SITEMAP_CODE %}
         <meta name="google-site-verification" content="{{settings.GOOGLE_SITEMAP_CODE}}" />
         {% endif %}
+        <meta name="referrer" content="always" />
         <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+        {% if settings.SITE_FAVICON %}
         <link rel="shortcut icon" href="{{ settings.SITE_FAVICON|media }}" />
+        {% endif %}
         <link
             rel="alternate"
             type="application/rss+xml"
             title="{% trans site_title=settings.APP_SHORT_NAME %}RSS feed from {{ site_title }}{% endtrans %}"
-            href="{{ settings.APP_URL }}{% url "latest_questions_feed" %}"
+            href="{{ base_url }}{% url "latest_questions_feed" %}"
         />
         {% block before_css %}{% endblock %}
         {% include "meta/html_head_stylesheets.html" %}
@@ -29,7 +33,7 @@
             {{ settings.CUSTOM_HTML_HEAD }}
         {% endif %}
     </head>
-    <body class="{% block body_class %}{% endblock %}{% if user_messages %} user-messages{% endif %}{% if page_class %} {{page_class}}{% endif %}{% if request.user.is_anonymous() %} anon{% endif %} lang-{{ language_code }}">
+    <body class="{% block body_class %}{% endblock %}{% if user_messages %} user-messages{% endif %}{% if page_class %} {{page_class}}{% endif %}{% if request.user.is_anonymous() %} anon{% endif %} lang-{{ current_language_code }}">
         {% include "widgets/system_messages.html" %}
         {% include "debug_header.html" %}
         {% if settings.MULTILINGUAL %}

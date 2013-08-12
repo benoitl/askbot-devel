@@ -19,7 +19,7 @@ import askbot
 from askbot.conf import settings as askbot_settings
 from askbot import mail
 from askbot.mail import messages
-from askbot.models.tag import Tag
+from askbot.models.tag import Tag, TagSynonym
 from askbot.models.tag import get_tags_by_names
 from askbot.models.tag import filter_accepted_tags, filter_suggested_tags
 from askbot.models.tag import separate_unused_tags
@@ -48,24 +48,30 @@ class ThreadQuerySet(models.query.QuerySet):
         todo: possibly add tags
         todo: implement full text search on relevant fields
         """
-        db_engine_name = askbot.get_database_engine_name()
-        filter_parameters = {'deleted': False}
-        if 'postgresql_psycopg2' in db_engine_name:
-            from askbot.search import postgresql
-            return postgresql.run_title_search(
-                                    self, search_query
-                                ).filter(
-                                    **filter_parameters
-                                ).order_by('-relevance')
-        elif 'mysql' in db_engine_name and mysql.supports_full_text_search():
-            filter_parameters['title__search'] = search_query
+
+        if getattr(django_settings, 'ENABLE_HAYSTACK_SEARCH', False):
+            from askbot.search.haystack.searchquery import AskbotSearchQuerySet
+            hs_qs = AskbotSearchQuerySet().filter(content=search_query).models(self.model)
+            return hs_qs.get_django_queryset()
         else:
-            filter_parameters['title__icontains'] = search_query
+            db_engine_name = askbot.get_database_engine_name()
+            filter_parameters = {'deleted': False}
+            if 'postgresql_psycopg2' in db_engine_name:
+                from askbot.search import postgresql
+                return postgresql.run_title_search(
+                                        self, search_query
+                                    ).filter(
+                                        **filter_parameters
+                                    ).order_by('-relevance')
+            elif 'mysql' in db_engine_name and mysql.supports_full_text_search():
+                filter_parameters['title__search'] = search_query
+            else:
+                filter_parameters['title__icontains'] = search_query
 
-        if getattr(django_settings, 'ASKBOT_MULTILINGUAL', False):
-            filter_parameters['language_code'] = get_language()
+            if getattr(django_settings, 'ASKBOT_MULTILINGUAL', False):
+                filter_parameters['language_code'] = get_language()
 
-        return self.filter(**filter_parameters)
+            return self.filter(**filter_parameters)
 
 
 class ThreadManager(BaseQuerySetManager):
@@ -148,10 +154,10 @@ class ThreadManager(BaseQuerySetManager):
             added_at = added_at,
             wiki = wiki,
             is_anonymous = is_anonymous,
-            #html field is denormalized in .save() call
             text = text,
-            #summary field is denormalized in .save() call
+            language_code=language
         )
+        #html and summary fields are denormalized in .save() call
         if question.wiki:
             #DATED COMMENT
             #todo: this is confusing - last_edited_at field
@@ -207,7 +213,7 @@ class ThreadManager(BaseQuerySetManager):
         todo: move to query set
         """
         if getattr(django_settings, 'ENABLE_HAYSTACK_SEARCH', False):
-            from askbot.search.haystack import AskbotSearchQuerySet
+            from askbot.search.haystack.searchquery import AskbotSearchQuerySet
             hs_qs = AskbotSearchQuerySet().filter(content=search_query)
             return hs_qs.get_django_queryset()
         else:
@@ -344,7 +350,7 @@ class ThreadManager(BaseQuerySetManager):
 
             #a special case: "personalized" main page only ==
             #if followed is the only available scope
-            #if total number (regardless of users selections) 
+            #if total number (regardless of users selections)
             #followed questions is < than a pagefull - we should mix in a list of
             #random questions
             if askbot_settings.ALL_SCOPE_ENABLED == askbot_settings.UNANSWERED_SCOPE_ENABLED == False:
@@ -602,6 +608,64 @@ class Thread(models.Model):
         self._question_cache = Post.objects.get(post_type='question', thread=self)
         return self._question_cache
 
+    def apply_hinted_tags(self, hints=None, user=None, timestamp=None, silent=False):
+        """match words in title and body with hints
+        and apply some of the hints as tags,
+        so that total number of tags in no more
+        than the maximum allowed number of tags"""
+
+        #1) see how many tags we're missing,
+        #if we don't need more we return
+        existing_tags = self.get_tag_names()
+        tags_count = len(existing_tags)
+        if tags_count >= askbot_settings.MAX_TAGS_PER_POST:
+            return
+
+        #2) get set of words from title and body
+        post_text = self.title + ' ' + self._question_post().text
+        post_text = post_text.lower()#normalize
+        post_words = set(post_text.split())
+
+        #3) get intersection set
+        #normalize hints and tags and remember the originals
+        orig_hints = dict()
+        for hint in hints:
+            orig_hints[hint.lower()] = hint
+
+        norm_hints = orig_hints.keys()
+        norm_tags = map(lambda v: v.lower(), existing_tags)
+
+        common_words = (set(norm_hints) & post_words) - set(norm_tags)
+
+        #4) for each common word count occurances in corpus
+        counts = dict()
+        for word in common_words:
+            counts[word] = sum(map(lambda w: w.lower() == word.lower(), post_words))
+
+        #5) sort words by count
+        sorted_words = sorted(
+                        common_words,
+                        lambda a, b: cmp(counts[b], counts[a])
+                    )
+
+        #6) extract correct number of most frequently used tags
+        need_tags = askbot_settings.MAX_TAGS_PER_POST - len(existing_tags)
+        add_tags = sorted_words[0:need_tags]
+        add_tags = map(lambda h: orig_hints[h], add_tags)
+
+        tagnames = ' '.join(existing_tags + add_tags)
+
+        if askbot_settings.FORCE_LOWERCASE_TAGS:
+            tagnames = tagnames.lower()
+
+        self.retag(
+            retagged_by=user,
+            retagged_at=timestamp or datetime.datetime.now(),
+            tagnames =' '.join(existing_tags + add_tags),
+            silent=silent
+        )
+
+
     def get_absolute_url(self):
         return self._question_post().get_absolute_url(thread = self)
         #question_id = self._question_post().id
@@ -854,10 +918,12 @@ class Thread(models.Model):
         for sort_method in const.ANSWER_SORT_METHODS:
             cache.cache.delete(self.get_post_data_cache_key(sort_method))
 
-    def invalidate_cached_data(self):
+    def invalidate_cached_data(self, lazy=False):
         self.invalidate_cached_post_data()
-        #self.invalidate_cached_thread_content_fragment()
-        self.update_summary_html()
+        if lazy:
+            self.invalidate_cached_thread_content_fragment()
+        else:
+            self.update_summary_html()
 
     def get_cached_post_data(self, user = None, sort_method = 'votes'):
         """returns cached post data, as calculated by
@@ -890,13 +956,17 @@ class Thread(models.Model):
             thread_posts = thread_posts.filter(groups__in=groups)
             thread_posts = thread_posts.distinct()#important for >1 group
 
-        thread_posts = thread_posts.order_by(
-                    {
+        order_by_method = {
                         'latest':'-added_at',
                         'oldest':'added_at',
                         'votes':'-points'
-                    }[sort_method]
-                )
+                    }
+        if sort_method in order_by_method:
+            order_by = order_by_method[sort_method]
+        else:
+            order_by = order_by_method['latest']
+
+        thread_posts = thread_posts.order_by(order_by)
         #1) collect question, answer and comment posts and list of post id's
         answers = list()
         post_map = dict()
@@ -1196,6 +1266,8 @@ class Thread(models.Model):
         Tag use counts are recalculated
         A signal tags updated is sent
 
+        TagSynonym is used to replace tag names
+
         *IMPORTANT*: self._question_post() has to
         exist when update_tags() is called!
         """
@@ -1205,9 +1277,20 @@ class Thread(models.Model):
         previous_tags = list(self.tags.filter(status = Tag.STATUS_ACCEPTED))
 
         ordered_updated_tagnames = [t for t in tagnames.strip().split(' ')]
+        updated_tagnames_tmp = set(ordered_updated_tagnames)
+
+        #apply TagSynonym
+        updated_tagnames = set()
+        for tag_name in updated_tagnames_tmp:
+            try:
+                tag_synonym = TagSynonym.objects.get(source_tag_name=tag_name)
+                updated_tagnames.add(tag_synonym.target_tag_name)
+                tag_synonym.auto_rename_count += 1
+                tag_synonym.save()
+            except TagSynonym.DoesNotExist:
+                updated_tagnames.add(tag_name)
 
         previous_tagnames = set([tag.name for tag in previous_tags])
-        updated_tagnames = set(ordered_updated_tagnames)
         removed_tagnames = previous_tagnames - updated_tagnames
 
         #remove tags from the question's tags many2many relation
@@ -1445,8 +1528,12 @@ class FavoriteQuestion(models.Model):
     class Meta:
         app_label = 'askbot'
         db_table = u'favorite_question'
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
     def __unicode__(self):
-        return '[%s] favorited at %s' %(self.user, self.added_at)
+        return u'[%s] favorited at %s' %(self.user, self.added_at)
 
 
 class DraftQuestion(models.Model):

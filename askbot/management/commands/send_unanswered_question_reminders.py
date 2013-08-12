@@ -7,6 +7,7 @@ from django.utils.translation import ungettext
 from askbot import mail
 from askbot.utils.classes import ReminderSchedule
 from askbot.models.question import Thread
+from askbot.utils.html import site_url
 from django.template import Context
 
 DEBUG_THIS_COMMAND = False
@@ -73,7 +74,7 @@ class Command(NoArgsCommand):
             }
 
             data = {
-                    'site_url': askbot_settings.APP_URL,
+                    'site_url': site_url(''),
                     'questions': final_question_list,
                     'subject_line': subject_line
                    }

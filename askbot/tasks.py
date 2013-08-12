@@ -26,6 +26,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.template import Context
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _
+from django.utils import simplejson
 from celery.decorators import task
 from askbot.conf import settings as askbot_settings
 from django.conf import settings as django_settings
@@ -35,10 +36,39 @@ from askbot.models import Post, Thread, User, ReplyAddress
 from askbot.models.badges import award_badges_signal
 from askbot.models import get_reply_to_addresses, format_instant_notification_email
 from askbot import exceptions as askbot_exceptions
+from askbot.utils.twitter import Twitter
 
 # TODO: Make exceptions raised inside record_post_update_celery_task() ...
 #       ... propagate upwards to test runner, if only CELERY_ALWAYS_EAGER = True
 #       (i.e. if Celery tasks are not deferred but executed straight away)
+@task(ignore_result=True)
+def tweet_new_post_task(post_id):
+
+    try:
+        twitter = Twitter()
+    except:
+        return
+
+    post = Post.objects.get(id=post_id)
+
+    is_mod = post.author.is_administrator_or_moderator()
+    if is_mod or post.author.reputation > askbot_settings.MIN_REP_TO_TWEET_ON_OTHERS_ACCOUNTS:
+        tweeters = User.objects.filter(social_sharing_mode=const.SHARE_EVERYTHING)
+        tweeters = tweeters.exclude(id=post.author.id)
+        access_tokens = tweeters.values_list('twitter_access_token', flat=True)
+    else:
+        access_tokens = list()
+
+    tweet_text = post.as_tweet()
+
+    for raw_token in access_tokens:
+        token = simplejson.loads(raw_token)
+        twitter.tweet(tweet_text, access_token=token)
+
+    if post.author.social_sharing_mode != const.SHARE_NOTHING:
+        token = simplejson.loads(post.author.twitter_access_token)
+        twitter.tweet(tweet_text, access_token=token)
+        
 
 @task(ignore_result = True)
 def notify_author_of_published_revision_celery_task(revision):
@@ -139,7 +169,7 @@ def record_post_update_celery_task(
         # HACK: exceptions from Celery job don't propagate upwards
         # to the Django test runner
         # so at least let's print tracebacks
-        print >>sys.stderr, traceback.format_exc()
+        print >>sys.stderr, unicode(traceback.format_exc()).encode('utf-8')
         raise
 
 @task(ignore_result = True)

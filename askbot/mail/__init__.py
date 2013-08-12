@@ -1,6 +1,9 @@
 """functions that send email in askbot
 these automatically catch email-related exceptions
 """
+from django.conf import settings as django_settings
+DEBUG_EMAIL = getattr(django_settings, 'ASKBOT_DEBUG_INCOMING_EMAIL', False)
+
 import logging
 import os
 import re
@@ -15,7 +18,6 @@ from askbot.utils.file_utils import store_file
 from askbot.utils.html import absolutize_urls
 from bs4 import BeautifulSoup
 from django.core import mail
-from django.conf import settings as django_settings
 from django.core.exceptions import PermissionDenied
 from django.forms import ValidationError
 from django.utils.translation import ugettext as _
@@ -90,7 +92,7 @@ def clean_html_email(email_body):
     todo: needs more clenup might not work for other email templates
     that do not use table layout
     """
-    soup = BeautifulSoup(email_body)
+    soup = BeautifulSoup(email_body, 'html5lib')
     body_element = soup.find('body')
     filter_func = lambda s: bool(s.strip())
     phrases = map(
@@ -194,7 +196,7 @@ def mail_moderators(
         msg.content_subtype = 'html'
         msg.send()
     except smtplib.SMTPException, error:
-        sys.stderr.write('\n' + error.encode('utf-8') + '\n')
+        sys.stderr.write('\n' + unicode(error).encode('utf-8') + '\n')
         if raise_on_failure == True:
             raise exceptions.EmailNotSent(unicode(error))
 
@@ -316,6 +318,8 @@ def extract_user_signature(text, reply_code):
     """extracts email signature as text trailing
     the reply code"""
     stripped_text = strip_tags(text)
+
+    signature = ''
     if reply_code in stripped_text:
         #extract the signature
         tail = list()
@@ -330,43 +334,69 @@ def extract_user_signature(text, reply_code):
         while tail and (tail[0].startswith('>') or tail[0].strip() == ''):
             tail.pop(0)
 
-        return '\n'.join(tail)
-    else:
-        return None
+        signature = '\n'.join(tail)
+
+    #patch signature to a sentinel value if it is truly empty, because we
+    #cannot allow empty signature field, which indicates no
+    #signature at all and in that case we ask user to create one
+    return signature or 'empty signature'
 
 
-def process_parts(parts, reply_code=None):
+def process_parts(parts, reply_code=None, from_address=None):
     """Uploads the attachments and parses out the
     body, if body is multipart.
     Links to attachments will be added to the body of the question.
     Returns ready to post body of the message and the list
     of uploaded files.
     """
-    body_markdown = ''
+    body_text = ''
     stored_files = list()
     attachments_markdown = ''
+
+    if DEBUG_EMAIL:
+        sys.stderr.write('--- MESSAGE PARTS:\n\n')
+
     for (part_type, content) in parts:
         if part_type == 'attachment':
+            if DEBUG_EMAIL:
+                sys.stderr.write('REGULAR ATTACHMENT:\n')
             markdown, stored_file = process_attachment(content)
             stored_files.append(stored_file)
             attachments_markdown += '\n\n' + markdown
         elif part_type == 'body':
-            body_markdown += '\n\n' + content.strip('\n\t ')
+            if DEBUG_EMAIL:
+                sys.stderr.write('BODY:\n')
+                sys.stderr.write(content.encode('utf-8'))
+                sys.stderr.write('\n')
+            body_text += '\n\n' + content.strip('\n\t ')
         elif part_type == 'inline':
+            if DEBUG_EMAIL:
+                sys.stderr.write('INLINE ATTACHMENT:\n')
             markdown, stored_file = process_attachment(content)
             stored_files.append(stored_file)
-            body_markdown += markdown
+            body_text += markdown
+
+    if DEBUG_EMAIL:
+        sys.stderr.write('--- THE END\n')
 
     #if the response separator is present -
     #split the body with it, and discard the "so and so wrote:" part
     if reply_code:
-        signature = extract_user_signature(body_markdown, reply_code)
+        #todo: maybe move this part out
+        signature = extract_user_signature(body_text, reply_code)
+        body_text = extract_reply(body_text)
     else:
         signature = None
-    body_markdown = extract_reply(body_markdown)
 
-    body_markdown += attachments_markdown
-    return body_markdown.strip(), stored_files, signature
+    body_text += attachments_markdown
+
+    if from_address:
+        body_text = parsing.strip_trailing_sender_references(
+                                                        body_text,
+                                                        from_address
+                                                    )
+
+    return body_text.strip(), stored_files, signature
 
 
 def process_emailed_question(
@@ -396,19 +426,31 @@ def process_emailed_question(
                 raise PermissionDenied(messages.insufficient_reputation(user))
 
             body_text = form.cleaned_data['body_text']
+
             stripped_body_text = user.strip_email_signature(body_text)
-            signature_not_detected = (
-                stripped_body_text == body_text and user.email_signature
+
+            #note that signature '' means it is unset and 'empty signature' is a sentinel
+            #because there is no other way to indicate unset signature without adding
+            #another field to the user model
+            signature_changed = (
+                stripped_body_text == body_text and
+                user.email_signature != 'empty signature'
             )
 
+            need_new_signature = (
+                user.email_isvalid is False or
+                user.email_signature == '' or
+                signature_changed
+            )
+            
             #ask for signature response if user's email has not been
             #validated yet or if email signature could not be found
-            if user.email_isvalid is False or signature_not_detected:
+            if need_new_signature:
 
                 reply_to = ReplyAddress.objects.create_new(
                     user = user,
                     reply_action = 'validate_email'
-                ).as_email_address()
+                ).as_email_address(prefix='welcome-')
                 message = messages.ask_for_signature(user, footer_code = reply_to)
                 raise PermissionDenied(message)
 

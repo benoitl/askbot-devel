@@ -5,12 +5,12 @@ import urlparse
 import functools
 import re
 import random
+from askbot.utils.html import site_url
 from openid.store.interface import OpenIDStore
 from openid.association import Association as OIDAssociation
 from openid.extensions import sreg
 from openid import store as openid_store
 import oauth2 as oauth # OAuth1 protocol
-
 from django.db.models.query import Q
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -167,19 +167,20 @@ def get_provider_name(openid_url):
 
 def use_password_login():
     """password login is activated
-    either if USE_RECAPTCHA is false
-    of if recaptcha keys are set correctly
+    if any of the login methods requiring user name
+    and password are activated
+
+    TODO: these should be mutually exclusive and
+    it should be possible to register another login
+    method using password and user name via configuration
     """
     if askbot_settings.SIGNIN_WORDPRESS_SITE_ENABLED:
         return True
-    if askbot_settings.USE_RECAPTCHA:
-        if askbot_settings.RECAPTCHA_KEY and askbot_settings.RECAPTCHA_SECRET:
-            return True
-        else:
-            logging.critical('if USE_RECAPTCHA == True, set recaptcha keys!!!')
-            return False
-    else:
+    if askbot_settings.SIGNIN_LOCAL_ENABLED:
         return True
+    if askbot_settings.USE_LDAP_FOR_PASSWORD_LOGIN:
+        return True
+    return False
 
 def filter_enabled_providers(data):
     """deletes data about disabled providers from
@@ -737,7 +738,7 @@ class OAuthConnection(object):
         request_url = self.parameters['request_token_url']
 
         if callback_url:
-            callback_url = '%s%s' % (askbot_settings.APP_URL, callback_url)
+            callback_url = site_url(callback_url)
             request_body = urllib.urlencode(dict(oauth_callback=callback_url))
 
             self.request_token = self.send_request(
@@ -764,20 +765,27 @@ class OAuthConnection(object):
     def get_token(self):
         return self.request_token
 
-    def get_user_id(self, oauth_token = None, oauth_verifier = None):
-        """Returns user ID within the OAuth provider system,
-        based on ``oauth_token`` and ``oauth_verifier``
-        """
-
+    def get_client(self, oauth_token=None, oauth_verifier=None):
         token = oauth.Token(
                     oauth_token['oauth_token'],
                     oauth_token['oauth_token_secret']
                 )
-        token.set_verifier(oauth_verifier)
-        client = oauth.Client(self.consumer, token = token)
+        if oauth_verifier:
+            token.set_verifier(oauth_verifier)
+        return oauth.Client(self.consumer, token=token)
+
+    def get_access_token(self, oauth_token=None, oauth_verifier=None):
+        """returns data as returned upon visiting te access_token_url"""
+        client = self.get_client(oauth_token, oauth_verifier)
         url = self.parameters['access_token_url']
         #there must be some provider-specific post-processing
-        data = self.send_request(client = client, url=url, method='GET')
+        return self.send_request(client = client, url=url, method='GET')
+
+    def get_user_id(self, oauth_token = None, oauth_verifier = None):
+        """Returns user ID within the OAuth provider system,
+        based on ``oauth_token`` and ``oauth_verifier``
+        """
+        data = self.get_access_token(oauth_token, oauth_verifier)
         data['consumer_key'] = self.parameters['consumer_key']
         data['consumer_secret'] = self.parameters['consumer_secret']
         return self.parameters['get_user_id_function'](data)
@@ -818,7 +826,7 @@ def get_oauth2_starter_url(provider_name, csrf_token):
     providers = get_enabled_login_providers()
     params = providers[provider_name]
     client_id = getattr(askbot_settings, provider_name.upper() + '_KEY')
-    redirect_uri = askbot_settings.APP_URL + reverse('user_complete_oauth2_signin')
+    redirect_uri = site_url(reverse('user_complete_oauth2_signin'))
     client = Client(
         auth_endpoint=params['auth_endpoint'],
         client_id=client_id,

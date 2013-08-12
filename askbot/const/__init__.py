@@ -22,6 +22,15 @@ CLOSE_REASONS = (
 LONG_TIME = 60*60*24*30 #30 days is a lot of time
 DATETIME_FORMAT = '%I:%M %p, %d %b %Y'
 
+SHARE_NOTHING = 0
+SHARE_MY_POSTS = 1
+SHARE_EVERYTHING = 2
+SOCIAL_SHARING_MODE_CHOICES = (
+    (SHARE_NOTHING, _('disable sharing')),
+    (SHARE_MY_POSTS, _('my posts')),
+    (SHARE_EVERYTHING, _('all posts'))
+)
+
 TYPE_REPUTATION = (
     (1, 'gain_by_upvoted'),
     (2, 'gain_by_answer_accepted'),

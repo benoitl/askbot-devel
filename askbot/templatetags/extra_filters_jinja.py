@@ -4,6 +4,7 @@ import re
 import time
 import urllib
 from coffin import template as coffin_template
+from bs4 import BeautifulSoup
 from django.core import exceptions as django_exceptions
 from django.utils.translation import ugettext as _
 from django.utils.translation import get_language as django_get_language
@@ -11,11 +12,13 @@ from django.contrib.humanize.templatetags import humanize
 from django.template import defaultfilters
 from django.core.urlresolvers import reverse, resolve
 from django.http import Http404
+from django.utils import simplejson
 from askbot import exceptions as askbot_exceptions
 from askbot.conf import settings as askbot_settings
 from django.conf import settings as django_settings
 from askbot.skins import utils as skin_utils
 from askbot.utils.html import absolutize_urls
+from askbot.utils.html import site_url as site_url_func
 from askbot.utils import functions
 from askbot.utils import url_utils
 from askbot.utils.slug import slugify
@@ -45,8 +48,24 @@ def as_js_bool(some_object):
     return 'false'
 
 @register.filter
+def as_json(data):
+    return simplejson.dumps(data)
+
+@register.filter
 def is_current_language(lang):
     return lang == django_get_language()
+
+@register.filter
+def is_empty_editor_value(value):
+    if value == None:
+        return True
+    if str(value).strip() == '':
+        return True
+    #tinymce uses a weird sentinel placeholder
+    if askbot_settings.EDITOR_TYPE == 'tinymce':
+        soup = BeautifulSoup(value, 'html5lib')
+        return soup.getText().strip() == ''
+    return False
 
 @register.filter
 def to_int(value):
@@ -58,6 +77,15 @@ def safe_urlquote(text, quote_plus = False):
         return urllib.quote_plus(text.encode('utf8'))
     else:
         return urllib.quote(text.encode('utf8'))
+
+@register.filter
+def show_block_to(block_name, user):
+    block = getattr(askbot_settings, block_name)
+    if block:
+        flag_name = block_name + '_ANON_ONLY'
+        require_anon = getattr(askbot_settings, flag_name, False)
+        return (require_anon is False) or user.is_anonymous()
+    return False
 
 @register.filter
 def strip_path(url):
@@ -132,10 +160,11 @@ def media(url):
 
 @register.filter
 def fullmedia(url):
-    domain = askbot_settings.APP_URL
-    #protocol = getattr(settings, "PROTOCOL", "http")
-    path = media(url)
-    return "%s%s" % (domain, path)
+    return site_url_func(media(url))
+
+@register.filter
+def site_url(url):
+    return site_url_func(url)
 
 diff_date = register.filter(functions.diff_date)
 

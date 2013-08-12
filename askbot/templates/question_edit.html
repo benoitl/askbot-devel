@@ -8,21 +8,25 @@
 {% block content %}
 <div class="section-title">{% trans %}Edit question{% endtrans %} [<a href="{{ question.get_absolute_url() }}">{% trans %}back{% endtrans %}</a>]</div>
 <form id="fmedit" action="{% url edit_question question.id %}" method="post" >{% csrf_token %}
-
     {% if revision_form.revision.errors %}{{ revision_form.revision.errors.as_ul() }}{% endif %}
-    <div style="vertical-align:middle">
-    {{ revision_form.revision }} <input type="hidden"
-                                        id="select_revision"
-                                        name="select_revision" 
-                                        value="false">
-    </div> 
+    {{ revision_form.revision }}
+    <input type="hidden" id="select_revision" name="select_revision" value="false"/>
+    <div class="form-item">
+        <label for="id_title" >
+            {% trans %}Question - in one sentence{% endtrans %}
+            {% if form.title.errors %}
+                {{ form.title.errors }}
+            {% endif %}
+        </label>
+        {{ form.title }}
+    </div>
+    <label for="editor">{% trans %}Details{% endtrans %}</label>
     {% set use_category_selector = (settings.TAG_SOURCE == 'category-tree') %}
     {{
         macros.edit_post(
                     form,
                     post_type = 'question',
                     post_html = revision.text,
-                    edit_title = True,
                     mandatory_tags = mandatory_tags,
                     use_category_selector = use_category_selector,
                     tag_names = tag_names,
@@ -74,8 +78,7 @@
     <script type='text/javascript' src='{{"/js/jquery.validate.min.js"|media}}'></script>
     <script type='text/javascript' src='{{"/js/post.js"|media}}'></script>
     {% if settings.EDITOR_TYPE == 'markdown' %}
-        <script type='text/javascript' src='{{"/js/wmd/showdown.js"|media}}'></script>
-        <script type='text/javascript' src='{{"/js/wmd/wmd.js"|media}}'></script>
+        {% include "meta/markdown_javascript.html" %}
     {% endif %}
     <script type="text/javascript">
     {% if settings.ENABLE_MATHJAX or settings.MARKUP_CODE_FRIENDLY %}

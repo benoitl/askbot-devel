@@ -27,11 +27,9 @@
         }
     };
 
-    var modalMenuHeadline = gettext('Insert a file');
-
     var createDialog = function() {
         var dialog = new FileUploadDialog();
-        dialog.setHeadingText(modalMenuHeadline);
+        dialog.setFileType('attachment');
         dialog.setPostUploadHandler(insertIntoDom);
         dialog.setInputId('askbot_attachment_input');
         dialog.setUrlInputTooltip(gettext('Or paste file url here'));

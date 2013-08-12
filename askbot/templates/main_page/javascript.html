@@ -1,9 +1,4 @@
 <script type="text/javascript">
-    {# cant cache this #}
-    askbot['settings']['showSortByRelevance'] = {{ show_sort_by_relevance|as_js_bool }};
-</script>
-{% compress js %}
-<script type="text/javascript">
     /*<![CDATA[*/
     $(document).ready(function(){
         /*var on_tab = '#nav_questions';
@@ -45,4 +40,3 @@
 </script>
 <script type='text/javascript' src='{{"/js/editor.js"|media}}'></script>
 <script type='text/javascript' src='{{"/js/tag_selector.js"|media}}'></script>
-{% endcompress %}

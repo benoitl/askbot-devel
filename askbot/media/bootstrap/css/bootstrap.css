@@ -310,7 +310,6 @@ a:hover {
 }
 p {
   margin: 0 0 9px;
-  font-family: Arial, sans-serif;
   font-size: 13px;
   line-height: 18px;
 }
@@ -396,7 +395,6 @@ h6 {
 ul,
 ol {
   padding: 0;
-  margin: 0 0 9px 25px;
 }
 ul ul,
 ul ol,
@@ -3984,10 +3982,6 @@ a.thumbnail:hover {
   }
 }
 @media (max-width: 767px) {
-  body {
-    padding-left: 20px;
-    padding-right: 20px;
-  }
   .navbar-fixed-top {
     margin-left: -20px;
     margin-right: -20px;

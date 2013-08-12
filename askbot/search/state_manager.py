@@ -184,14 +184,25 @@ class SearchState(object):
             'sort:' + self.sort
         ]
 
-        if self.query:
-            lst.append('query:' + urllib.quote(smart_str(self.query), safe=self.SAFE_CHARS))
+        """
+            ATTN: a copy from urls.py
+            r'(%s)?' % r'/scope:(?P<scope>\w+)' +
+            r'(%s)?' % r'/sort:(?P<sort>[\w\-]+)' +
+            r'(%s)?' % r'/tags:(?P<tags>[\w+.#,-]+)' + # Should match: const.TAG_CHARS + ','; TODO: Is `#` char decoded by the time URLs are processed ??
+            r'(%s)?' % r'/author:(?P<author>\d+)' +
+            r'(%s)?' % r'/page:(?P<page>\d+)' +
+            r'(%s)?' % r'/query:(?P<query>.+)' +  # INFO: query is last, b/c it can contain slash!!!
+        """
+
+        #order of items is important!!!
         if self.tags:
             lst.append('tags:' + urllib.quote(smart_str(const.TAG_SEP.join(self.tags)), safe=self.SAFE_CHARS))
         if self.author:
             lst.append('author:' + str(self.author))
         if self.page:
             lst.append('page:' + str(self.page))
+        if self.query:
+            lst.append('query:' + urllib.quote(smart_str(self.query), safe=self.SAFE_CHARS))
         return '/'.join(lst) + '/'
 
     def deepcopy(self): # TODO: test me

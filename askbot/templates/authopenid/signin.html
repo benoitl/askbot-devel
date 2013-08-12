@@ -87,15 +87,12 @@
             {% if user.is_anonymous() %}
                 {% if have_buttons %}
                     <h2 id="password-heading">
-                        {% trans %}or enter your <span>user name and password</span>, then sign in{% endtrans %}
+                        {% trans %}or enter your <span>user name and password</span>{% endtrans %}
                     </h2>
                 {% else %}
                     <h1 class="section-title">
                         {% trans %}Please, sign in{% endtrans %}
                     </h1>
-                {% endif %}
-                {% if have_buttons %}
-                    <p class="hint">{% trans %}(or select another login method above){% endtrans %}</p>
                 {% endif %}
                 <table class="login">
                     {% if login_form.password_login_failed %}
@@ -115,7 +112,7 @@
                     </tr>
                 </table>
                 <p id="local_login_buttons">
-                    <input name="login_with_password" type="submit" value="{% trans %}Sign in{% endtrans %}" />
+                    <input class="submit" name="login_with_password" type="submit" value="{% trans %}Sign in{% endtrans %}" />
                     {% if settings.USE_LDAP_FOR_PASSWORD_LOGIN == False %}
                     <a class="create-password-account" style="vertical-align:middle" href="{% url user_signup_with_password %}?login_provider=local">{% trans %}Create a password-protected account{% endtrans %}</a>
                     {% endif %}
@@ -145,7 +142,7 @@
                     </tr>
                 </table>
                 <p id="local_login_buttons">
-                    <input name="change_password" type="submit" value="{% trans %}Change password{% endtrans %}" />
+                    <input class="submit" name="change_password" type="submit" value="{% trans %}Change password{% endtrans %}" />
                 </p>
             {% endif %}
         </fieldset>
@@ -213,6 +210,7 @@
                 {{ account_recovery_form.email }}
                 <input
                     type="submit"
+                    class="submit"
                     {% if view_subtype == 'bad_key' %}
                     value="{% trans %}Send a new recovery key{% endtrans %}"
                     {% else %}

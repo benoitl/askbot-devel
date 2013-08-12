@@ -84,10 +84,19 @@
             data-toggle-url="{% url toggle_group_profile_property %}"
         />
         <label for="vip-toggle">
-            {% trans %}Make group VIP{% endtrans %}
+            {% trans %}Can moderate site{% endtrans %}
         </label>
         <br/>
-
+        <input
+            type="checkbox"
+            id="read-only-toggle"
+            {% if group.read_only %}checked="checked"{% endif %}
+            data-toggle-url="{% url toggle_group_profile_property %}"
+        />
+        <label for="read-only-toggle">
+            {% trans %}Allow only read access{% endtrans %}
+        </label>
+        <br/>
         <a 
             id="preapproved-emails"
             title="{% trans %}list of email addresses of pre-approved users{% endtrans %}"

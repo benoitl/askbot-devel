@@ -19,6 +19,11 @@
     {% endif %}
     <form enctype="multipart/form-data" method="POST" action="{% url avatar_add %}">{% csrf_token %}
         {{ upload_avatar_form.as_p() }}
-        <p><input type="submit" value="{% trans %}Upload{% endtrans %}" /></p>
+        <p>
+            <input type="submit" value="{% trans %}Upload{% endtrans %}" />
+            <a href="{{ user.get_profile_url() }}" class="button cancel"
+                style="display: inline-block"
+            >{% trans %}Cancel{% endtrans %}</a>
+        </p>
     </form>
 {% endblock %}

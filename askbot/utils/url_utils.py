@@ -2,6 +2,19 @@ import os
 import urlparse
 from django.core.urlresolvers import reverse
 from django.conf import settings
+from django.conf.urls.defaults import url
+
+def service_url(*args, **kwargs):
+    """adds the service prefix to the url"""
+    pattern = args[0]
+    if pattern[0] == '^':
+        pattern = pattern[1:]
+
+    prefix = getattr(settings, 'ASKBOT_SERVICE_URL_PREFIX', '')
+    pattern = '^' + prefix + pattern
+    new_args = list(args)
+    new_args[0] = pattern
+    return url(*new_args, **kwargs)
 
 def strip_path(url):
     """srips path, params and hash fragments of the url"""

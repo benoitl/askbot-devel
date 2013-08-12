@@ -25,8 +25,8 @@ class Migration(SchemaMigration):
 
         # Changing field 'BadgeData.slug'
         db.alter_column('askbot_badgedata', 'slug', self.gf('django.db.models.fields.SlugField')(unique=True, max_length=50))
-
         # Adding unique constraint on 'BadgeData', fields ['slug']
+        return
         try:#work around the South 0.7.3 bug
             db.start_transaction()
             db.create_unique('askbot_badgedata', ['slug'])

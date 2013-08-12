@@ -107,29 +107,27 @@ class PageLoadTestCase(AskbotTestCase):
 
         if r.status_code != status_code:
             print 'Error in status code for url: %s' % url
-            
+
         self.assertEqual(r.status_code, status_code)
 
         if template and status_code != 302:
-            if isinstance(r.template, coffin.template.Template):
-                self.assertEqual(r.template.name, template)
-            elif isinstance(r.template, list):
+            if hasattr(r, 'template'):
+                if isinstance(r.template, coffin.template.Template):
+                    self.assertEqual(r.template.name, template)
+                    return
+
+            if hasattr(r, 'template'):
+                templates = r.template
+            elif hasattr(r, 'templates'):
+                templates = r.templates
+            else:
+                raise NotImplementedError()
+
+            if isinstance(templates, list):
                 #asuming that there is more than one template
-                template_names = ','.join([t.name for t in r.template])
-                print 'templates are %s' % template_names
-                # The following code is no longer relevant because we're using
-                # additional templates for cached fragments [e.g. thread.get_summary_html()]
-#                if follow == False:
-#                    self.fail(
-#                        ('Have issue accessing %s. '
-#                        'This should not have happened, '
-#                        'since you are not expecting a redirect '
-#                        'i.e. follow == False, there should be only '
-#                        'one template') % url
-#                    )
-#
-#               self.assertEqual(r.template[0].name, template)
-                self.assertIn(template, [t.name for t in r.template])
+                template_names = [t.name for t in templates]
+                print 'templates are %s' % ','.join(template_names)
+                self.assertIn(template, template_names)
             else:
                 raise Exception('unexpected error while runnig test')
 
@@ -141,8 +139,14 @@ class PageLoadTestCase(AskbotTestCase):
         self.failUnless(len(response.redirect_chain) == 1)
         redirect_url = response.redirect_chain[0][0]
         self.failUnless(unicode(redirect_url).endswith('/questions/'))
-        self.assertTrue(isinstance(response.template, list))
-        self.assertIn('main_page.html', [t.name for t in response.template])
+        if hasattr(response, 'template'):
+            templates = response.template
+        elif hasattr(response, 'templates'):
+            templates = response.templates
+        else:
+            raise NotImplementedError()
+        self.assertTrue(isinstance(templates, list))
+        self.assertIn('main_page.html', [t.name for t in templates])
 
     def proto_test_ask_page(self, allow_anonymous, status_code):
         prev_setting = askbot_settings.ALLOW_POSTING_BEFORE_LOGGING_IN
@@ -160,7 +164,7 @@ class PageLoadTestCase(AskbotTestCase):
     @with_settings(GROUPS_ENABLED=False)
     def test_title_search_groups_disabled(self):
         data = {'query_text': 'Question'}
-        response = self.client.get(reverse('title_search'), data)
+        response = self.client.get(reverse('api_get_questions'), data)
         data = simplejson.loads(response.content)
         self.assertTrue(len(data) > 1)
 
@@ -175,16 +179,15 @@ class PageLoadTestCase(AskbotTestCase):
 
         #ask for data anonymously - should get nothing
         query_data = {'query_text': 'alibaba'}
-        response = self.client.get(reverse('title_search'), query_data)
+        response = self.client.get(reverse('api_get_questions'), query_data)
         response_data = simplejson.loads(response.content)
         self.assertEqual(len(response_data), 0)
 
         #log in - should get the question
         self.client.login(method='force', user_id=user.id)
-        response = self.client.get(reverse('title_search'), query_data)
+        response = self.client.get(reverse('api_get_questions'), query_data)
         response_data = simplejson.loads(response.content)
         self.assertEqual(len(response_data), 1)
-
 
     def test_ask_page_disallowed_anonymous(self):
         self.proto_test_ask_page(False, 302)
@@ -457,6 +460,7 @@ class PageLoadTestCase(AskbotTestCase):
         #somehow login this user
         #self.proto_test_non_user_urls()
 
+
     def proto_test_user_urls(self, status_code):
         user = models.User.objects.get(id=2)   # INFO: Hardcoded ID, might fail if DB allocates IDs in some non-continuous way
         name_slug = slugify(user.username)
@@ -725,7 +729,7 @@ class CommandViewTests(AskbotTestCase):
     def test_load_object_description_fails(self):
         response = self.client.get(reverse('load_object_description'))
         soup = BeautifulSoup(response.content)
-        title = soup.find_all('h1')[0].contents[0]
+        title = soup.find_all('h1')[0].contents[0].strip()
         self.assertEqual(title, 'Page not found')
 
     def test_set_tag_filter_strategy(self):
@@ -758,7 +762,7 @@ class CommandViewTests(AskbotTestCase):
             user = self.reload_object(user)
             self.assertEqual(user.display_tag_filter_strategy, value)
 
-            
+
 class UserProfilePageTests(AskbotTestCase):
     def setUp(self):
         self.user = self.create_user('user')
@@ -795,3 +799,14 @@ class UserProfilePageTests(AskbotTestCase):
         user = self.reload_object(self.user)
         self.assertEqual(user.username, 'edited')
         self.assertEqual(user.email, 'new@example.com')
+
+    def test_user_network(self):
+        user2 = self.create_user('user2')
+        user2.follow_user(self.user)
+        self.user.follow_user(user2)
+        name_slug = slugify(self.user.username)
+        kwargs={'id': self.user.id, 'slug': name_slug}
+        url = reverse('user_profile', kwargs=kwargs)
+        response = self.client.get(url, data={'sort':'network'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.templates[0].name, 'user_profile/user_network.html')
