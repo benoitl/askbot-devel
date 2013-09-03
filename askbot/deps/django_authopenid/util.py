@@ -851,6 +851,8 @@ def ldap_check_password(username, password):
         return results
 
     try:
+        password = "%r" % password  # avoid escape characters
+        password = password[2:-1]  # Skip u' ' characters
         ldap_session = ldap.initialize(askbot_settings.LDAP_URL)
         ldap_session.simple_bind_s("corp\\" + username, password)
         ldap_session.unbind_s()
