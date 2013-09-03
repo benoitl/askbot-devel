@@ -3,14 +3,15 @@
 # This file is distributed under the same license as the CNPROG package.
 # 
 # Translators:
+# ppanhh <ppanhh@gmail.com>, 2013
 # Cong It <EMAIL@ADDRESS>, 2010
 msgid ""
 msgstr ""
 "Project-Id-Version: askbot\n"
 "Report-Msgid-Bugs-To: http://askbot.org/\n"
 "POT-Creation-Date: 2013-07-13 14:06-0500\n"
-"PO-Revision-Date: 2013-07-13 19:08+0000\n"
-"Last-Translator: evgeny <evgeny.fadeev@gmail.com>\n"
+"PO-Revision-Date: 2013-08-17 04:26+0000\n"
+"Last-Translator: ppanhh <ppanhh@gmail.com>\n"
 "Language-Team: Vietnamese (http://www.transifex.com/projects/p/askbot/language/vi/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -20,27 +21,27 @@ msgstr ""
 
 #: exceptions.py:13
 msgid "Sorry, but anonymous visitors cannot access this function"
-msgstr ""
+msgstr "Rất tiếc, nhưng thành viên ẩn danh không thể truy cập tính năng này"
 
 #: feed.py:34 feed.py:108
 msgid " - "
-msgstr ""
+msgstr "-"
 
 #: feed.py:35 feed.py:109
 msgid "Individual question feed"
-msgstr ""
+msgstr "Feed dạng câu hỏi cá nhân"
 
 #: forms.py:140
 msgid "select country"
-msgstr ""
+msgstr "chọn quốc gia"
 
 #: forms.py:150
 msgid "Country"
-msgstr ""
+msgstr "Quốc gia"
 
 #: forms.py:158
 msgid "Country field is required"
-msgstr ""
+msgstr "Khung thông tin về quốc gia không được để trống"
 
 #: forms.py:188
 #, python-format
@@ -61,7 +62,7 @@ msgstr ""
 #: forms.py:247 templates/widgets/markdown_help.html:20
 #: templates/widgets/markdown_help.html:24
 msgid "title"
-msgstr ""
+msgstr "tiêu đề"
 
 #: forms.py:249 templates/embed/ask_by_widget.html:170
 msgid "Please enter your question"
@@ -85,13 +86,13 @@ msgstr ""
 
 #: forms.py:309
 msgid "content"
-msgstr ""
+msgstr "nội dung"
 
 #: forms.py:370
 #, python-format
 msgid "each tag must be shorter than %(max_chars)d character"
 msgid_plural "each tag must be shorter than %(max_chars)d characters"
-msgstr[0] ""
+msgstr[0] "mỗi thẻ đánh dấu phải có ít hơn %(max_chars)d ký tự"
 
 #: forms.py:407
 msgid ""
@@ -102,7 +103,7 @@ msgstr ""
 #: forms.py:410 forms.py:1006 models/widgets.py:27
 #: templates/widgets/edit_post.html:32 templates/widgets/meta_nav.html:6
 msgid "tags"
-msgstr ""
+msgstr "thẻ đánh dấu"
 
 #: forms.py:412
 #, python-format
@@ -118,44 +119,44 @@ msgstr[0] ""
 #, python-format
 msgid "please use %(tag_count)d tag or less"
 msgid_plural "please use %(tag_count)d tags or less"
-msgstr[0] ""
+msgstr[0] "vui lòng sử dụng %(tag_count)d thẻ hoặc ít hơn"
 
 #: forms.py:447
 #, python-format
 msgid "At least one of the following tags is required : %(tags)s"
-msgstr ""
+msgstr "Ít nhất một trong những thẻ đánh dấu sau đây phải có: %(tags)s"
 
 #: forms.py:475
 msgid "community wiki (karma is not awarded & many others can edit wiki post)"
-msgstr ""
+msgstr "wiki cộng đồng (không có phần thưởng đặc biệt & nhiều thành viên có thể tham gia chỉnh sửa nội dung)"
 
 #: forms.py:479
 msgid ""
 "if you choose community wiki option, the question and answer do not generate"
 " points and name of author will not be shown"
-msgstr ""
+msgstr "nếu bạn chọn tính năng wiki cộng động, phần câu hỏi và câu trả lời không tạo ra điểm và tên của tác giả sẽ không được hiển thị"
 
 #: forms.py:496
 msgid "update summary:"
-msgstr ""
+msgstr "tóm tắt phần cập nhật:"
 
 #: forms.py:498
 msgid ""
 "enter a brief summary of your revision (e.g. fixed spelling, grammar, "
 "improved style, this field is optional)"
-msgstr ""
+msgstr "điền vào một bản tóm tắt ngắn gọn về các phần chỉnh sửa của bạn (ví dụ như phát âm, ngữ pháp, cải thiện cách viết, phần khung thông tin này có thể có hoặc không)"
 
 #: forms.py:585
 msgid "Enter number of points to add or subtract"
-msgstr ""
+msgstr "Điền vào số lượng điểm để thêm vào hoặc trừ bớt"
 
 #: forms.py:600 const/__init__.py:375
 msgid "approved"
-msgstr ""
+msgstr "đã chấp thuận"
 
 #: forms.py:601 const/__init__.py:376
 msgid "watched"
-msgstr ""
+msgstr "đã theo dõi"
 
 #: forms.py:602 const/__init__.py:377
 msgid "suspended"
@@ -3012,7 +3013,7 @@ msgstr ""
 
 #: const/message_keys.py:39 templates/question_retag.html:58
 msgid "tags are required"
-msgstr ""
+msgstr "thẻ đánh dấu không được để trống"
 
 #: const/message_keys.py:41
 msgid "please use letters, numbers and characters \"-+.#\""

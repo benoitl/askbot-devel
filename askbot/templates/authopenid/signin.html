@@ -112,7 +112,7 @@
                     </tr>
                 </table>
                 <p id="local_login_buttons">
-                    <input class="submit" name="login_with_password" type="submit" value="{% trans %}Sign in{% endtrans %}" />
+                    <input class="button" name="login_with_password" type="submit" value="{% trans %}Sign in{% endtrans %}" />
                     {% if settings.USE_LDAP_FOR_PASSWORD_LOGIN == False %}
                     <a class="create-password-account" style="vertical-align:middle" href="{% url user_signup_with_password %}?login_provider=local">{% trans %}Create a password-protected account{% endtrans %}</a>
                     {% endif %}
@@ -142,7 +142,7 @@
                     </tr>
                 </table>
                 <p id="local_login_buttons">
-                    <input class="submit" name="change_password" type="submit" value="{% trans %}Change password{% endtrans %}" />
+                    <input class="button" name="change_password" type="submit" value="{% trans %}Change password{% endtrans %}" />
                 </p>
             {% endif %}
         </fieldset>
@@ -210,7 +210,7 @@
                 {{ account_recovery_form.email }}
                 <input
                     type="submit"
-                    class="submit"
+                    class="button"
                     {% if view_subtype == 'bad_key' %}
                     value="{% trans %}Send a new recovery key{% endtrans %}"
                     {% else %}

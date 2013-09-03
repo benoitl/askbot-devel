@@ -110,9 +110,13 @@ REPLY_WITH_COMMENT_TEMPLATE = _(
 )
 REPLY_SEPARATOR_REGEX = re.compile(r'==== .* -=-==', re.MULTILINE|re.DOTALL)
 
-ANSWER_SORT_METHODS = (#no translations needed here
-    'latest', 'oldest', 'votes'
+ANSWER_SORT_METHODS = (
+    ('latest' , _('latest first')),
+    ('oldest', _('oldest first')),
+    ('votes', _('most voted first')),
 )
+DEFAULT_ANSWER_SORT_METHOD = 'votes'
+
 #todo: add assertion here that all sort methods are unique
 #because they are keys to the hash used in implementations
 #of Q.run_advanced_search

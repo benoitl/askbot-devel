@@ -384,11 +384,11 @@ def clean_tag(tag_name):
         #a simpler way to handle tags - just lowercase thew all
         return tag_name.lower()
     else:
-        try:
-            from askbot import models
-            stored_tag = models.Tag.objects.get(name__iexact=tag_name)
-            return stored_tag.name
-        except models.Tag.DoesNotExist:
+        from askbot import models
+        matching_tags = models.Tag.objects.filter(name__iexact=tag_name)
+        if len(matching_tags) > 0:
+            return matching_tags[0].name
+        else:
             return tag_name
 
 
@@ -557,14 +557,16 @@ class ShowQuestionForm(forms.Form):
 
         in_data = self.get_pruned_data()
         out_data = dict()
+        default_answer_sort = askbot_settings.DEFAULT_ANSWER_SORT_METHOD
         if ('answer' in in_data) ^ ('comment' in in_data):
             out_data['show_page'] = None
-            out_data['answer_sort_method'] = 'votes'
+            out_data['answer_sort_method'] = default_answer_sort
             out_data['show_comment'] = in_data.get('comment', None)
             out_data['show_answer'] = in_data.get('answer', None)
         else:
             out_data['show_page'] = in_data.get('page', 1)
-            out_data['answer_sort_method'] = in_data.get('sort', 'votes')
+            answer_sort_method = in_data.get('sort', default_answer_sort)
+            out_data['answer_sort_method'] = answer_sort_method
             out_data['show_comment'] = None
             out_data['show_answer'] = None
         self.cleaned_data = out_data

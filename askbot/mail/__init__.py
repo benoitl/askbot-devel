@@ -102,14 +102,14 @@ def clean_html_email(email_body):
     return '\n\n'.join(phrases)
 
 def send_mail(
-            subject_line = None,
-            body_text = None,
-            from_email = django_settings.DEFAULT_FROM_EMAIL,
-            recipient_list = None,
-            activity_type = None,
-            related_object = None,
-            headers = None,
-            raise_on_failure = False,
+            subject_line=None,
+            body_text=None,
+            from_email=None,
+            recipient_list=None,
+            activity_type=None,
+            related_object=None,
+            headers=None,
+            raise_on_failure=False,
         ):
     """
     todo: remove parameters not relevant to the function
@@ -124,6 +124,8 @@ def send_mail(
 
     if raise_on_failure is True, exceptions.EmailNotSent is raised
     """
+    from_email = from_email or askbot_settings.ADMIN_EMAIL or \
+                                    django_settings.DEFAULT_FROM_EMAIL
     body_text = absolutize_urls(body_text)
     try:
         assert(subject_line is not None)

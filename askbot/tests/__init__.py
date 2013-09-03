@@ -24,3 +24,4 @@ from askbot.tests.user_views_tests import *
 from askbot.tests.utils_tests import *
 from askbot.tests.view_context_tests import *
 from askbot.tests.api_v1_tests import *
+from askbot.tests.signal_handler_tests import *

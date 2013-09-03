@@ -1,26 +1,25 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-#
+# 
 # Translators:
 # cihad <cihadgundogdu@gmail.com>, 2012
+# cihad <cihadgundogdu@gmail.com>, 2012
+# kayhantolga <kayhantolga@letscoding.com>, 2011
 # kayhantolga <kayhantolga@letscoding.com>, 2011
 msgid ""
 msgstr ""
 "Project-Id-Version: askbot\n"
 "Report-Msgid-Bugs-To: http://askbot.org/\n"
 "POT-Creation-Date: 2013-07-13 14:07-0500\n"
-"PO-Revision-Date: 2013-02-28 17:32+0000\n"
-"Last-Translator: if.gnu.linux <if.gnu.linux@gmail.com>\n"
-"Language-Team: Turkish (http://www.transifex.net/projects/p/askbot/team/"
-"tr/)\n"
-"Language: tr\n"
+"PO-Revision-Date: 2013-08-02 04:35+0000\n"
+"Last-Translator: evgeny <evgeny.fadeev@gmail.com>\n"
+"Language-Team: Turkish (http://www.transifex.com/projects/p/askbot/language/tr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Pootle 2.5.0-beta1\n"
-"X-POOTLE-MTIME: 1362072771.0\n"
+"Language: tr\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #: media/jquery-openid/jquery.openid.js:73
 #, c-format
@@ -35,9 +34,7 @@ msgstr "Lütfen bir veya daha fazla giriş yöntemi seçin."
 msgid ""
 "You don't have a method to log in right now, please add one or more by "
 "clicking any of the icons below."
-msgstr ""
-"Oturum açmak için bir yöntem seçmediniz, lütfen aşağıdaki ikonların birisine "
-"veya birden fazlasına tıklayarak bir oturum açma yöntemi seçin."
+msgstr "Oturum açmak için bir yöntem seçmediniz, lütfen aşağıdaki ikonların birisine veya birden fazlasına tıklayarak bir oturum açma yöntemi seçin."
 
 #: media/jquery-openid/jquery.openid.js:135
 msgid "passwords do not match"
@@ -107,6 +104,7 @@ msgstr ""
 msgid "user {{str}} does not exist"
 msgid_plural "users {{str}} do not exist"
 msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/group_messaging.js:278
 msgid "cannot send message to yourself"
@@ -128,6 +126,7 @@ msgstr ""
 msgid "Sorry, this tag does not exist"
 msgid_plural "Sorry, these tags do not exist"
 msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/live_search.js:313
 msgid "search or ask your question"
@@ -141,6 +140,7 @@ msgstr "yükleniyor..."
 msgid "must be shorter than %(max_chars)s character"
 msgid_plural "must be shorter than %(max_chars)s characters"
 msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/post.js:154 media/js/post.js.c:1269
 msgid "tags cannot be empty"
@@ -155,6 +155,7 @@ msgstr ""
 msgid "details must have > %s character"
 msgid_plural "details must have > %s characters"
 msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/post.js:171
 msgid "enter your question"
@@ -165,16 +166,18 @@ msgstr ""
 msgid "question must have > %s character"
 msgid_plural "question must have > %s characters"
 msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/post.js:193
 msgid "content cannot be empty"
 msgstr "içerik boş olamaz"
 
 #: media/js/post.js:196
-#, fuzzy, c-format
+#, c-format
 msgid "answer must be > %s character"
 msgid_plural "answer must be > %s characters"
-msgstr[0] "yazılabilir %s karakter eksik"
+msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/post.js:253
 msgid "Back to the question"
@@ -213,9 +216,8 @@ msgid "please confirm offensive"
 msgstr "şikayetinizi onaylayın"
 
 #: media/js/post.js:559
-#, fuzzy
 msgid "please confirm removal of offensive flag"
-msgstr "şikayetinizi onaylayın"
+msgstr ""
 
 #: media/js/post.js:560
 msgid "anonymous users cannot flag offensive posts"
@@ -245,21 +247,20 @@ msgstr "Takip et"
 #, c-format
 msgid "%s follower"
 msgid_plural "%s followers"
-msgstr[0] "%s takipçi"
+msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/post.js:845
 msgid "<div>Following</div><div class=\"unfollow\">Unfollow</div>"
-msgstr ""
-"<div> Takip ediyor</div><div class=\"unfollow\"> Takipten vazgeç </div>"
+msgstr "<div> Takip ediyor</div><div class=\"unfollow\"> Takipten vazgeç </div>"
 
 #: media/js/post.js:901
 msgid "remove flag"
 msgstr ""
 
 #: media/js/post.js:935 media/js/post.js.c:964
-#, fuzzy
 msgid "flag offensive"
-msgstr "şikayetinizi onaylayın"
+msgstr ""
 
 #: media/js/post.js:990 media/js/post.js.c:1497
 msgid "undelete"
@@ -282,14 +283,14 @@ msgid "save comment"
 msgstr "yorumu kaydet"
 
 #: media/js/post.js:1711
-#, fuzzy, c-format
+#, c-format
 msgid "enter at least %s characters"
-msgstr "yazılabilir %s karakter eksik"
+msgstr ""
 
 #: media/js/post.js:1713
-#, fuzzy, c-format
+#, c-format
 msgid "enter at least %s more characters"
-msgstr "yazılabilir %s karakter eksik"
+msgstr ""
 
 #: media/js/post.js:1723
 #, c-format
@@ -301,9 +302,8 @@ msgid "minor edit (don't send alerts)"
 msgstr ""
 
 #: media/js/post.js:1855
-#, fuzzy
 msgid "Are you sure you don't want to post this comment?"
-msgstr "%s giriş kaydını silmek istediğine emin misin?"
+msgstr ""
 
 #: media/js/post.js:1890 media/js/utils.js:3360 media/js/utils.js.c:3515
 msgid "just now"
@@ -338,9 +338,8 @@ msgid "Enter the logo url or upload an image"
 msgstr ""
 
 #: media/js/post.js:3225
-#, fuzzy
 msgid "Do you really want to remove the image?"
-msgstr "%s giriş kaydını silmek istediğine emin misin?"
+msgstr ""
 
 #: media/js/post.js:3341
 msgid "change logo"
@@ -352,8 +351,7 @@ msgstr ""
 
 #: media/js/post.js:3444
 #, c-format
-msgid ""
-"tag \"%s\" was already added, no need to repeat (press \"escape\" to delete)"
+msgid "tag \"%s\" was already added, no need to repeat (press \"escape\" to delete)"
 msgstr ""
 
 #: media/js/post.js:3453
@@ -361,6 +359,7 @@ msgstr ""
 msgid "a maximum of %s tag is allowed"
 msgid_plural "a maximum of %s tags are allowed"
 msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/post.js:3799
 msgid "Delete category?"
@@ -371,9 +370,8 @@ msgid "edit"
 msgstr "düzenle"
 
 #: media/js/post.js:3975
-#, fuzzy
 msgid "category name cannot be empty"
-msgstr "içerik boş olamaz"
+msgstr ""
 
 #: media/js/post.js:4011
 msgid "already exists at the current level!"
@@ -388,9 +386,8 @@ msgid "save tags"
 msgstr ""
 
 #: media/js/post.js:4689 media/js/post.js.c:4723
-#, fuzzy
 msgid "User name:"
-msgstr "dosya adı"
+msgstr ""
 
 #: media/js/post.js:4710
 msgid "Group name:"
@@ -417,32 +414,31 @@ msgstr "ve gösterilmeyen %s tane daha..."
 msgid "Please select at least one item"
 msgstr "En az bir tane seçim yapın"
 
-# -ÇEVİRMENLERE NOT: Bunları nasıl çevireceğimizi bilen var ise, kullanıcı e-posta listesine mesaj atabilir mi
 #: media/js/user.js:59
 msgid "Delete this notification?"
 msgid_plural "Delete these notifications?"
-msgstr[0] "Üzgünüz, tanınmayan ziyaretçiler bu fonksiyona erişemez"
+msgstr[0] "Bir: Bu bildirimi sil?\ndiğer: Bu bildirimleri sil?"
+msgstr[1] "Bir: Bu bildirimi sil?\ndiğer: Bu bildirimleri sil?"
 
 #: media/js/user.js:66
-#, fuzzy
 msgid "Close this entry?"
 msgid_plural "Close these entries?"
-msgstr[0] "bu yorumu sil"
+msgstr[0] "bir: Bu girdi kapatılsın mı?\niki: Burdaki girdiler kapatılsın mı?"
+msgstr[1] "bir: Bu girdi kapatılsın mı?\niki: Burdaki girdiler kapatılsın mı?"
 
 #: media/js/user.js:74
 msgid "Remove all flags and approve this entry?"
 msgid_plural "Remove all flags and approve these entries?"
 msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/user.js:223
-#, fuzzy
 msgid "Post deleted"
-msgstr "yazı silindi"
+msgstr ""
 
 #: media/js/user.js:225
-#, fuzzy
 msgid "Post approved"
-msgstr "yazı geri alındı"
+msgstr ""
 
 #: media/js/user.js:246
 msgid "Accept"
@@ -461,9 +457,8 @@ msgid "Looks there are some things to fix:"
 msgstr ""
 
 #: media/js/user.js:443
-#, fuzzy
 msgid "Please provide description."
-msgstr "resmin açıklaması"
+msgstr ""
 
 #: media/js/user.js:446
 msgid "Please provide details."
@@ -479,8 +474,7 @@ msgstr ""
 
 #: media/js/user.js:708
 msgid "Please <a href=\"%(signin_url)s\">signin</a> to follow %(username)s"
-msgstr ""
-"%(username)s takip etmek için <a href=\"%(signin_url)s\">giriş yapın</a>"
+msgstr "%(username)s takip etmek için <a href=\"%(signin_url)s\">giriş yapın</a>"
 
 #: media/js/user.js:740
 #, c-format
@@ -526,9 +520,8 @@ msgid "Ok"
 msgstr ""
 
 #: media/js/utils.js:959 media/js/utils.js.c:1407
-#, fuzzy
 msgid "Cancel"
-msgstr "iptal"
+msgstr ""
 
 #: media/js/utils.js:1219
 #, c-format
@@ -707,21 +700,22 @@ msgstr ""
 msgid "%s hour ago"
 msgid_plural "%s hours ago"
 msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/utils.js:3508
 #, c-format
 msgid "%s min ago"
 msgid_plural "%s mins ago"
 msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/tinymce/plugins/askbot_attachment/editor_plugin.js:71
 msgid "Insert a file"
 msgstr ""
 
 #: media/js/tinymce/plugins/askbot_imageuploader/editor_plugin.js:70
-#, fuzzy
 msgid "Insert image"
-msgstr "resmin URLsini girin"
+msgstr ""
 
 #: media/js/wmd/wmd.js:31
 msgid "bold"
@@ -799,18 +793,11 @@ msgstr "dosya adı"
 msgid "link text"
 msgstr "bağlantı metni"
 
-#, fuzzy
 #~ msgid "post a comment"
-#~ msgstr "yorumu kaydet"
+#~ msgstr "save comment"
 
 #~ msgid "%s content minchars"
-#~ msgstr "Lütfen en az %s karakter girin"
+#~ msgstr "please enter more than %s characters"
 
 #~ msgid "%s title minchars"
-#~ msgstr "Lütfen en az %s karakter girin"
-
-#~ msgid "please enter title"
-#~ msgstr "lütfen bir başlık yazın"
-
-#~ msgid "confirm abandon comment"
-#~ msgstr "yorum yazmaktan vazgeçmek istediğinize emin misiniz?"
+#~ msgstr "please enter at least %s characters"

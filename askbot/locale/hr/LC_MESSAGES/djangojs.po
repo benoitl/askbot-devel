@@ -1,24 +1,21 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# 
+# Translators:
 msgid ""
 msgstr ""
-"Project-Id-Version: 0.7.48\n"
+"Project-Id-Version: askbot\n"
 "Report-Msgid-Bugs-To: http://askbot.org/\n"
 "POT-Creation-Date: 2013-07-13 14:07-0500\n"
-"PO-Revision-Date: 2013-07-14 19:31+0000\n"
-"Last-Translator: Krunoslav <kruno0407@gmail.com>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: hr\n"
+"PO-Revision-Date: 2013-08-02 05:36+0000\n"
+"Last-Translator: evgeny <evgeny.fadeev@gmail.com>\n"
+"Language-Team: Croatian (http://www.transifex.com/projects/p/askbot/language/hr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Pootle 2.5.0\n"
-"X-POOTLE-MTIME: 1373830270.0\n"
+"Language: hr\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 
 #: media/jquery-openid/jquery.openid.js:73
 #, c-format
@@ -33,9 +30,7 @@ msgstr "Dodajte jednu ili više metoda prijave."
 msgid ""
 "You don't have a method to log in right now, please add one or more by "
 "clicking any of the icons below."
-msgstr ""
-"Trenutačno nemate nijednu metodu prijave, dodajte jednu ili više odabirom "
-"jedne od donjih ikona."
+msgstr "Trenutačno nemate nijednu metodu prijave, dodajte jednu ili više odabirom jedne od donjih ikona."
 
 #: media/jquery-openid/jquery.openid.js:135
 msgid "passwords do not match"
@@ -52,7 +47,7 @@ msgstr "Unesite vaše %s te nastavite"
 
 #: media/jquery-openid/jquery.openid.js:229
 msgid "Connect your %(provider_name)s account to %(site)s"
-msgstr ""
+msgstr "Spojite svoj %(provider_name)s korisnički račun i %(site)s"
 
 #: media/jquery-openid/jquery.openid.js:323
 #, c-format
@@ -74,7 +69,7 @@ msgstr "Napravite lozinku"
 
 #: media/jquery-openid/jquery.openid.js:344
 msgid "Create a password-protected account"
-msgstr ""
+msgstr "Kreirajte korisnički račun zaštićen lozinkom"
 
 #: media/js/group_messaging.js:102 media/js/group_messaging.js.c:293
 msgid "required"
@@ -179,12 +174,12 @@ msgid "content cannot be empty"
 msgstr "sadržaj ne može biti prazan"
 
 #: media/js/post.js:196
-#, fuzzy, c-format
+#, c-format
 msgid "answer must be > %s character"
 msgid_plural "answer must be > %s characters"
-msgstr[0] "Unesite naslov pitanja (>10 znakova)"
-msgstr[1] "Unesite naslov pitanja (>10 znakova)"
-msgstr[2] "Unesite naslov pitanja (>10 znakova)"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #: media/js/post.js:253
 msgid "Back to the question"
@@ -196,11 +191,11 @@ msgstr ""
 
 #: media/js/post.js:548
 msgid "insufficient privilege"
-msgstr ""
+msgstr "nedovoljne privilegije"
 
 #: media/js/post.js:549
 msgid "cannot pick own answer as best"
-msgstr ""
+msgstr "sorry, you cannot accept your own answer"
 
 #: media/js/post.js:552 media/js/post.js.c:1416
 msgid "please login"
@@ -223,9 +218,8 @@ msgid "please confirm offensive"
 msgstr "prijavite uvredu"
 
 #: media/js/post.js:559
-#, fuzzy
 msgid "please confirm removal of offensive flag"
-msgstr "prijavite uvredu"
+msgstr ""
 
 #: media/js/post.js:560
 msgid "anonymous users cannot flag offensive posts"
@@ -261,16 +255,15 @@ msgstr[2] ""
 
 #: media/js/post.js:845
 msgid "<div>Following</div><div class=\"unfollow\">Unfollow</div>"
-msgstr ""
+msgstr "<div>Following</div><div class=\"unfollow\">Unfollow</div>"
 
 #: media/js/post.js:901
 msgid "remove flag"
 msgstr ""
 
 #: media/js/post.js:935 media/js/post.js.c:964
-#, fuzzy
 msgid "flag offensive"
-msgstr "prijavite uvredu"
+msgstr ""
 
 #: media/js/post.js:990 media/js/post.js.c:1497
 msgid "undelete"
@@ -293,9 +286,9 @@ msgid "save comment"
 msgstr "spremi komentar"
 
 #: media/js/post.js:1711
-#, fuzzy, c-format
+#, c-format
 msgid "enter at least %s characters"
-msgstr "Unesite naslov pitanja (>10 znakova)"
+msgstr ""
 
 #: media/js/post.js:1713
 #, c-format
@@ -312,9 +305,8 @@ msgid "minor edit (don't send alerts)"
 msgstr ""
 
 #: media/js/post.js:1855
-#, fuzzy
 msgid "Are you sure you don't want to post this comment?"
-msgstr "Sigurni ste da želite obrisati %s prijavu?"
+msgstr ""
 
 #: media/js/post.js:1890 media/js/utils.js:3360 media/js/utils.js.c:3515
 msgid "just now"
@@ -326,7 +318,7 @@ msgstr "obriši komentar"
 
 #: media/js/post.js:2271
 msgid "confirm delete comment"
-msgstr ""
+msgstr "do you really want to delete this comment?"
 
 #: media/js/post.js:2409
 msgid "please sign in or register to post comments"
@@ -349,9 +341,8 @@ msgid "Enter the logo url or upload an image"
 msgstr ""
 
 #: media/js/post.js:3225
-#, fuzzy
 msgid "Do you really want to remove the image?"
-msgstr "Sigurni ste da želite obrisati %s prijavu?"
+msgstr ""
 
 #: media/js/post.js:3341
 msgid "change logo"
@@ -363,8 +354,7 @@ msgstr ""
 
 #: media/js/post.js:3444
 #, c-format
-msgid ""
-"tag \"%s\" was already added, no need to repeat (press \"escape\" to delete)"
+msgid "tag \"%s\" was already added, no need to repeat (press \"escape\" to delete)"
 msgstr ""
 
 #: media/js/post.js:3453
@@ -384,9 +374,8 @@ msgid "edit"
 msgstr "uredi"
 
 #: media/js/post.js:3975
-#, fuzzy
 msgid "category name cannot be empty"
-msgstr "sadržaj ne može biti prazan"
+msgstr ""
 
 #: media/js/post.js:4011
 msgid "already exists at the current level!"
@@ -401,9 +390,8 @@ msgid "save tags"
 msgstr ""
 
 #: media/js/post.js:4689 media/js/post.js.c:4723
-#, fuzzy
 msgid "User name:"
-msgstr "ime datoteke"
+msgstr ""
 
 #: media/js/post.js:4710
 msgid "Group name:"
@@ -419,16 +407,16 @@ msgstr ""
 
 #: media/js/tag_selector.js:14
 msgid "Tag \"<span></span>\" matches:"
-msgstr ""
+msgstr "Oznaka \"<span></span>\" odgovara:"
 
 #: media/js/tag_selector.js:84
 #, c-format
 msgid "and %s more, not shown..."
-msgstr ""
+msgstr "i %s više, nije prikazano ..."
 
 #: media/js/user.js:15
 msgid "Please select at least one item"
-msgstr ""
+msgstr "Odaberite barem jednu stavku"
 
 #: media/js/user.js:59
 msgid "Delete this notification?"
@@ -438,12 +426,11 @@ msgstr[1] ""
 msgstr[2] ""
 
 #: media/js/user.js:66
-#, fuzzy
 msgid "Close this entry?"
 msgid_plural "Close these entries?"
-msgstr[0] "obriši komentar"
-msgstr[1] "obriši komentar"
-msgstr[2] "obriši komentar"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #: media/js/user.js:74
 msgid "Remove all flags and approve this entry?"
@@ -453,14 +440,12 @@ msgstr[1] ""
 msgstr[2] ""
 
 #: media/js/user.js:223
-#, fuzzy
 msgid "Post deleted"
-msgstr "objava je obrisana"
+msgstr ""
 
 #: media/js/user.js:225
-#, fuzzy
 msgid "Post approved"
-msgstr "objava je obnovljena"
+msgstr ""
 
 #: media/js/user.js:246
 msgid "Accept"
@@ -479,9 +464,8 @@ msgid "Looks there are some things to fix:"
 msgstr ""
 
 #: media/js/user.js:443
-#, fuzzy
 msgid "Please provide description."
-msgstr "opis slike"
+msgstr ""
 
 #: media/js/user.js:446
 msgid "Please provide details."
@@ -497,22 +481,22 @@ msgstr ""
 
 #: media/js/user.js:708
 msgid "Please <a href=\"%(signin_url)s\">signin</a> to follow %(username)s"
-msgstr ""
+msgstr "<a href=\"%(signin_url)s\">Prijavite se</a> za praćenje korsnika %(username)s"
 
 #: media/js/user.js:740
 #, c-format
 msgid "unfollow %s"
-msgstr ""
+msgstr "prestani pratit %s"
 
 #: media/js/user.js:743
 #, c-format
 msgid "following %s"
-msgstr ""
+msgstr "pratim %s"
 
 #: media/js/user.js:749
 #, c-format
 msgid "follow %s"
-msgstr ""
+msgstr "prati %s"
 
 #: media/js/user.js:883
 msgid "add group"
@@ -543,9 +527,8 @@ msgid "Ok"
 msgstr ""
 
 #: media/js/utils.js:959 media/js/utils.js.c:1407
-#, fuzzy
 msgid "Cancel"
-msgstr "odustani"
+msgstr ""
 
 #: media/js/utils.js:1219
 #, c-format
@@ -740,9 +723,8 @@ msgid "Insert a file"
 msgstr ""
 
 #: media/js/tinymce/plugins/askbot_imageuploader/editor_plugin.js:70
-#, fuzzy
 msgid "Insert image"
-msgstr "unesite url slike"
+msgstr ""
 
 #: media/js/wmd/wmd.js:31
 msgid "bold"
@@ -778,7 +760,7 @@ msgstr "numerirana lista"
 
 #: media/js/wmd/wmd.js:39
 msgid "bulleted list"
-msgstr ""
+msgstr "lista s oznakama"
 
 #: media/js/wmd/wmd.js:40
 msgid "heading"
@@ -786,7 +768,7 @@ msgstr "zaglavlje"
 
 #: media/js/wmd/wmd.js:41
 msgid "horizontal bar"
-msgstr ""
+msgstr "horizontalna linija"
 
 #: media/js/wmd/wmd.js:42
 msgid "undo"
@@ -806,7 +788,7 @@ msgstr "unesite url"
 
 #: media/js/wmd/wmd.js:56
 msgid "upload file attachment"
-msgstr ""
+msgstr "Please choose and upload a file:"
 
 #: media/js/wmd/wmd.js:1836
 msgid "image description"
@@ -820,12 +802,11 @@ msgstr "ime datoteke"
 msgid "link text"
 msgstr ""
 
-#, fuzzy
 #~ msgid "post a comment"
-#~ msgstr "spremi komentar"
+#~ msgstr "save comment"
 
-#~ msgid "please enter title"
-#~ msgstr "unesite naslov"
+#~ msgid "%s content minchars"
+#~ msgstr "please enter more than %s characters"
 
-#~ msgid "confirm abandon comment"
-#~ msgstr "potvrti napušten komentar"
+#~ msgid "%s title minchars"
+#~ msgstr "please enter at least %s characters"

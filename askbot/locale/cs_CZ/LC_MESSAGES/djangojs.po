@@ -1,23 +1,22 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# 
+# Translators:
+# kettnerv <vit.usela@gmail.com>, 2012
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: askbot\n"
 "Report-Msgid-Bugs-To: http://askbot.org/\n"
 "POT-Creation-Date: 2013-07-13 14:07-0500\n"
-"PO-Revision-Date: 2012-11-13 13:47+0000\n"
-"Last-Translator: Jindřich <khagaroth@gmail.com>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: cs\n"
+"PO-Revision-Date: 2013-08-02 04:54+0000\n"
+"Last-Translator: evgeny <evgeny.fadeev@gmail.com>\n"
+"Language-Team: Czech (Czech Republic) (http://www.transifex.com/projects/p/askbot/language/cs_CZ/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: cs_CZ\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Pootle 2.5.0-beta1\n"
-"X-POOTLE-MTIME: 1352814464.0\n"
 
 #: media/jquery-openid/jquery.openid.js:73
 #, c-format
@@ -32,9 +31,7 @@ msgstr "Přidejte jeden nebo více způsobů přihlášení."
 msgid ""
 "You don't have a method to log in right now, please add one or more by "
 "clicking any of the icons below."
-msgstr ""
-"Nemáte nastaven žádný způsob přihlášení, přidejte jeden nebo více způsobů "
-"přihlášení kliknutím některou z níže uvedených ikon."
+msgstr "Nemáte nastaven žádný způsob přihlášení, přidejte jeden nebo více způsobů přihlášení kliknutím některou z níže uvedených ikon."
 
 #: media/jquery-openid/jquery.openid.js:135
 msgid "passwords do not match"
@@ -178,12 +175,12 @@ msgid "content cannot be empty"
 msgstr "obsah nemůže být prázdný"
 
 #: media/js/post.js:196
-#, fuzzy, c-format
+#, c-format
 msgid "answer must be > %s character"
 msgid_plural "answer must be > %s characters"
-msgstr[0] "přidejte %s znaků"
-msgstr[1] "přidejte %s znaků"
-msgstr[2] "přidejte %s znaků"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #: media/js/post.js:253
 msgid "Back to the question"
@@ -222,9 +219,8 @@ msgid "please confirm offensive"
 msgstr "potvrďte porušení pravidel pro příspěvky"
 
 #: media/js/post.js:559
-#, fuzzy
 msgid "please confirm removal of offensive flag"
-msgstr "potvrďte porušení pravidel pro příspěvky"
+msgstr "opravdu je tento příspěvek urážlivý, obsahuje spam, reklamu, škodlivé poznámky, apod.?"
 
 #: media/js/post.js:560
 msgid "anonymous users cannot flag offensive posts"
@@ -267,9 +263,8 @@ msgid "remove flag"
 msgstr ""
 
 #: media/js/post.js:935 media/js/post.js.c:964
-#, fuzzy
 msgid "flag offensive"
-msgstr "potvrďte porušení pravidel pro příspěvky"
+msgstr ""
 
 #: media/js/post.js:990 media/js/post.js.c:1497
 msgid "undelete"
@@ -292,14 +287,14 @@ msgid "save comment"
 msgstr "uložit komentář"
 
 #: media/js/post.js:1711
-#, fuzzy, c-format
+#, c-format
 msgid "enter at least %s characters"
-msgstr "přidejte %s znaků"
+msgstr ""
 
 #: media/js/post.js:1713
-#, fuzzy, c-format
+#, c-format
 msgid "enter at least %s more characters"
-msgstr "přidejte %s znaků"
+msgstr ""
 
 #: media/js/post.js:1723
 #, c-format
@@ -311,9 +306,8 @@ msgid "minor edit (don't send alerts)"
 msgstr ""
 
 #: media/js/post.js:1855
-#, fuzzy
 msgid "Are you sure you don't want to post this comment?"
-msgstr "Opravdu chcete odebrat přihlášení prostřednictvím %s?"
+msgstr ""
 
 #: media/js/post.js:1890 media/js/utils.js:3360 media/js/utils.js.c:3515
 msgid "just now"
@@ -348,9 +342,8 @@ msgid "Enter the logo url or upload an image"
 msgstr ""
 
 #: media/js/post.js:3225
-#, fuzzy
 msgid "Do you really want to remove the image?"
-msgstr "Opravdu chcete odebrat přihlášení prostřednictvím %s?"
+msgstr ""
 
 #: media/js/post.js:3341
 msgid "change logo"
@@ -362,8 +355,7 @@ msgstr ""
 
 #: media/js/post.js:3444
 #, c-format
-msgid ""
-"tag \"%s\" was already added, no need to repeat (press \"escape\" to delete)"
+msgid "tag \"%s\" was already added, no need to repeat (press \"escape\" to delete)"
 msgstr ""
 
 #: media/js/post.js:3453
@@ -383,9 +375,8 @@ msgid "edit"
 msgstr "upravit"
 
 #: media/js/post.js:3975
-#, fuzzy
 msgid "category name cannot be empty"
-msgstr "obsah nemůže být prázdný"
+msgstr ""
 
 #: media/js/post.js:4011
 msgid "already exists at the current level!"
@@ -400,9 +391,8 @@ msgid "save tags"
 msgstr ""
 
 #: media/js/post.js:4689 media/js/post.js.c:4723
-#, fuzzy
 msgid "User name:"
-msgstr "název souboru"
+msgstr ""
 
 #: media/js/post.js:4710
 msgid "Group name:"
@@ -437,12 +427,11 @@ msgstr[1] "Smazat upozornění?"
 msgstr[2] "Smazat upozornění?"
 
 #: media/js/user.js:66
-#, fuzzy
 msgid "Close this entry?"
 msgid_plural "Close these entries?"
-msgstr[0] "smazat komentář"
-msgstr[1] "smazat komentář"
-msgstr[2] "smazat komentář"
+msgstr[0] "Zavřít tento záznam?"
+msgstr[1] "Zavřít tyto záznamy?"
+msgstr[2] "Zavřít tyto záznamy?"
 
 #: media/js/user.js:74
 msgid "Remove all flags and approve this entry?"
@@ -452,14 +441,12 @@ msgstr[1] ""
 msgstr[2] ""
 
 #: media/js/user.js:223
-#, fuzzy
 msgid "Post deleted"
-msgstr "příspěvek smazán"
+msgstr ""
 
 #: media/js/user.js:225
-#, fuzzy
 msgid "Post approved"
-msgstr "příspěvek obnoven"
+msgstr ""
 
 #: media/js/user.js:246
 msgid "Accept"
@@ -478,9 +465,8 @@ msgid "Looks there are some things to fix:"
 msgstr ""
 
 #: media/js/user.js:443
-#, fuzzy
 msgid "Please provide description."
-msgstr "popisek obrázku"
+msgstr ""
 
 #: media/js/user.js:446
 msgid "Please provide details."
@@ -542,9 +528,8 @@ msgid "Ok"
 msgstr ""
 
 #: media/js/utils.js:959 media/js/utils.js.c:1407
-#, fuzzy
 msgid "Cancel"
-msgstr "zrušit"
+msgstr ""
 
 #: media/js/utils.js:1219
 #, c-format
@@ -739,9 +724,8 @@ msgid "Insert a file"
 msgstr ""
 
 #: media/js/tinymce/plugins/askbot_imageuploader/editor_plugin.js:70
-#, fuzzy
 msgid "Insert image"
-msgstr "zadejte adresu obrázku"
+msgstr ""
 
 #: media/js/wmd/wmd.js:31
 msgid "bold"
@@ -819,18 +803,11 @@ msgstr "název souboru"
 msgid "link text"
 msgstr "text odkazu"
 
-#, fuzzy
 #~ msgid "post a comment"
-#~ msgstr "uložit komentář"
+#~ msgstr "save comment"
 
 #~ msgid "%s content minchars"
-#~ msgstr "obsah musí mít minimálně %s znaků"
+#~ msgstr "please enter more than %s characters"
 
 #~ msgid "%s title minchars"
-#~ msgstr "název musí mít minimálně %s znaků"
-
-#~ msgid "please enter title"
-#~ msgstr "zadejte název"
-
-#~ msgid "confirm abandon comment"
-#~ msgstr "Potvrdit zrušení komentáře"
+#~ msgstr "please enter at least %s characters"

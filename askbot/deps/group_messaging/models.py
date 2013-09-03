@@ -276,7 +276,7 @@ class Message(models.Model):
         default=STORED,
     )
     
-    sender = models.ForeignKey(User, related_name='sent_messages')
+    sender = models.ForeignKey(User, related_name='group_messaging_sent_messages')
 
     senders_info = models.CharField(
         max_length=MAX_SENDERS_INFO_LENGTH,

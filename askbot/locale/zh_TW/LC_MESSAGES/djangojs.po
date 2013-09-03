@@ -1,22 +1,21 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# 
+# Translators:
 msgid ""
 msgstr ""
-"Project-Id-Version: 0.7\n"
+"Project-Id-Version: askbot\n"
 "Report-Msgid-Bugs-To: http://askbot.org/\n"
 "POT-Creation-Date: 2013-07-13 14:07-0500\n"
-"PO-Revision-Date: 2012-04-21 20:38+0800\n"
-"Last-Translator: Cheng-Chia Tseng <pswo10680@gmail.com>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: zh_TW\n"
+"PO-Revision-Date: 2013-08-02 06:31+0000\n"
+"Last-Translator: evgeny <evgeny.fadeev@gmail.com>\n"
+"Language-Team: Chinese (Taiwan) (http://www.transifex.com/projects/p/askbot/language/zh_TW/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: zh_TW\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Pootle 2.1.6\n"
 
 #: media/jquery-openid/jquery.openid.js:73
 #, c-format
@@ -165,10 +164,10 @@ msgid "content cannot be empty"
 msgstr "內容不能為空白"
 
 #: media/js/post.js:196
-#, fuzzy, c-format
+#, c-format
 msgid "answer must be > %s character"
 msgid_plural "answer must be > %s characters"
-msgstr[0] "還可輸入%s個字元"
+msgstr[0] ""
 
 #: media/js/post.js:253
 msgid "Back to the question"
@@ -207,9 +206,8 @@ msgid "please confirm offensive"
 msgstr "請確定是否為惡意言論？"
 
 #: media/js/post.js:559
-#, fuzzy
 msgid "please confirm removal of offensive flag"
-msgstr "請確定是否為惡意言論？"
+msgstr ""
 
 #: media/js/post.js:560
 msgid "anonymous users cannot flag offensive posts"
@@ -250,9 +248,8 @@ msgid "remove flag"
 msgstr ""
 
 #: media/js/post.js:935 media/js/post.js.c:964
-#, fuzzy
 msgid "flag offensive"
-msgstr "請確定是否為惡意言論？"
+msgstr ""
 
 #: media/js/post.js:990 media/js/post.js.c:1497
 msgid "undelete"
@@ -270,21 +267,19 @@ msgstr ""
 msgid "add comment"
 msgstr "添加評註"
 
-# 75%
-# 100%
 #: media/js/post.js:1671
 msgid "save comment"
 msgstr "儲存評註"
 
 #: media/js/post.js:1711
-#, fuzzy, c-format
+#, c-format
 msgid "enter at least %s characters"
-msgstr "還可輸入%s個字元"
+msgstr ""
 
 #: media/js/post.js:1713
-#, fuzzy, c-format
+#, c-format
 msgid "enter at least %s more characters"
-msgstr "還可輸入%s個字元"
+msgstr ""
 
 #: media/js/post.js:1723
 #, c-format
@@ -296,9 +291,8 @@ msgid "minor edit (don't send alerts)"
 msgstr ""
 
 #: media/js/post.js:1855
-#, fuzzy
 msgid "Are you sure you don't want to post this comment?"
-msgstr "您確定要移除您的 %s 登入嗎？"
+msgstr ""
 
 #: media/js/post.js:1890 media/js/utils.js:3360 media/js/utils.js.c:3515
 msgid "just now"
@@ -333,9 +327,8 @@ msgid "Enter the logo url or upload an image"
 msgstr ""
 
 #: media/js/post.js:3225
-#, fuzzy
 msgid "Do you really want to remove the image?"
-msgstr "您確定要移除您的 %s 登入嗎？"
+msgstr ""
 
 #: media/js/post.js:3341
 msgid "change logo"
@@ -347,8 +340,7 @@ msgstr ""
 
 #: media/js/post.js:3444
 #, c-format
-msgid ""
-"tag \"%s\" was already added, no need to repeat (press \"escape\" to delete)"
+msgid "tag \"%s\" was already added, no need to repeat (press \"escape\" to delete)"
 msgstr ""
 
 #: media/js/post.js:3453
@@ -366,9 +358,8 @@ msgid "edit"
 msgstr "編輯"
 
 #: media/js/post.js:3975
-#, fuzzy
 msgid "category name cannot be empty"
-msgstr "內容不能為空白"
+msgstr ""
 
 #: media/js/post.js:4011
 msgid "already exists at the current level!"
@@ -383,9 +374,8 @@ msgid "save tags"
 msgstr ""
 
 #: media/js/post.js:4689 media/js/post.js.c:4723
-#, fuzzy
 msgid "User name:"
-msgstr "檔案名稱"
+msgstr ""
 
 #: media/js/post.js:4710
 msgid "Group name:"
@@ -418,10 +408,9 @@ msgid_plural "Delete these notifications?"
 msgstr[0] "是否要刪除這些通知？"
 
 #: media/js/user.js:66
-#, fuzzy
 msgid "Close this entry?"
 msgid_plural "Close these entries?"
-msgstr[0] "刪除此評註"
+msgstr[0] ""
 
 #: media/js/user.js:74
 msgid "Remove all flags and approve this entry?"
@@ -429,14 +418,12 @@ msgid_plural "Remove all flags and approve these entries?"
 msgstr[0] ""
 
 #: media/js/user.js:223
-#, fuzzy
 msgid "Post deleted"
-msgstr "文章已刪除"
+msgstr ""
 
 #: media/js/user.js:225
-#, fuzzy
 msgid "Post approved"
-msgstr "文章已復原"
+msgstr ""
 
 #: media/js/user.js:246
 msgid "Accept"
@@ -455,9 +442,8 @@ msgid "Looks there are some things to fix:"
 msgstr ""
 
 #: media/js/user.js:443
-#, fuzzy
 msgid "Please provide description."
-msgstr "影像描述"
+msgstr ""
 
 #: media/js/user.js:446
 msgid "Please provide details."
@@ -519,9 +505,8 @@ msgid "Ok"
 msgstr ""
 
 #: media/js/utils.js:959 media/js/utils.js.c:1407
-#, fuzzy
 msgid "Cancel"
-msgstr "取消"
+msgstr ""
 
 #: media/js/utils.js:1219
 #, c-format
@@ -712,9 +697,8 @@ msgid "Insert a file"
 msgstr ""
 
 #: media/js/tinymce/plugins/askbot_imageuploader/editor_plugin.js:70
-#, fuzzy
 msgid "Insert image"
-msgstr "輸入影像網址"
+msgstr ""
 
 #: media/js/wmd/wmd.js:31
 msgid "bold"
@@ -792,20 +776,11 @@ msgstr "檔案名稱"
 msgid "link text"
 msgstr "連結文字"
 
-# 75%
-# 100%
-#, fuzzy
 #~ msgid "post a comment"
-#~ msgstr "儲存評註"
+#~ msgstr "save comment"
 
 #~ msgid "%s content minchars"
-#~ msgstr "內容至少 %s 個字元"
+#~ msgstr "please enter more than %s characters"
 
 #~ msgid "%s title minchars"
-#~ msgstr "標題最少 %s 個字元"
-
-#~ msgid "please enter title"
-#~ msgstr "請輸入標題"
-
-#~ msgid "confirm abandon comment"
-#~ msgstr "確認棄用評註"
+#~ msgstr "please enter at least %s characters"

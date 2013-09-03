@@ -8,6 +8,7 @@ from askbot.models import Activity, EmailFeedSetting
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _
 from django.utils.translation import ungettext
+from django.utils.translation import activate as activate_language
 from django.conf import settings as django_settings
 from askbot.conf import settings as askbot_settings
 from django.utils.datastructures import SortedDict
@@ -413,6 +414,7 @@ class Command(NoArgsCommand):
     def send_email_alerts(self):
         #does not change the database, only sends the email
         #todo: move this to template
+        activate_language(django_settings.LANGUAGE_CODE)
         template = get_template('email/delayed_email_alert.html')
         for user in User.objects.all():
             user.add_missing_askbot_subscriptions()
@@ -481,6 +483,7 @@ class Command(NoArgsCommand):
                             'title': q.thread.title
                         })
 
+                activate_language(user.get_primary_language())
                 text = template.render({
                     'recipient_user': user,
                     'questions': questions_data,

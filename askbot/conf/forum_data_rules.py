@@ -225,6 +225,16 @@ settings.register(
 )
 
 settings.register(
+    livesettings.StringValue(
+        FORUM_DATA_RULES,
+        'DEFAULT_ANSWER_SORT_METHOD',
+        default=const.DEFAULT_ANSWER_SORT_METHOD,
+        choices=const.ANSWER_SORT_METHODS,
+        description=_('How to sort answers by default')
+    )
+)
+
+settings.register(
     livesettings.BooleanValue(
         FORUM_DATA_RULES,
         'TAGS_ARE_REQUIRED',

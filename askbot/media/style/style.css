@@ -58,6 +58,7 @@ textarea {
   -khtml-border-radius: 0;
 }
 input[type="radio"] {
+  margin: 2px 3px 0 0;
   -webkit-appearance: radio;
 }
 input[type="checkbox"] {
@@ -65,6 +66,7 @@ input[type="checkbox"] {
 }
 select {
   width: 100%;
+  -webkit-appearance: menulist-button;
 }
 input[type="text"].prompt,
 input[type="password"].prompt,
@@ -660,11 +662,6 @@ input[type="submit"].searchBtn {
 }
 input[type="submit"].searchBtn:hover {
   background-image: none;
-  background-image: none;
-  background-image: none;
-  background-image: none;
-  background-image: none;
-  background-image: none;
   background: -146px -37px url(../images/sprites.png) no-repeat;
 }
 input[type="button"].cancelSearchBtn {
@@ -891,7 +888,7 @@ body.anon.ask-page .search-drop-menu {
 /* ----- Sidebar Widgets Box, check main_page/sidebar.html or question/sidebar.html ----- */
 .box {
   background: #fff;
-  padding: 4px 0px 10px 0px;
+  padding: 4px 2px 10px 2px;
   width: 100%;
   overflow: hidden;
   box-sizing: border-box;
@@ -915,7 +912,6 @@ body.anon.ask-page .search-drop-menu {
 .box h2 {
   padding-left: 0;
   background: #eceeeb;
-  height: 30px;
   line-height: 30px;
   text-align: right;
   font-size: 18px !important;
@@ -979,7 +975,7 @@ body.anon.ask-page .search-drop-menu {
 .box .inputs #ignoredTagInput,
 .box .inputs #subscribedTagInput,
 .box .inputs #ab-tag-search {
-  width: 150px;
+  width: 147px;
   padding-left: 5px;
   border: #c9c9b5 1px solid;
   height: 25px;
@@ -1000,7 +996,7 @@ body.anon.ask-page .search-drop-menu {
   width: 47px;
 }
 .box img.gravatar {
-  margin: 1px;
+  margin: 1px 1px 0 0;
 }
 .box a.followed,
 .box a.follow {
@@ -1170,8 +1166,6 @@ body.anon.ask-page .search-drop-menu {
   border: none;
 }
 .rss {
-  float: right;
-  font-size: 16px;
   color: #f57900;
   margin: 5px 0px 3px 7px;
   width: 52px;
@@ -1791,7 +1785,7 @@ ul#related-tags li {
 }
 .groups-input,
 .users-input {
-  width: 150px;
+  width: 140px;
   padding-left: 5px;
   border: #c9c9b5 1px solid;
   height: 25px;
@@ -2123,7 +2117,7 @@ ul#related-tags li {
   color: #1b79bd;
 }
 .question-page .post-body img {
-  max-width: 100%;
+  max-width: 685px;
 }
 .question-page .post-body li {
   margin-bottom: 7px;
@@ -2148,7 +2142,7 @@ ul#related-tags li {
   float: right;
   font-size: 9px;
   font-family: Arial;
-  line-height: 14px;
+  line-height: 13px;
   margin: 0px 0px 5px 5px;
   padding: 4px;
   width: 166px;
@@ -2449,7 +2443,6 @@ ul#related-tags li {
 .question-page .comments .counter {
   display: inline-block;
   width: auto;
-  float: right;
   vertical-align: top;
   font-family: Arial;
   float: right;
@@ -4598,55 +4591,284 @@ td.setting-input textarea {
   }
 }
 /* language-specific fixes */
-body.lang-es #searchBar {
-  /* need special left padding */
-
-}
-body.anon.lang-es #searchBar {
-  /* need special left padding */
-
-}
 body.lang-zh .box .inputs #interestingTagInput,
 body.lang-zh_CN .box .inputs #interestingTagInput,
+body.lang-zh-cn .box .inputs #interestingTagInput,
+body.lang-zh-tw .box .inputs #interestingTagInput,
 body.lang-zh_TW .box .inputs #interestingTagInput,
 body.lang-zh .box .inputs #ignoredTagInput,
 body.lang-zh_CN .box .inputs #ignoredTagInput,
+body.lang-zh-cn .box .inputs #ignoredTagInput,
+body.lang-zh-tw .box .inputs #ignoredTagInput,
 body.lang-zh_TW .box .inputs #ignoredTagInput,
 body.lang-zh .box .inputs #subscribedTagInput,
 body.lang-zh_CN .box .inputs #subscribedTagInput,
+body.lang-zh-cn .box .inputs #subscribedTagInput,
+body.lang-zh-tw .box .inputs #subscribedTagInput,
 body.lang-zh_TW .box .inputs #subscribedTagInput,
 body.lang-zh .box .inputs #ab-tag-search,
 body.lang-zh_CN .box .inputs #ab-tag-search,
+body.lang-zh-cn .box .inputs #ab-tag-search,
+body.lang-zh-tw .box .inputs #ab-tag-search,
 body.lang-zh_TW .box .inputs #ab-tag-search {
-  width: 142px;
+  width: 140px;
 }
 body.lang-zh button,
 body.lang-zh_CN button,
+body.lang-zh-cn button,
+body.lang-zh-tw button,
 body.lang-zh_TW button,
 body.lang-zh input[type="submit"],
 body.lang-zh_CN input[type="submit"],
+body.lang-zh-cn input[type="submit"],
+body.lang-zh-tw input[type="submit"],
 body.lang-zh_TW input[type="submit"],
 body.lang-zh input[type="button"],
 body.lang-zh_CN input[type="button"],
+body.lang-zh-cn input[type="button"],
+body.lang-zh-tw input[type="button"],
 body.lang-zh_TW input[type="button"],
 body.lang-zh input[type="reset"],
 body.lang-zh_CN input[type="reset"],
+body.lang-zh-cn input[type="reset"],
+body.lang-zh-tw input[type="reset"],
 body.lang-zh_TW input[type="reset"],
 body.lang-zh .button,
 body.lang-zh_CN .button,
+body.lang-zh-cn .button,
+body.lang-zh-tw .button,
 body.lang-zh_TW .button {
   line-height: 24px;
 }
 body.lang-zh .box a.followed,
 body.lang-zh_CN .box a.followed,
+body.lang-zh-cn .box a.followed,
+body.lang-zh-tw .box a.followed,
 body.lang-zh_TW .box a.followed,
 body.lang-zh .box a.follow,
 body.lang-zh_CN .box a.follow,
+body.lang-zh-cn .box a.follow,
+body.lang-zh-tw .box a.follow,
 body.lang-zh_TW .box a.follow {
   line-height: 34px !important;
 }
 body.lang-zh.question-page a.submit,
 body.lang-zh_CN.question-page a.submit,
+body.lang-zh-cn.question-page a.submit,
+body.lang-zh-tw.question-page a.submit,
 body.lang-zh_TW.question-page a.submit {
   line-height: 30px !important;
+}
+body.lang-zh .scopes-True-True-False #searchBar,
+body.lang-zh_CN .scopes-True-True-False #searchBar,
+body.lang-zh-cn .scopes-True-True-False #searchBar,
+body.lang-zh-tw .scopes-True-True-False #searchBar,
+body.lang-zh_TW .scopes-True-True-False #searchBar,
+body.lang-zh .scopes-True-True-False .search-drop-menu,
+body.lang-zh_CN .scopes-True-True-False .search-drop-menu,
+body.lang-zh-cn .scopes-True-True-False .search-drop-menu,
+body.lang-zh-tw .scopes-True-True-False .search-drop-menu,
+body.lang-zh_TW .scopes-True-True-False .search-drop-menu {
+  margin-left: 194px;
+}
+body.lang-zh .scopes-True-True-True #searchBar,
+body.lang-zh_CN .scopes-True-True-True #searchBar,
+body.lang-zh-cn .scopes-True-True-True #searchBar,
+body.lang-zh-tw .scopes-True-True-True #searchBar,
+body.lang-zh_TW .scopes-True-True-True #searchBar,
+body.lang-zh .scopes-True-True-True .search-drop-menu,
+body.lang-zh_CN .scopes-True-True-True .search-drop-menu,
+body.lang-zh-cn .scopes-True-True-True .search-drop-menu,
+body.lang-zh-tw .scopes-True-True-True .search-drop-menu,
+body.lang-zh_TW .scopes-True-True-True .search-drop-menu {
+  margin-left: 274px;
+}
+body.lang-hu .scope-selector {
+  font-size: 17px;
+  margin-left: 10px;
+}
+body.lang-hu .scopes-True-True-False #scopeNav {
+  width: 200px;
+}
+body.lang-hu .scopes-True-True-False #searchBar,
+body.lang-hu .scopes-True-True-False .search-drop-menu {
+  margin-left: 252px;
+}
+body.lang-hu .box .inputs #interestingTagInput,
+body.lang-hu .box .inputs #ignoredTagInput,
+body.lang-hu .box .inputs #subscribedTagInput,
+body.lang-hu .box .inputs #ab-tag-search {
+  width: 111px;
+}
+body.lang-hu .users-input,
+body.lang-hu .groups-input {
+  width: 100px;
+}
+body.lang-es .scope-selector {
+  font-size: 18px;
+}
+body.lang-es .box .inputs #interestingTagInput,
+body.lang-es .box .inputs #ignoredTagInput {
+  width: 130px;
+}
+body.lang-es .users-input,
+body.lang-es .groups-input {
+  width: 130px;
+}
+body.lang-es .short-summary .counts .answers div,
+body.lang-es .short-summary .counts .views div,
+body.lang-es .short-summary .counts .votes div {
+  font-size: 10px;
+}
+body.lang-es .scopes-True-True-False #scopeNav {
+  width: 187px;
+}
+body.lang-es .scopes-True-True-False #searchBar,
+body.lang-es .scopes-True-True-False .search-drop-menu {
+  margin-left: 250px;
+}
+body.lang-es .scopes-True-True-True #searchBar,
+body.lang-es .scopes-True-True-True .search-drop-menu {
+  margin-left: 327px;
+}
+body.lang-de .scope-selector {
+  font-size: 17px;
+}
+body.lang-de .scopes-True-True-False #scopeNav {
+  width: 218px;
+}
+body.lang-de .scopes-True-True-False #searchBar,
+body.lang-de .scopes-True-True-False .search-drop-menu {
+  margin-left: 250px;
+}
+body.lang-de .scopes-True-True-True #scopeNav {
+  width: 354px;
+}
+body.lang-de .scopes-True-True-True #searchBar,
+body.lang-de .scopes-True-True-True .search-drop-menu {
+  margin-left: 354px;
+}
+body.lang-de #metaNav a {
+  font-size: 16px;
+}
+body.lang-de .box h2 {
+  font-size: 17px !important;
+}
+body.lang-de .box .inputs #interestingTagInput,
+body.lang-de .box .inputs #ignoredTagInput,
+body.lang-de .box .inputs #subscribedTagInput,
+body.lang-de .box .inputs #ab-tag-search {
+  width: 153px;
+}
+body.lang-gl .box .inputs #interestingTagInput,
+body.lang-gl .box .inputs #ignoredTagInput,
+body.lang-gl .box .inputs #subscribedTagInput,
+body.lang-gl .box .inputs #ab-tag-search {
+  width: 127px;
+}
+body.lang-gl .scopes-True-True-True #searchBar,
+body.lang-gl .scopes-True-True-True .search-drop-menu {
+  margin-left: 299px;
+}
+body.lang-pt_BR .box .inputs #interestingTagInput,
+body.lang-pt_BR .box .inputs #ignoredTagInput,
+body.lang-pt_BR .box .inputs #subscribedTagInput,
+body.lang-pt_BR .box .inputs #ab-tag-search {
+  width: 116px;
+}
+body.lang-pt_BR .scopes-True-True-False #searchBar,
+body.lang-pt_BR .scopes-True-True-False .search-drop-menu {
+  margin-left: 236px;
+}
+body.lang-fr .scopes-True-True-True #searchBar,
+body.lang-fr .scopes-True-True-True .search-drop-menu {
+  margin-left: 287px;
+}
+body.lang-fr .box .inputs #interestingTagInput,
+body.lang-fr .box .inputs #ignoredTagInput,
+body.lang-fr .box .inputs #subscribedTagInput,
+body.lang-fr .box .inputs #ab-tag-search {
+  width: 127px;
+}
+body.lang-fr #metaNav a {
+  font-size: 16px;
+}
+body.lang-fi #scopeNav {
+  width: 315px;
+}
+body.lang-fi .scope-selector {
+  font-size: 17px;
+}
+body.lang-fi .scopes-True-True-True #searchBar,
+body.lang-fi .scopes-True-True-True .search-drop-menu {
+  margin-left: 371px;
+}
+body.lang-fi .scopes-True-True-False #searchBar,
+body.lang-fi .scopes-True-True-False .search-drop-menu {
+  margin-left: 268px;
+}
+body.lang-fi .box .inputs #interestingTagInput,
+body.lang-fi .box .inputs #ignoredTagInput,
+body.lang-fi .box .inputs #subscribedTagInput,
+body.lang-fi .box .inputs #ab-tag-search {
+  width: 142px;
+}
+body.lang-ru #scopeNav {
+  width: 315px;
+}
+body.lang-ru .scope-selector {
+  font-size: 17px;
+}
+body.lang-ru .scopes-True-True-True #searchBar,
+body.lang-ru .scopes-True-True-True .search-drop-menu {
+  margin-left: 326px;
+}
+body.lang-ru .scopes-True-True-False #searchBar,
+body.lang-ru .scopes-True-True-False .search-drop-menu {
+  margin-left: 227px;
+}
+body.lang-ru .box .inputs #interestingTagInput,
+body.lang-ru .box .inputs #ignoredTagInput,
+body.lang-ru .box .inputs #subscribedTagInput,
+body.lang-ru .box .inputs #ab-tag-search {
+  width: 146px;
+}
+body.lang-ko #scopeNav {
+  width: 315px;
+}
+body.lang-ko .scopes-True-True-True #searchBar,
+body.lang-ko .scopes-True-True-True .search-drop-menu {
+  margin-left: 248px;
+}
+body.lang-ko .scopes-True-True-False #searchBar,
+body.lang-ko .scopes-True-True-False .search-drop-menu {
+  margin-left: 183px;
+}
+body.lang-ko .box .inputs #interestingTagInput,
+body.lang-ko .box .inputs #ignoredTagInput,
+body.lang-ko .box .inputs #subscribedTagInput,
+body.lang-ko .box .inputs #ab-tag-search {
+  width: 144px;
+}
+body.lang-nb_NO .scopes-True-True-True #searchBar,
+body.lang-nb_NO .scopes-True-True-True #searchBar,
+body.lang-nb_NO .scopes-True-True-True .search-drop-menu,
+body.lang-nb_NO .scopes-True-True-True .search-drop-menu {
+  margin-left: 289px;
+}
+body.lang-nb_NO .scopes-True-True-False #searchBar,
+body.lang-nb_NO .scopes-True-True-False #searchBar,
+body.lang-nb_NO .scopes-True-True-False .search-drop-menu,
+body.lang-nb_NO .scopes-True-True-False .search-drop-menu {
+  margin-left: 220px;
+}
+body.lang-nb_NO .box .inputs #interestingTagInput,
+body.lang-nb_NO .box .inputs #interestingTagInput,
+body.lang-nb_NO .box .inputs #ignoredTagInput,
+body.lang-nb_NO .box .inputs #ignoredTagInput,
+body.lang-nb_NO .box .inputs #subscribedTagInput,
+body.lang-nb_NO .box .inputs #subscribedTagInput,
+body.lang-nb_NO .box .inputs #ab-tag-search,
+body.lang-nb_NO .box .inputs #ab-tag-search {
+  width: 133px;
 }

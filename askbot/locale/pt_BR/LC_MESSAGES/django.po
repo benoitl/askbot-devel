@@ -21,7 +21,7 @@ msgstr ""
 "Project-Id-Version: askbot\n"
 "Report-Msgid-Bugs-To: http://askbot.org/\n"
 "POT-Creation-Date: 2013-07-13 14:06-0500\n"
-"PO-Revision-Date: 2013-07-22 11:21+0000\n"
+"PO-Revision-Date: 2013-08-22 17:15+0000\n"
 "Last-Translator: ohallot <olivier.hallot@libreoffice.org>\n"
 "Language-Team: Portuguese (Brazil) (http://www.transifex.com/projects/p/askbot/language/pt_BR/)\n"
 "MIME-Version: 1.0\n"
@@ -902,7 +902,7 @@ msgstr "Chave de verificação do site do Google"
 msgid ""
 "This key helps google index your site please obtain is at <a "
 "href=\"%(url)s?hl=%(lang)s\">google webmasters tools site</a>"
-msgstr "Esta chave ajuda o google a indexar seu site. Consiga em índices do google <a href=\"%(url)s?hl=%(lang)s\">site de ferramentas para webmasters do google </a>"
+msgstr "Esta chave ajuda o google a indexar seu site. Consulte as <a href=\"%(url)s?hl=%(lang)s\">ferramentas para webmasters do google </a>"
 
 #: conf/external_keys.py:36
 msgid "Google Analytics key"
@@ -1611,7 +1611,7 @@ msgstr "Marcação em posts"
 
 #: conf/markup.py:41
 msgid "Enable code-friendly Markdown"
-msgstr "Ativar o código amigável Markdown"
+msgstr "Ativar o editor Markdown"
 
 #: conf/markup.py:43
 msgid ""
@@ -3901,7 +3901,7 @@ msgstr "%(user)s editaram um %(post_link)s."
 #: models/__init__.py:3164
 #, python-format
 msgid "%(user)s posted a %(post_link)s"
-msgstr "%(user)s postaram %(post_link)s"
+msgstr "%(user)s postou um %(post_link)s"
 
 #: models/__init__.py:3167
 #, python-format
@@ -3911,12 +3911,12 @@ msgstr "%(user)s editaram um %(post_link)s."
 #: models/__init__.py:3169
 #, python-format
 msgid "%(user)s posted an %(post_link)s."
-msgstr "%(user)s postaram um %(post_link)s"
+msgstr "%(user)s postou uma %(post_link)s"
 
 #: models/__init__.py:3174
 #, python-format
 msgid "%(user)s posted a %(post_link)s."
-msgstr "%(user)s postaram %(post_link)s"
+msgstr "%(user)s postou um %(post_link)s"
 
 #: models/__init__.py:3190
 msgid "To reply, PLEASE WRITE ABOVE THIS LINE."
@@ -6583,7 +6583,7 @@ msgstr "fechar"
 
 #: templates/question/sidebar.html:8
 msgid "Question tools"
-msgstr "Ferramentas de pergunta"
+msgstr "Ferramentas"
 
 #: templates/question/sidebar.html:11
 msgid "click to unfollow this question"
@@ -6693,7 +6693,7 @@ msgstr "Última atualização"
 
 #: templates/question/sidebar.html:151
 msgid "Related questions"
-msgstr "Perguntas relacionadas"
+msgstr "Relacionadas:"
 
 #: templates/tags/form_bulk_tag_subscription.html:4
 msgid "Tag subscriptions"
@@ -7434,7 +7434,7 @@ msgstr "logotipo de %(site)s"
 
 #: templates/widgets/markdown_help.html:2
 msgid "Markdown basics"
-msgstr "Dicas básicas do Markdown"
+msgstr "Dicas do editor"
 
 #: templates/widgets/markdown_help.html:6
 msgid "*italic*"
@@ -7471,7 +7471,7 @@ msgstr "também são suportadas tags básicas do HTML"
 
 #: templates/widgets/markdown_help.html:38
 msgid "learn more about Markdown"
-msgstr "saber mais sobre o Markdown"
+msgstr "Saiba mais sobre o Markdown"
 
 #: templates/widgets/meta_nav.html:12
 msgid "people & groups"

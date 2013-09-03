@@ -1,23 +1,21 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# 
+# Translators:
 msgid ""
 msgstr ""
-"Project-Id-Version: 0.7\n"
+"Project-Id-Version: askbot\n"
 "Report-Msgid-Bugs-To: http://askbot.org/\n"
 "POT-Creation-Date: 2013-07-13 14:07-0500\n"
-"PO-Revision-Date: 2012-04-25 10:54+0000\n"
-"Last-Translator: Jesús <jesus@softcatala.org>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: ca\n"
+"PO-Revision-Date: 2013-08-02 04:08+0000\n"
+"Last-Translator: evgeny <evgeny.fadeev@gmail.com>\n"
+"Language-Team: Catalan (http://www.transifex.com/projects/p/askbot/language/ca/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: ca\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Pootle 2.5.0-beta1\n"
-"X-POOTLE-MTIME: 1335351263.0\n"
 
 #: media/jquery-openid/jquery.openid.js:73
 #, c-format
@@ -32,9 +30,7 @@ msgstr "Afegiu un o més mètodes d'iniciar sessió."
 msgid ""
 "You don't have a method to log in right now, please add one or more by "
 "clicking any of the icons below."
-msgstr ""
-"No teniu cap mètode per iniciar sessió, afegiu un o més fent clic a "
-"qualsevol de les icones inferiors."
+msgstr "No teniu cap mètode per iniciar sessió, afegiu un o més fent clic a qualsevol de les icones inferiors."
 
 #: media/jquery-openid/jquery.openid.js:135
 msgid "passwords do not match"
@@ -173,11 +169,11 @@ msgid "content cannot be empty"
 msgstr "el contingut no pot ser buit"
 
 #: media/js/post.js:196
-#, fuzzy, c-format
+#, c-format
 msgid "answer must be > %s character"
 msgid_plural "answer must be > %s characters"
-msgstr[0] "introduïu %s caràcters més"
-msgstr[1] "introduïu %s caràcters més"
+msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/post.js:253
 msgid "Back to the question"
@@ -216,9 +212,8 @@ msgid "please confirm offensive"
 msgstr "confirmeu que és ofensiu"
 
 #: media/js/post.js:559
-#, fuzzy
 msgid "please confirm removal of offensive flag"
-msgstr "confirmeu que és ofensiu"
+msgstr ""
 
 #: media/js/post.js:560
 msgid "anonymous users cannot flag offensive posts"
@@ -260,9 +255,8 @@ msgid "remove flag"
 msgstr ""
 
 #: media/js/post.js:935 media/js/post.js.c:964
-#, fuzzy
 msgid "flag offensive"
-msgstr "confirmeu que és ofensiu"
+msgstr ""
 
 #: media/js/post.js:990 media/js/post.js.c:1497
 msgid "undelete"
@@ -285,14 +279,14 @@ msgid "save comment"
 msgstr "desa el comentari"
 
 #: media/js/post.js:1711
-#, fuzzy, c-format
+#, c-format
 msgid "enter at least %s characters"
-msgstr "introduïu %s caràcters més"
+msgstr ""
 
 #: media/js/post.js:1713
-#, fuzzy, c-format
+#, c-format
 msgid "enter at least %s more characters"
-msgstr "introduïu %s caràcters més"
+msgstr ""
 
 #: media/js/post.js:1723
 #, c-format
@@ -304,9 +298,8 @@ msgid "minor edit (don't send alerts)"
 msgstr ""
 
 #: media/js/post.js:1855
-#, fuzzy
 msgid "Are you sure you don't want to post this comment?"
-msgstr "Esteu segur de voler suprimir l'inici de sessió %s?"
+msgstr ""
 
 #: media/js/post.js:1890 media/js/utils.js:3360 media/js/utils.js.c:3515
 msgid "just now"
@@ -341,9 +334,8 @@ msgid "Enter the logo url or upload an image"
 msgstr ""
 
 #: media/js/post.js:3225
-#, fuzzy
 msgid "Do you really want to remove the image?"
-msgstr "Esteu segur de voler suprimir l'inici de sessió %s?"
+msgstr ""
 
 #: media/js/post.js:3341
 msgid "change logo"
@@ -355,8 +347,7 @@ msgstr ""
 
 #: media/js/post.js:3444
 #, c-format
-msgid ""
-"tag \"%s\" was already added, no need to repeat (press \"escape\" to delete)"
+msgid "tag \"%s\" was already added, no need to repeat (press \"escape\" to delete)"
 msgstr ""
 
 #: media/js/post.js:3453
@@ -375,9 +366,8 @@ msgid "edit"
 msgstr "edita"
 
 #: media/js/post.js:3975
-#, fuzzy
 msgid "category name cannot be empty"
-msgstr "el contingut no pot ser buit"
+msgstr ""
 
 #: media/js/post.js:4011
 msgid "already exists at the current level!"
@@ -392,9 +382,8 @@ msgid "save tags"
 msgstr ""
 
 #: media/js/post.js:4689 media/js/post.js.c:4723
-#, fuzzy
 msgid "User name:"
-msgstr "nom del fitxer"
+msgstr ""
 
 #: media/js/post.js:4710
 msgid "Group name:"
@@ -428,11 +417,10 @@ msgstr[0] "Voleu suprimir aquesta notificació?"
 msgstr[1] "Voleu suprimir aquestes notificacions?"
 
 #: media/js/user.js:66
-#, fuzzy
 msgid "Close this entry?"
 msgid_plural "Close these entries?"
-msgstr[0] "suprimeix aquest comentari"
-msgstr[1] "suprimeix aquest comentari"
+msgstr[0] ""
+msgstr[1] ""
 
 #: media/js/user.js:74
 msgid "Remove all flags and approve this entry?"
@@ -441,14 +429,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: media/js/user.js:223
-#, fuzzy
 msgid "Post deleted"
-msgstr "entrada suprimida"
+msgstr ""
 
 #: media/js/user.js:225
-#, fuzzy
 msgid "Post approved"
-msgstr "entrada recuperada"
+msgstr ""
 
 #: media/js/user.js:246
 msgid "Accept"
@@ -467,9 +453,8 @@ msgid "Looks there are some things to fix:"
 msgstr ""
 
 #: media/js/user.js:443
-#, fuzzy
 msgid "Please provide description."
-msgstr "descripció de la imatge"
+msgstr ""
 
 #: media/js/user.js:446
 msgid "Please provide details."
@@ -485,8 +470,7 @@ msgstr ""
 
 #: media/js/user.js:708
 msgid "Please <a href=\"%(signin_url)s\">signin</a> to follow %(username)s"
-msgstr ""
-"<a href=\"%(signin_url)s\">Inicieu sessió</a> per seguir a %(username)s"
+msgstr "<a href=\"%(signin_url)s\">Inicieu sessió</a> per seguir a %(username)s"
 
 #: media/js/user.js:740
 #, c-format
@@ -532,9 +516,8 @@ msgid "Ok"
 msgstr ""
 
 #: media/js/utils.js:959 media/js/utils.js.c:1407
-#, fuzzy
 msgid "Cancel"
-msgstr "cancel·la"
+msgstr ""
 
 #: media/js/utils.js:1219
 #, c-format
@@ -727,9 +710,8 @@ msgid "Insert a file"
 msgstr ""
 
 #: media/js/tinymce/plugins/askbot_imageuploader/editor_plugin.js:70
-#, fuzzy
 msgid "Insert image"
-msgstr "introduïu l'enllaç de la imatge"
+msgstr ""
 
 #: media/js/wmd/wmd.js:31
 msgid "bold"
@@ -807,18 +789,11 @@ msgstr "nom del fitxer"
 msgid "link text"
 msgstr "text de l'enllaç"
 
-#, fuzzy
 #~ msgid "post a comment"
-#~ msgstr "desa el comentari"
+#~ msgstr "save comment"
 
 #~ msgid "%s content minchars"
-#~ msgstr "contingut mín. de %s caràcters"
+#~ msgstr "please enter more than %s characters"
 
 #~ msgid "%s title minchars"
-#~ msgstr "títol mín. de %s caràcters."
-
-#~ msgid "please enter title"
-#~ msgstr "introduïu un títol"
-
-#~ msgid "confirm abandon comment"
-#~ msgstr "confirmeu l'abandó del comentari"
+#~ msgstr "please enter at least %s characters"

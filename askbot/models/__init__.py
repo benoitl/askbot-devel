@@ -463,10 +463,15 @@ def user_can_have_strong_url(self):
 def user_can_post_by_email(self):
     """True, if reply by email is enabled
     and user has sufficient reputatiton"""
-    if self.is_administrator_or_moderator():
-        return True
-    return askbot_settings.REPLY_BY_EMAIL and \
-        self.reputation >= askbot_settings.MIN_REP_TO_POST_BY_EMAIL
+
+    if askbot_settings.REPLY_BY_EMAIL:
+        if self.is_administrator_or_moderator():
+            return True
+        else:
+            return self.reputation >= askbot_settings.MIN_REP_TO_POST_BY_EMAIL
+    else:
+        return False
+
 
 def user_get_social_sharing_mode(self):
     """returns what user wants to share on his/her channels"""
@@ -2417,6 +2422,12 @@ def user_get_profile_url(self, profile_section=None):
 def user_get_absolute_url(self):
     return self.get_profile_url()
 
+def user_get_primary_language(self):
+    if getattr(django_settings, 'ASKBOT_MULTILINGUAL', False):
+        return django_settings.LANGUAGE_CODE
+    else:
+        return self.languages.split()[0]
+
 def get_profile_link(self):
     profile_link = u'<a href="%s">%s</a>' \
         % (self.get_profile_url(), escape(self.username))
@@ -3040,6 +3051,7 @@ User.add_to_class('has_affinity_to_question', user_has_affinity_to_question)
 User.add_to_class('moderate_user_reputation', user_moderate_user_reputation)
 User.add_to_class('set_status', user_set_status)
 User.add_to_class('get_badge_summary', user_get_badge_summary)
+User.add_to_class('get_primary_language', user_get_primary_language)
 User.add_to_class('get_status_display', user_get_status_display)
 User.add_to_class('get_old_vote_for_post', user_get_old_vote_for_post)
 User.add_to_class('get_unused_votes_today', user_get_unused_votes_today)
@@ -3423,8 +3435,10 @@ def record_user_visit(user, timestamp, **kwargs):
     """
     prev_last_seen = user.last_seen or datetime.datetime.now()
     user.last_seen = timestamp
+    consecutive_days = user.consecutive_days_visit_count
     if (user.last_seen.date() - prev_last_seen.date()).days == 1:
         user.consecutive_days_visit_count += 1
+        consecutive_days = user.consecutive_days_visit_count
         award_badges_signal.send(None,
             event = 'site_visit',
             actor = user,
@@ -3432,7 +3446,11 @@ def record_user_visit(user, timestamp, **kwargs):
             timestamp = timestamp
         )
     #somehow it saves on the query as compared to user.save()
-    User.objects.filter(id = user.id).update(last_seen = timestamp)
+    update_data = {
+        'last_seen': timestamp,
+        'consecutive_days_visit_count': consecutive_days
+    }
+    User.objects.filter(id=user.id).update(**update_data)
 
 
 def record_vote(instance, created, **kwargs):

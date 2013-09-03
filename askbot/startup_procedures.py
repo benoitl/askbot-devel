@@ -16,7 +16,9 @@ import sys
 import urllib
 from django.db import transaction, connection
 from django.conf import settings as django_settings
+from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
+from datetime import datetime
 from askbot.utils.loading import load_module
 from askbot.utils.functions import enumerate_string_list
 from askbot.utils.url_utils import urls_equal
@@ -826,12 +828,25 @@ def test_template_context_processors():
 
 def test_cache_backend():
     """prints a warning if cache backend is disabled or per-process"""
+    #test that cache actually works
+    errors = list()
+
+    test_value = 'test value %s' % datetime.now()
+    cache.set('askbot-cache-test', test_value)
+    if cache.get('askbot-cache-test') != test_value:
+        errors.append(
+            'Cache server is unavailable.\n'
+            'Check your CACHE... settings and make sure that '
+            'the cache backend is working properly.'
+        )
+    print_errors(errors)
+
+    #test the cache backend settings
     if django.VERSION[1] > 2:
         backend = django_settings.CACHES['default']['BACKEND']
     else:
         backend = django_settings.CACHE_BACKEND
 
-    errors = list()
     if backend.strip() == '' or 'dummy' in backend:
         message = """Please enable at least a "locmem" cache (for a single process server).
 If you need to run > 1 server process, set up some production caching system,

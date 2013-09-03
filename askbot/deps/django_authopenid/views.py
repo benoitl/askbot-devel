@@ -279,7 +279,8 @@ def complete_oauth2_signin(request):
         return HttpResponseRedirect(reverse('index'))
 
     csrf_token = request.GET.get('state', None)
-    if csrf_token is None or csrf_token != request.session.pop('oauth2_csrf_token'):
+    oauth2_csrf_token = request.session.pop('oauth2_csrf_token', None)
+    if csrf_token is None or csrf_token != oauth2_csrf_token:
         return HttpResponseBadRequest()
 
     providers = util.get_enabled_login_providers()

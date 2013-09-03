@@ -78,8 +78,9 @@ class Migration(DataMigration):
             old_data = ''
 
         json_data = parse_tree(old_data)
-        json_string = simplejson.dumps(json_data)
-        askbot_settings.update('CATEGORY_TREE',  json_string)
+        json_string = simplejson.dumps(json_data).replace(' ', '')
+        if json_string.replace(' ', '') != askbot_settings.CATEGORY_TREE:
+            askbot_settings.update('CATEGORY_TREE',  json_string)
 
     def backwards(self, orm):
         "Write your backwards methods here."

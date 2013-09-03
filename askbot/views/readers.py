@@ -464,8 +464,8 @@ def question(request, id):#refactor - long subroutine. display question body, an
     #load answers and post id's->athor_id mapping
     #posts are pre-stuffed with the correctly ordered comments
     updated_question_post, answers, post_to_author, published_answer_ids = thread.get_cached_post_data(
-                                sort_method = answer_sort_method,
-                                user = request.user
+                                sort_method=answer_sort_method,
+                                user=request.user
                             )
     question_post.set_cached_comments(
         updated_question_post.get_cached_comments()

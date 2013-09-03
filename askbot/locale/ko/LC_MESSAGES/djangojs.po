@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: askbot\n"
 "Report-Msgid-Bugs-To: http://askbot.org/\n"
 "POT-Creation-Date: 2013-07-13 14:07-0500\n"
-"PO-Revision-Date: 2013-07-24 11:27+0000\n"
+"PO-Revision-Date: 2013-08-20 08:22+0000\n"
 "Last-Translator: Sungjin Gang <potopro@gmail.com>\n"
 "Language-Team: Korean (http://www.transifex.com/projects/p/askbot/language/ko/)\n"
 "MIME-Version: 1.0\n"
@@ -102,7 +102,7 @@ msgstr "메시지가 발송됨"
 #: media/js/group_messaging.js:271
 msgid "user {{str}} does not exist"
 msgid_plural "users {{str}} do not exist"
-msgstr[0] ""
+msgstr[0] "사용자 {{str}} 가 없습니다."
 
 #: media/js/group_messaging.js:278
 msgid "cannot send message to yourself"
@@ -123,7 +123,7 @@ msgstr "귀하의 의문점을 질문하세요"
 #: media/js/live_search.js:299
 msgid "Sorry, this tag does not exist"
 msgid_plural "Sorry, these tags do not exist"
-msgstr[0] ""
+msgstr[0] "죄송합니다, 그 tag가 존재하지 않습니다."
 
 #: media/js/live_search.js:313
 msgid "search or ask your question"
@@ -136,7 +136,7 @@ msgstr "로딩중.."
 #: media/js/post.js:100
 msgid "must be shorter than %(max_chars)s character"
 msgid_plural "must be shorter than %(max_chars)s characters"
-msgstr[0] ""
+msgstr[0] "%(max_chars)s 글자보다 작아야 합니다."
 
 #: media/js/post.js:154 media/js/post.js.c:1269
 msgid "tags cannot be empty"
@@ -170,7 +170,7 @@ msgstr "적어도 하나의 태그를 입력하십시오."
 #, c-format
 msgid "answer must be > %s character"
 msgid_plural "answer must be > %s characters"
-msgstr[0] ""
+msgstr[0] "적어도 %s 글자 이상으로 입력을 해주십시오."
 
 #: media/js/post.js:253
 msgid "Back to the question"
@@ -244,7 +244,7 @@ msgstr[0] "%s 팔로워들"
 
 #: media/js/post.js:845
 msgid "<div>Following</div><div class=\"unfollow\">Unfollow</div>"
-msgstr ""
+msgstr "<div>Following</div><div class=\"unfollow\">Unfollow</div>"
 
 #: media/js/post.js:901
 msgid "remove flag"
@@ -277,17 +277,17 @@ msgstr "댓글 저장"
 #: media/js/post.js:1711
 #, c-format
 msgid "enter at least %s characters"
-msgstr ""
+msgstr "적어도 %s 글자 이상으로 입력을 해주십시오."
 
 #: media/js/post.js:1713
 #, c-format
 msgid "enter at least %s more characters"
-msgstr ""
+msgstr "적어도 %s 글자 이상으로 입력을 해주십시오."
 
 #: media/js/post.js:1723
 #, c-format
 msgid "%s characters left"
-msgstr ""
+msgstr "적어도 %s 글자 이상으로 입력을 해주십시오."
 
 #: media/js/post.js:1823
 msgid "minor edit (don't send alerts)"
@@ -295,7 +295,7 @@ msgstr "사소한 수정(알림을 보내지 않음)"
 
 #: media/js/post.js:1855
 msgid "Are you sure you don't want to post this comment?"
-msgstr ""
+msgstr "이 post에 댓글을 삭제 하실 건가요?"
 
 #: media/js/post.js:1890 media/js/utils.js:3360 media/js/utils.js.c:3515
 msgid "just now"
@@ -303,15 +303,15 @@ msgstr "지금 당장"
 
 #: media/js/post.js:1956
 msgid "delete this comment"
-msgstr ""
+msgstr "클릭하여 이 댓글 수정"
 
 #: media/js/post.js:2271
 msgid "confirm delete comment"
-msgstr ""
+msgstr "정말 이 댓글을 삭제 하시겠습니까?"
 
 #: media/js/post.js:2409
 msgid "please sign in or register to post comments"
-msgstr ""
+msgstr "sign in 또는 가입을 하셔야 댓글을 남기실 수 있습니다."
 
 #: media/js/post.js:2560
 msgid "Please enter question title (>10 characters)"
@@ -323,46 +323,46 @@ msgstr ""
 
 #: media/js/post.js:3075 media/js/post.js.c:3869 media/js/post.js.c:4058
 msgid "save"
-msgstr ""
+msgstr "저장"
 
 #: media/js/post.js:3199
 msgid "Enter the logo url or upload an image"
-msgstr ""
+msgstr "logo url을 입력하시거나 이미지를 업로드 해주십시오."
 
 #: media/js/post.js:3225
 msgid "Do you really want to remove the image?"
-msgstr ""
+msgstr "이미지를 삭제하길 원하십니까?"
 
 #: media/js/post.js:3341
 msgid "change logo"
-msgstr ""
+msgstr "logo 변경"
 
 #: media/js/post.js:3342
 msgid "add logo"
-msgstr ""
+msgstr "logo 추가"
 
 #: media/js/post.js:3444
 #, c-format
 msgid "tag \"%s\" was already added, no need to repeat (press \"escape\" to delete)"
-msgstr ""
+msgstr "tag \"%s\"가 이미 추가되어 있습니다, 반복하여 입력하실 필요가 없습니다.(\"escape\"를 누르시면 삭제됩니다.)"
 
 #: media/js/post.js:3453
 #, c-format
 msgid "a maximum of %s tag is allowed"
 msgid_plural "a maximum of %s tags are allowed"
-msgstr[0] ""
+msgstr[0] "%s tag에 대한 최대 허용."
 
 #: media/js/post.js:3799
 msgid "Delete category?"
-msgstr ""
+msgstr "카테고리 삭제 하시겠습니까?"
 
 #: media/js/post.js:3888 media/js/utils.js:881
 msgid "edit"
-msgstr ""
+msgstr "수정"
 
 #: media/js/post.js:3975
 msgid "category name cannot be empty"
-msgstr ""
+msgstr "최소 하나의 tag를 입력해 주십시오."
 
 #: media/js/post.js:4011
 msgid "already exists at the current level!"
@@ -370,27 +370,27 @@ msgstr ""
 
 #: media/js/post.js:4047
 msgid "add category"
-msgstr ""
+msgstr "카테고리 추가"
 
 #: media/js/post.js:4594
 msgid "save tags"
-msgstr ""
+msgstr "tags 저장"
 
 #: media/js/post.js:4689 media/js/post.js.c:4723
 msgid "User name:"
-msgstr ""
+msgstr "사용자 이름:"
 
 #: media/js/post.js:4710
 msgid "Group name:"
-msgstr ""
+msgstr "그룹 이름:"
 
 #: media/js/post.js:4736
 msgid "Shared with the following users:"
-msgstr ""
+msgstr "following 사용자들에게 공유:"
 
 #: media/js/post.js:4742
 msgid "Shared with the following groups:"
-msgstr ""
+msgstr "following 그룹에게 공유:"
 
 #: media/js/tag_selector.js:14
 msgid "Tag \"<span></span>\" matches:"
@@ -418,15 +418,15 @@ msgstr[0] "해당 항목을 닫으시겠습니까?"
 #: media/js/user.js:74
 msgid "Remove all flags and approve this entry?"
 msgid_plural "Remove all flags and approve these entries?"
-msgstr[0] ""
+msgstr[0] "모든 flags를 제거하고, 이 항목을 승인하시겠습니까?"
 
 #: media/js/user.js:223
 msgid "Post deleted"
-msgstr ""
+msgstr "글이 삭제되었습니다."
 
 #: media/js/user.js:225
 msgid "Post approved"
-msgstr ""
+msgstr "글이 복원되었습니다."
 
 #: media/js/user.js:246
 msgid "Accept"
