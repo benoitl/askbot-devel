@@ -832,11 +832,19 @@ def ldap_check_password(username, password):
     results = {"success": False, "ldap_username": username, "first_name": '', "last_name": '', "email": '' }
     (un, bypass) = check_pwd_bypass(username)
     if bypass:
-        results["ldap_username"] = un
-        results["success"] = True
+        info = get_user_info('ldap', un)
+        if not info[0] is None:
+           results["first_name"] = info[0]
+           results["last_name"] = info[1]
+           results["email"] = info[2]
+           results["django_username"] = info[0]+'.'+info[1]
+           results["ldap_username"] = un
+           results["success"] = True
         return results
 
     try:
+        password = "%r" % password  # avoid escape characters
+        password = password[2:-1]
         ldap_session = ldap.initialize(askbot_settings.LDAP_URL)
         ldap_session.simple_bind_s("corp\\" + username, password)
         ldap_session.unbind_s()
@@ -844,6 +852,14 @@ def ldap_check_password(username, password):
     except ldap.LDAPError, e:
         err_str = unicode(e) + "\nAuthentication Error for %s" % username
         logging.critical(err_str)
+
+    info = get_user_info('ldap', username)
+    if not info[0] is None:
+           results["first_name"] = info[0]
+           results["last_name"] = info[1]
+           results["email"] = info[2]
+           results["django_username"] = info[0]+'.'+info[1]
+
 
     return results
 
